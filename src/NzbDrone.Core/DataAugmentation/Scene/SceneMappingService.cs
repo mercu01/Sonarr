@@ -19,6 +19,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         List<SceneMapping> FindByTvdbId(int tvdbId);
         SceneMapping FindSceneMapping(string sceneTitle, string releaseTitle, int sceneSeasonNumber);
         int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle);
+        void Add(SceneMapping scene);
     }
 
     public class SceneMappingService : ISceneMappingService,
@@ -122,7 +123,11 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         {
             return FindSceneMapping(seriesTitle, releaseTitle, -1)?.SceneSeasonNumber;
         }
-
+        public void Add(SceneMapping scene)
+        {
+            _repository.Insert(scene);
+            UpdateMappings();
+        }
         private void UpdateMappings()
         {
             _logger.Info("Updating Scene mappings");

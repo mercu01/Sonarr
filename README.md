@@ -1,3 +1,20 @@
+## Versión modificada de sonarr para atomixHQ
+
+Tipo serie: "anime", generará el siguiente formato de busqueda en jackett:
+
+"{Series.Title} {SeasonNumber:0}{EpisodeNumber:00} atomixhq"
+<img src="Sample1.jpg" alt="Sample anime">
+
+El campo title permite el renombre de la serie para otros idiomas:
+ 
+<img src="Sample2.jpg" alt="Sample change title">
+
+Resultado en jackett:
+
+<img src="Sample3.jpg" alt="Sample change title">
+
+-----------------------------------
+
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
 
 Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new episodes of your favorite shows and will grab, sort and rename them. It can also be configured to automatically upgrade the quality of files already downloaded when a better quality format becomes available.
