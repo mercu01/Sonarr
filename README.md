@@ -1,12 +1,13 @@
 ## Versión modificada de sonarr para atomixHQ
 
-Tipo serie anime: generará esta busqueda en jackett:
+Tipo serie: "anime", generará el siguiente formato de busqueda en jackett:
 
-* <img src="Sample1.jpg" alt="Sample" width="32">
+"{Series.Title} {SeasonNumber:0}{EpisodeNumber:00} atomixhq"
+<img src="Sample1.jpg" alt="Sample anime">
 
 El campo title permite el renombre de la serie para otros idiomas:
  
-* <img src="Sample2.jpg" alt="Sample" width="32">
+<img src="Sample2.jpg" alt="Sample change title">
 
 
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
