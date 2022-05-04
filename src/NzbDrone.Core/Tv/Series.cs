@@ -63,6 +63,7 @@ namespace NzbDrone.Core.Tv
 
         public void ApplyChanges(Series otherSeries)
         {
+            Title = otherSeries.Title;
             TvdbId = otherSeries.TvdbId;
 
             Seasons = otherSeries.Seasons;

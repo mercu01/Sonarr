@@ -11,6 +11,7 @@ import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
 import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+
 import MoveSeriesModal from 'Series/MoveSeries/MoveSeriesModal';
 import styles from './EditSeriesModalContent.css';
 
@@ -56,7 +57,6 @@ class EditSeriesModalContent extends Component {
 
   render() {
     const {
-      title,
       item,
       isSaving,
       showLanguageProfile,
@@ -74,17 +74,41 @@ class EditSeriesModalContent extends Component {
       languageProfileId,
       seriesType,
       path,
+      title,
       tags
     } = item;
 
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          Edit - {title}
+          Edit - {otherProps.title}
         </ModalHeader>
 
         <ModalBody>
           <Form {...otherProps}>
+            <FormGroup>
+              <FormLabel>Title
+              </FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.TEXT}
+                value= {otherProps.title}
+                name="title"
+                helpText="Please, when you have it working, share it with the community, add Sonarr Scene Naming Exceptions:"
+                {...title}
+                onChange={onInputChange}
+              />
+              <div class={styles.helpText}> 
+                <span>
+                  <a href='https://docs.google.com/forms/d/e/1FAIpQLSdn_l_RvNCAPdL-ahVV0Z9hHw1swcxMLrEPY3pJE9qa7IR3tw/viewform?fbzx=1481989643151029965'>Add Naming Exception</a>
+                </span>
+              </div>
+              <div class={styles.helpText}> 
+                <span>
+                  <a href='https://docs.google.com/spreadsheets/d/1PiIvzijwcdALKQWfGE3j4lwnOqmDkhB48fyQTArJpI4/edit#gid=675284162'>Excel Naming Exception</a>
+                </span>
+              </div>
+            </FormGroup>
             <FormGroup>
               <FormLabel>Monitored</FormLabel>
 
