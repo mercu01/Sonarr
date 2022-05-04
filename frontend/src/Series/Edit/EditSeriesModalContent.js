@@ -87,9 +87,7 @@ class EditSeriesModalContent extends Component {
         <ModalBody>
           <Form {...otherProps}>
             <FormGroup>
-              <FormLabel>Title
-              </FormLabel>
-
+              <FormLabel>Title</FormLabel>
               <FormInputGroup
                 type={inputTypes.TEXT}
                 value= {otherProps.title}

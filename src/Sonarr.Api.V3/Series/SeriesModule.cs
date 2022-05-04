@@ -9,6 +9,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.SeriesStats;
 using NzbDrone.Core.Tv;
@@ -162,7 +163,21 @@ namespace Sonarr.Api.V3.Series
             var model = seriesResource.ToModel(series);
 
             _seriesService.UpdateSeries(model);
-
+            var current = _sceneMappingService.FindByTvdbId(series.TvdbId);
+            if (series.Title != model.Title && current.Any(_=>_.SearchTerm == series.Title) == false)
+            {
+                var scene = new SceneMapping()
+                {
+                    TvdbId = series.TvdbId,
+                    Title = series.Title,
+                    SearchTerm = series.Title,
+                    SeasonNumber = -1,
+                    ParseTerm = series.Title.CleanSeriesTitle(),
+                    Type = "CustomScene"
+                };
+                _sceneMappingService.Add(scene);
+            }
+          
             BroadcastResourceChange(ModelAction.Updated, seriesResource);
         }
 
