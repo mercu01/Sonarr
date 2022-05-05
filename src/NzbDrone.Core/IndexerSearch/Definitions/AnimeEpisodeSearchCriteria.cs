@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     public class AnimeEpisodeSearchCriteria : SearchCriteriaBase
@@ -9,7 +12,9 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            return $"[{Series.Title} {SeasonNumber:0}{EpisodeNumber:00} atomixhq]";
+            return $"[{Series.Title} {SeasonNumber:0}{EpisodeNumber:00}]. Search term: "
+                + String.Join(", ", SceneTitles.Select(_ => $"[{_} {SeasonNumber:0}{EpisodeNumber:00} atomixhq]"));
+
         }
     }
 }

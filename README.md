@@ -1,17 +1,52 @@
-## Versión modificada de sonarr para atomixHQ
+## Modified version of sonarr for atomixHQ - Versión modificada de sonarr para atomixHQ
 
-Tipo serie: "anime", generará el siguiente formato de busqueda en jackett:
+ Type show: "anime", will generate the following search format in jackett:
 
 "{Series.Title} {SeasonNumber:0}{EpisodeNumber:00} atomixhq"
 <img src="Sample1.jpg" alt="Sample anime">
 
-El campo title permite el renombre de la serie para otros idiomas:
+The title field allows add search terms:
  
 <img src="Sample2.jpg" alt="Sample change title">
 
-Resultado en jackett:
+#How to use
 
-<img src="Sample3.jpg" alt="Sample change title">
+Download patch: "patch_build_mono.7z"
+
+Override writes the following files to your sonarr installation:
+    Sonarr.Core.dll
+    Sonarr.Api.V3.dll
+    Carpeta /UI
+
+#Docker compose
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    networks:
+      - default
+    depends_on:
+      - qbittorrent
+      - jackett
+    volumes:
+      - /path/to/conf:/config
+      - /path/to/tv:/tv
+      - /path/to/downloads:/downloads
+      - type: bind
+        source: patch/UI
+        target: /app/sonarr/bin/UI
+      - type: bind
+        source: patch/Sonarr.Core.dll
+        target: /app/sonarr/bin/Sonarr.Core.dll
+      - type: bind
+        source: patch/Sonarr.Api.V3.dll
+        target: /app/sonarr/bin/Sonarr.Api.V3.dll
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    environment:
+      - UMASK_SET=022 #optional
+      - PUID=1000
+      - PGID=1000
 
 -----------------------------------
 
