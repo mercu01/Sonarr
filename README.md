@@ -49,6 +49,12 @@ The title field allows add search terms:
       - PUID=1000
       - PGID=1000
 ```
+##Tips 
+
+- Jackket indexer: BTDigg (need config flaresolverr)
+- Sonarr setting - Profile - Language: English, Spanish, Unknown
+- Sonarr setting - Profile - Quality profiles: WEB 1080p
+- Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - Spanish - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
 -----------------------------------
 
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
