@@ -1,4 +1,4 @@
-## Modified version of sonarr for atomixHQ - Versión modificada de sonarr para atomixHQ
+# Modified version of sonarr for atomixHQ
 
 Serie type: "anime", will generate the following search format in jackett:
 
@@ -9,16 +9,16 @@ The title field allows add search terms:
  
 <img src="Sample2.jpg" alt="Sample change title">
 
-##How to use
+## How to use
 
-1. Download patch: "patch_build_mono.7z" or build branch.
+1. Download patch: "patch_build_mono.7z" or build branch. [Download](patch_build_mono.7z)
 
 2. Override writes the following files to your sonarr installation:
-    Sonarr.Core.dll
-    Sonarr.Api.V3.dll
-    Carpeta /UI
+- File: Sonarr.Core.dll
+- File: Sonarr.Api.V3.dll
+- Folder: /UI
 
-##Docker compose
+## Docker compose
 ```yaml
   sonarr:
     image: linuxserver/sonarr
@@ -49,9 +49,9 @@ The title field allows add search terms:
       - PUID=1000
       - PGID=1000
 ```
-##Tips 
+## Tips 
 
-- Jackket indexer: BTDigg (need config flaresolverr)
+- Jackett indexer: BTDigg (need config flaresolverr)
 - Sonarr setting - Profile - Language: English, Spanish, Unknown
 - Sonarr setting - Profile - Quality profiles: WEB 1080p
 - Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - Spanish - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
