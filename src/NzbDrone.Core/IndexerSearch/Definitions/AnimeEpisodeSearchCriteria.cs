@@ -13,7 +13,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         public override string ToString()
         {
             return $"[{Series.Title} {SeasonNumber:0}{EpisodeNumber:00}]. Search term: "
-                + String.Join(", ", SceneTitles.Select(_ => $"[{_} {SeasonNumber:0}{EpisodeNumber:00} atomixhq]"));
+                + String.Join(", ", SceneTitles.Select(_ => $"[{_} Cap.{SeasonNumber:0}{EpisodeNumber:00}"));
 
         }
     }
