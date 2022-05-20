@@ -238,20 +238,6 @@ class EpisodeRow extends Component {
               );
             }
 
-            if (name === 'videoDynamicRangeType') {
-              return (
-                <TableRowCell
-                  key={name}
-                  className={styles.videoDynamicRangeType}
-                >
-                  <MediaInfoConnector
-                    type={mediaInfoTypes.VIDEO_DYNAMIC_RANGE_TYPE}
-                    episodeFileId={episodeFileId}
-                  />
-                </TableRowCell>
-              );
-            }
-
             if (name === 'size') {
               return (
                 <TableRowCell

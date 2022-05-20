@@ -84,7 +84,7 @@ class DelayProfile extends Component {
       connectDragSource
     } = this.props;
 
-    let preferred = `Prefer ${titleCase(preferredProtocol)}`;
+    let preferred = titleCase(preferredProtocol);
 
     if (!enableUsenet) {
       preferred = 'Only Torrent';

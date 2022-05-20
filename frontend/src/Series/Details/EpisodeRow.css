@@ -38,7 +38,6 @@
 }
 
 .audioLanguages,
-.videoDynamicRangeType,
 .subtitles {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 

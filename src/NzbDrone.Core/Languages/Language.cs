@@ -84,8 +84,6 @@ namespace NzbDrone.Core.Languages
         public static Language Arabic       { get { return new Language(26, "Arabic"); } }
         public static Language Hindi        { get { return new Language(27, "Hindi"); } }
         public static Language Bulgarian    { get { return new Language(28, "Bulgarian"); } }
-        public static Language Malayalam    { get { return new Language(29, "Malayalam"); } }
-        public static Language Ukrainian    { get { return new Language(30, "Ukrainian"); } }
 
 
         public static List<Language> All
@@ -122,9 +120,7 @@ namespace NzbDrone.Core.Languages
                     Czech,
                     Arabic,
                     Hindi,
-                    Bulgarian,
-                    Malayalam,
-                    Ukrainian
+                    Bulgarian
                 };
             }
         }

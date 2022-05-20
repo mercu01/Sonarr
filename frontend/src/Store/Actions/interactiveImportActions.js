@@ -34,7 +34,7 @@ export const defaultState = {
   sortKey: 'quality',
   sortDirection: sortDirections.DESCENDING,
   recentFolders: [],
-  importMode: 'chooseImportMode',
+  importMode: 'move',
   sortPredicates: {
     relativePath: function(item, direction) {
       const relativePath = item.relativePath;

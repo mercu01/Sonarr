@@ -246,13 +246,7 @@ namespace NzbDrone.Core.Parser
 
             if (parsedEpisodeInfo.IsPossibleSceneSeasonSpecial)
             {
-                var parsedSpecialEpisodeInfo = ParseSpecialEpisodeTitle(parsedEpisodeInfo, parsedEpisodeInfo.ReleaseTitle, series);
-
-                if (parsedSpecialEpisodeInfo != null)
-                {
-                    // Use the season number and disable scene source since the season/episode numbers that were returned are not scene numbers
-                    return GetStandardEpisodes(series, parsedSpecialEpisodeInfo, parsedSpecialEpisodeInfo.SeasonNumber, false, searchCriteria);
-                }
+                parsedEpisodeInfo = ParseSpecialEpisodeTitle(parsedEpisodeInfo, parsedEpisodeInfo.ReleaseTitle, series) ?? parsedEpisodeInfo;
             }
 
             return GetStandardEpisodes(series, parsedEpisodeInfo, mappedSeasonNumber, sceneSource, searchCriteria);

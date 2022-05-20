@@ -59,7 +59,7 @@ function NotificationEventItems(props) {
             <FormInputGroup
               type={inputTypes.CHECK}
               name="onDownload"
-              helpText="On Import"
+              helpText="On Download"
               isDisabled={!supportsOnDownload.value}
               {...onDownload}
               onChange={onInputChange}

@@ -16,13 +16,6 @@ import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import styles from './EditDelayProfileModalContent.css';
 
-const protocolOptions = [
-  { key: 'preferUsenet', value: 'Prefer Usenet' },
-  { key: 'preferTorrent', value: 'Prefer Torrent' },
-  { key: 'onlyUsenet', value: 'Only Usenet' },
-  { key: 'onlyTorrent', value: 'Only Torrent' }
-];
-
 function EditDelayProfileModalContent(props) {
   const {
     id,
@@ -32,6 +25,7 @@ function EditDelayProfileModalContent(props) {
     saveError,
     item,
     protocol,
+    protocolOptions,
     onInputChange,
     onProtocolChange,
     onSavePress,
@@ -57,22 +51,20 @@ function EditDelayProfileModalContent(props) {
 
       <ModalBody>
         {
-          isFetching ?
-            <LoadingIndicator /> :
-            null
+          isFetching &&
+            <LoadingIndicator />
         }
 
         {
-          !isFetching && !!error ?
-            <div>Unable to add a new quality profile, please try again.</div> :
-            null
+          !isFetching && !!error &&
+            <div>Unable to add a new quality profile, please try again.</div>
         }
 
         {
-          !isFetching && !error ?
+          !isFetching && !error &&
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>Preferred Protocol</FormLabel>
+                <FormLabel>Protocol</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
@@ -148,21 +140,19 @@ function EditDelayProfileModalContent(props) {
                     />
                   </FormGroup>
               }
-            </Form> :
-            null
+            </Form>
         }
       </ModalBody>
       <ModalFooter>
         {
-          id && id > 1 ?
+          id && id > 1 &&
             <Button
               className={styles.deleteButton}
               kind={kinds.DANGER}
               onPress={onDeleteDelayProfilePress}
             >
               Delete
-            </Button> :
-            null
+            </Button>
         }
 
         <Button
@@ -200,6 +190,7 @@ EditDelayProfileModalContent.propTypes = {
   saveError: PropTypes.object,
   item: PropTypes.shape(delayProfileShape).isRequired,
   protocol: PropTypes.string.isRequired,
+  protocolOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
   onInputChange: PropTypes.func.isRequired,
   onProtocolChange: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,

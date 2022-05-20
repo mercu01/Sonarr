@@ -1,28 +1,33 @@
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
-import { icons } from 'Helpers/Props';
+import React, { Component } from 'react';
 import Link from 'Components/Link/Link';
-import Icon from 'Components/Icon';
 import ImportSeriesTitle from './ImportSeriesTitle';
 import styles from './ImportSeriesSearchResult.css';
 
-function ImportSeriesSearchResult(props) {
-  const {
-    tvdbId,
-    title,
-    year,
-    network,
-    isExistingSeries,
-    onPress
-  } = props;
+class ImportSeriesSearchResult extends Component {
 
-  const onPressCallback = useCallback(() => onPress(tvdbId), [tvdbId, onPress]);
+  //
+  // Listeners
 
-  return (
-    <div className={styles.container}>
+  onPress = () => {
+    this.props.onPress(this.props.tvdbId);
+  }
+
+  //
+  // Render
+
+  render() {
+    const {
+      title,
+      year,
+      network,
+      isExistingSeries
+    } = this.props;
+
+    return (
       <Link
         className={styles.series}
-        onPress={onPressCallback}
+        onPress={this.onPress}
       >
         <ImportSeriesTitle
           title={title}
@@ -31,19 +36,8 @@ function ImportSeriesSearchResult(props) {
           isExistingSeries={isExistingSeries}
         />
       </Link>
-
-      <Link
-        className={styles.tvdbLink}
-        to={`http://www.thetvdb.com/?tab=series&id=${tvdbId}`}
-      >
-        <Icon
-          className={styles.tvdbLinkIcon}
-          name={icons.EXTERNAL_LINK}
-          size={16}
-        />
-      </Link>
-    </div>
-  );
+    );
+  }
 }
 
 ImportSeriesSearchResult.propTypes = {
