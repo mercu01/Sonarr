@@ -1,11 +1,11 @@
-# Modified version of sonarr for atomixHQ
+# Modified version of sonarr for atomoHD, atomixHQ, etc.
 
 Serie type: "anime", will generate the following search format in jackett:
 
-"{Series.Title} {SeasonNumber:0}{EpisodeNumber:00} atomixhq"
+"{Series.Title} Cap.{SeasonNumber:0}{EpisodeNumber:00}"
 <img src="Sample1.jpg" alt="Sample anime">
 
-The title field allows add search terms:
+The title field allows add search terms (scene mapping):
  
 <img src="Sample2.jpg" alt="Sample change title">
 
