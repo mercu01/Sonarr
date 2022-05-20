@@ -9,6 +9,11 @@ The title field allows add search terms (scene mapping):
  
 <img src="Sample2.jpg" alt="Sample change title">
 
+Two task added:
+
+- Missing Episode Search (Wanted -> Missing) every 6 hours
+- Cutoff Unmet Episode Search	(Wanted -> Cuttoff Unmet, monitored only) every 6 hours
+
 ## How to use
 
 1. Download patch: "patch_build_mono.7z" or build branch. [Download](patch_build_mono.7z)

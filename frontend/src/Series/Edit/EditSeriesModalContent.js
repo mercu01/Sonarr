@@ -96,14 +96,14 @@ class EditSeriesModalContent extends Component {
                 {...title}
                 onChange={onInputChange}
               />
-              <div class={styles.helpText}> 
+              <div> 
                 <span>
-                  <a href='https://docs.google.com/forms/d/e/1FAIpQLSdn_l_RvNCAPdL-ahVV0Z9hHw1swcxMLrEPY3pJE9qa7IR3tw/viewform?fbzx=1481989643151029965'>Add Naming Exception</a>
+                  <a href="https://docs.google.com/forms/d/e/1FAIpQLSdn_l_RvNCAPdL-ahVV0Z9hHw1swcxMLrEPY3pJE9qa7IR3tw/viewform?fbzx=1481989643151029965" target="_blank">Add Naming Exception</a>
                 </span>
               </div>
-              <div class={styles.helpText}> 
+              <div> 
                 <span>
-                  <a href='https://docs.google.com/spreadsheets/d/1PiIvzijwcdALKQWfGE3j4lwnOqmDkhB48fyQTArJpI4/edit#gid=675284162'>Excel Naming Exception</a>
+                  <a href="https://docs.google.com/spreadsheets/d/1PiIvzijwcdALKQWfGE3j4lwnOqmDkhB48fyQTArJpI4/edit#gid=675284162" target="_blank">Excel Naming Exception</a>
                 </span>
               </div>
             </FormGroup>

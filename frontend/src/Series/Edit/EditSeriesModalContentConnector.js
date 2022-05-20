@@ -44,7 +44,8 @@ function createMapStateToProps() {
         'languageProfileId',
         'seriesType',
         'path',
-        'tags'
+        'tags',
+        'title'
       ]);
 
       const settings = selectSettings(seriesSettings, pendingChanges, saveError);
