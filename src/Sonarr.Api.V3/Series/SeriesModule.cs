@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation;
+using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.MediaCover;
@@ -9,6 +12,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.SeriesStats;
 using NzbDrone.Core.Tv;
@@ -39,7 +43,7 @@ namespace Sonarr.Api.V3.Series
         private readonly IMapCoversToLocal _coverMapper;
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IRootFolderService _rootFolderService;
-
+        private readonly Logger _logger;
         public SeriesModule(IBroadcastSignalRMessage signalRBroadcaster,
                             ISeriesService seriesService,
                             IAddSeriesService addSeriesService,
@@ -56,10 +60,13 @@ namespace Sonarr.Api.V3.Series
                             SystemFolderValidator systemFolderValidator,
                             ProfileExistsValidator profileExistsValidator,
                             LanguageProfileExistsValidator languageProfileExistsValidator,
-                            SeriesFolderAsRootFolderValidator seriesFolderAsRootFolderValidator
+                            SeriesFolderAsRootFolderValidator seriesFolderAsRootFolderValidator,
+                            Logger logger
+
             )
             : base(signalRBroadcaster)
         {
+            _logger = logger;
             _seriesService = seriesService;
             _addSeriesService = addSeriesService;
             _seriesStatisticsService = seriesStatisticsService;
@@ -162,6 +169,22 @@ namespace Sonarr.Api.V3.Series
             var model = seriesResource.ToModel(series);
 
             _seriesService.UpdateSeries(model);
+            var current = _sceneMappingService.FindByTvdbId(series.TvdbId);
+            if (seriesResource.Title != model.Title && current.Any(_=>_.SearchTerm == seriesResource.Title) == false)
+            {
+                var scene = new SceneMapping()
+                {
+                    TvdbId = series.TvdbId,
+                    Title = seriesResource.Title,
+                    SearchTerm = seriesResource.Title,
+                    SeasonNumber = -1,
+                    ParseTerm = seriesResource.Title.CleanSeriesTitle(),
+                    Type = "CustomScene"
+                };
+                _sceneMappingService.Add(scene);
+                _logger.ProgressInfo("Current scene mapping: {0}. Add scene mapping: {1}", String.Join(", ", current.Select(_=>_.Title)), scene.Title);
+            }else
+                _logger.ProgressInfo("Current scene mapping: {0}. Not add mapping", String.Join(", ", current.Select(_ => _.Title)));
 
             BroadcastResourceChange(ModelAction.Updated, seriesResource);
         }

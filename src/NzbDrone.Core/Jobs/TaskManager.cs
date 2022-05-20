@@ -12,6 +12,7 @@ using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Housekeeping;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
@@ -89,6 +90,12 @@ namespace NzbDrone.Core.Jobs
                     {
                         Interval = 3 * 60,
                         TypeName = typeof(UpdateSceneMappingCommand).FullName
+                    },
+                    
+                    new ScheduledTask
+                    {
+                        Interval = 6 * 60,
+                        TypeName = typeof(MissingEpisodeSearchCommand).FullName,
                     },
 
                     new ScheduledTask
