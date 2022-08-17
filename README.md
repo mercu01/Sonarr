@@ -1,29 +1,38 @@
 # Modified version of sonarr for atomoHD, atomixHQ, etc.
-
-Serie type: "anime", will generate the following search format in jackett:
+####  What does this?
+Will generate the following search format in jackett:
 
 "{Series.Title} Cap.{SeasonNumber:0}{EpisodeNumber:00}"
-<img src="Sample1.jpg" alt="Sample anime">
 
-The title field allows add search terms (scene mapping):
- 
-<img src="Sample2.jpg" alt="Sample change title">
+####How to use?
+Serie type: "atomoHD"
+<img src="Sample1.jpg" alt="Sample serie type">
 
-Two task added:
+####Can't find the series?
 
+Search monitored and make sure that sonarr has the correct title in Spanish:
+<img src="Sample2.jpg" alt="Sample log search term">
+
+The title field is enabled, you can manually add search terms:
+<img src="Sample3.jpg" alt="Sample change title">
+
+
+####Is there something else?
+
+Two tasks added, to automate the search for new episodes
 - Missing Episode Search (Wanted -> Missing) every 6 hours
 - Cutoff Unmet Episode Search	(Wanted -> Cuttoff Unmet, monitored only) every 6 hours
 
-## How to use
+#### How to use
 
-1. Download patch: "patch_build_mono.7z" or build branch. [Download](patch_build_mono.7z)
+1. Download patch: "patch_build_mono.zip" or build branch. [Download](patch_build_mono.zip)
 
 2. Override writes the following files to your sonarr installation:
 - File: Sonarr.Core.dll
 - File: Sonarr.Api.V3.dll
 - Folder: /UI
 
-## Docker compose
+#### Docker compose
 ```yaml
   sonarr:
     image: linuxserver/sonarr
