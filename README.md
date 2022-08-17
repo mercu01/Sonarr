@@ -1,14 +1,14 @@
 # Modified version of sonarr for atomoHD, atomixHQ, etc.
-####  What does this?
+#### What does this?
 Will generate the following search format in jackett:
 
 "{Series.Title} Cap.{SeasonNumber:0}{EpisodeNumber:00}"
 
-####How to use?
+#### How to use?
 Serie type: "atomoHD"
 <img src="Sample1.jpg" alt="Sample serie type">
 
-####Can't find the series?
+#### Can't find the series?
 
 Search monitored and make sure that sonarr has the correct title in Spanish:
 <img src="Sample2.jpg" alt="Sample log search term">
@@ -17,7 +17,7 @@ The title field is enabled, you can manually add search terms:
 <img src="Sample3.jpg" alt="Sample change title">
 
 
-####Is there something else?
+#### Is there something else?
 
 Two tasks added, to automate the search for new episodes
 - Missing Episode Search (Wanted -> Missing) every 6 hours
@@ -63,9 +63,9 @@ Two tasks added, to automate the search for new episodes
       - PUID=1000
       - PGID=1000
 ```
-## Tips 
+#### Tips 
 
-- Jackett indexer: BTDigg (need config flaresolverr)
+- Jackett indexer: BTDigg (need config flaresolverr in jacket)/ BT4G 
 - Sonarr setting - Profile - Language: English, Spanish, Unknown
 - Sonarr setting - Profile - Quality profiles: WEB 1080p
 - Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - Spanish - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
