@@ -55,12 +55,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
             var firstEpisode = episodes.First();
             var episodesInSeason = _episodeService.GetEpisodesBySeason(firstEpisode.SeriesId, firstEpisode.EpisodeNumber);
             var allEpisodesOnTheSameDay = firstEpisode.AirDateUtc.HasValue && episodes.All(e =>
-                                              e.AirDateUtc.HasValue &&
+                                              !e.AirDateUtc.HasValue ||
                                               e.AirDateUtc.Value == firstEpisode.AirDateUtc.Value);
 
             if (episodeTitleRequired == EpisodeTitleRequiredType.BulkSeasonReleases &&
                 allEpisodesOnTheSameDay &&
-                episodesInSeason.Count(e => e.AirDateUtc.HasValue &&
+                episodesInSeason.Count(e => !e.AirDateUtc.HasValue ||
                                             e.AirDateUtc.Value == firstEpisode.AirDateUtc.Value
                                        ) < 4
             )
@@ -74,9 +74,9 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
                 var airDateUtc = episode.AirDateUtc;
                 var title = episode.Title;
 
-                if (airDateUtc.HasValue && airDateUtc.Value.Before(DateTime.UtcNow.AddDays(-1)))
+                if (airDateUtc.HasValue && airDateUtc.Value.Before(DateTime.UtcNow.AddHours(-48)))
                 {
-                    _logger.Debug("Episode aired more than 1 day ago");
+                    _logger.Debug("Episode aired more than 48 hours ago");
                     continue;
                 }
 

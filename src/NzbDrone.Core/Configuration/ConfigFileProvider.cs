@@ -39,9 +39,13 @@ namespace NzbDrone.Core.Configuration
         string SslCertHash { get; }
         string UrlBase { get; }
         string UiFolder { get; }
+        string InstanceName { get; }
         bool UpdateAutomatically { get; }
         UpdateMechanism UpdateMechanism { get; }
         string UpdateScriptPath { get; }
+        string SyslogServer { get; }
+        int SyslogPort { get; }
+        string SyslogLevel { get; }
     }
 
     public class ConfigFileProvider : IConfigFileProvider
@@ -202,6 +206,19 @@ namespace NzbDrone.Core.Configuration
         // public string UiFolder => GetValue("UiFolder", "UI", false);GetValue("UiFolder", "UI", false);
         public string UiFolder => "UI";
 
+        public string InstanceName
+        {
+            get
+            {
+                var instanceName = GetValue("InstanceName", BuildInfo.AppName);
+
+                if (instanceName.StartsWith(BuildInfo.AppName) || instanceName.EndsWith(BuildInfo.AppName) )
+                {
+                    return instanceName;
+                }
+                return BuildInfo.AppName;
+            }
+        }
 
         public bool UpdateAutomatically => GetValueBoolean("UpdateAutomatically", false, false);
 
@@ -209,7 +226,13 @@ namespace NzbDrone.Core.Configuration
 
         public string UpdateScriptPath => GetValue("UpdateScriptPath", "", false);
 
-        public int GetValueInt(string key, int defaultValue)
+        public string SyslogServer => GetValue("SyslogServer", "", persist: false);
+
+        public int SyslogPort => GetValueInt("SyslogPort", 514, persist: false);
+
+        public string SyslogLevel => GetValue("SyslogLevel", LogLevel, persist: false).ToLowerInvariant();
+
+        public int GetValueInt(string key, int defaultValue, bool persist = true)
         {
             return Convert.ToInt32(GetValue(key, defaultValue));
         }

@@ -178,6 +178,11 @@ class InteractiveImportModalContentConnector extends Component {
     const existingFiles = [];
     const files = [];
 
+    if (importMode === 'chooseImportMode') {
+      this.setState({ interactiveImportErrorMessage: 'An import mode must be selected' });
+      return;
+    }
+
     items.forEach((item) => {
       const isSelected = selected.indexOf(item.id) > -1;
 
