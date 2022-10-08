@@ -131,12 +131,12 @@ namespace NzbDrone.Core.Organizer
 
             episodes = episodes.OrderBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber).ToList();
 
-            if (series.SeriesType == SeriesTypes.Daily && episodes.First().SeasonNumber > 0)
+            if (series.SeriesType == SeriesTypes.Daily)
             {
                 pattern = namingConfig.DailyEpisodeFormat;
             }
 
-            if (series.SeriesType == SeriesTypes.Anime && episodes.All(e => e.AbsoluteEpisodeNumber.HasValue))
+            if (series.SeriesType == SeriesTypes.Anime)
             {
                 pattern = namingConfig.AnimeEpisodeFormat;
             }
