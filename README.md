@@ -30,6 +30,7 @@ Two tasks added, to automate the search for new episodes
 2. Override writes the following files to your sonarr installation:
 - File: Sonarr.Core.dll
 - File: Sonarr.Api.V3.dll
+- File: Sonarr.Common.dll
 - Folder: /UI
 
 #### Docker compose
@@ -55,6 +56,9 @@ Two tasks added, to automate the search for new episodes
       - type: bind
         source: patch/Sonarr.Api.V3.dll
         target: /app/sonarr/bin/Sonarr.Api.V3.dll
+      - type: bind
+        source: patch/Sonarr.Common.dll
+        target: /app/sonarr/bin/Sonarr.Common.dll
     ports:
       - 8989:8989
     restart: unless-stopped
