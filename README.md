@@ -129,6 +129,27 @@ services:
 - Sonarr setting - Profile - Language: English, Spanish, Unknown
 - Sonarr setting - Profile - Quality profiles: WEB 1080p
 - Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - {season:0}x{episode:00} - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
+
+#### Extra Tips
+
+##### Qbittorrent:
+
+Many times, 'atomoHD' torrents are in RAR format.
+
+There is a trick to automate these torrents:
+
+In qbittorrent set "autorun enable":
+```yaml
+/config/torrentUnrar.sh "%F" "%L" "%N"
+```
+Copy the [following](torrentUnrar.sh) .sh to somewhere accessible to qbittorent, for example /config/
+
+##### What the hell is this sh doing?
+1. Extract the rar to the folder /downloads/temp-unrar/***TORRENT NAME***/
+2. When finished, move the unzipped files back to the folder where the rar is. In a '/unrar' subdirectory.
+3. Maintenance, finds all /unrar folders and deletes them when they are older than 24h
+
+
 -----------------------------------
 
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
