@@ -19,6 +19,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
             _buildFileNames = buildFileNames;
             _logger = logger;
         }
+
         public Decision IsSatisfiedBy(LocalEpisode localEpisode, DownloadClientItem downloadClientItem)
         {
             if (localEpisode.Series.SeriesType != SeriesTypes.Anime)
@@ -27,7 +28,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
                 return Decision.Accept();
             }
 
-            if (!_buildFileNames.RequiresAbsoluteEpisodeNumber(localEpisode.Series, localEpisode.Episodes))
+            if (!_buildFileNames.RequiresAbsoluteEpisodeNumber())
             {
                 _logger.Debug("File name format does not require absolute episode number, skipping check");
                 return Decision.Accept();

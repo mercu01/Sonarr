@@ -1,15 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import formatBytes from 'Utilities/Number/formatBytes';
-import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
-import TableRow from 'Components/Table/TableRow';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import TableRow from 'Components/Table/TableRow';
 import Popover from 'Components/Tooltip/Popover';
-import EpisodeLanguage from 'Episode/EpisodeLanguage';
+import EpisodeFormats from 'Episode/EpisodeFormats';
+import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import formatBytes from 'Utilities/Number/formatBytes';
 import MediaInfo from './MediaInfo';
 import styles from './EpisodeFileRow.css';
 
@@ -31,17 +32,17 @@ class EpisodeFileRow extends Component {
 
   onRemoveEpisodeFilePress = () => {
     this.setState({ isRemoveEpisodeFileModalOpen: true });
-  }
+  };
 
   onConfirmRemoveEpisodeFile = () => {
     this.props.onDeleteEpisodeFile();
 
     this.setState({ isRemoveEpisodeFileModalOpen: false });
-  }
+  };
 
   onRemoveEpisodeFileModalClose = () => {
     this.setState({ isRemoveEpisodeFileModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -50,9 +51,9 @@ class EpisodeFileRow extends Component {
     const {
       path,
       size,
-      language,
+      languages,
       quality,
-      languageCutoffNotMet,
+      customFormats,
       qualityCutoffNotMet,
       mediaInfo,
       columns
@@ -87,16 +88,13 @@ class EpisodeFileRow extends Component {
               );
             }
 
-            if (name === 'language') {
+            if (name === 'languages') {
               return (
                 <TableRowCell
                   key={name}
-                  className={styles.language}
+                  className={styles.languages}
                 >
-                  <EpisodeLanguage
-                    language={language}
-                    isCutoffNotMet={languageCutoffNotMet}
-                  />
+                  <EpisodeLanguages languages={languages} />
                 </TableRowCell>
               );
             }
@@ -110,6 +108,19 @@ class EpisodeFileRow extends Component {
                   <EpisodeQuality
                     quality={quality}
                     isCutoffNotMet={qualityCutoffNotMet}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'customFormats') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.customFormats}
+                >
+                  <EpisodeFormats
+                    formats={customFormats}
                   />
                 </TableRowCell>
               );
@@ -167,10 +178,10 @@ class EpisodeFileRow extends Component {
 EpisodeFileRow.propTypes = {
   path: PropTypes.string.isRequired,
   size: PropTypes.number.isRequired,
-  language: PropTypes.object.isRequired,
-  languageCutoffNotMet: PropTypes.bool.isRequired,
+  languages: PropTypes.arrayOf(PropTypes.object).isRequired,
   quality: PropTypes.object.isRequired,
   qualityCutoffNotMet: PropTypes.bool.isRequired,
+  customFormats: PropTypes.arrayOf(PropTypes.object),
   mediaInfo: PropTypes.object,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   onDeleteEpisodeFile: PropTypes.func.isRequired

@@ -67,7 +67,10 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
         {
             var filename = Path.GetFileName(path);
 
-            if (filename == null) return null;
+            if (filename == null)
+            {
+                return null;
+            }
 
             var metadata = new MetadataFile
             {
@@ -95,12 +98,10 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                 {
                     metadata.SeasonNumber = 0;
                 }
-
                 else if (int.TryParse(seasonNumberMatch, out seasonNumber))
                 {
                     metadata.SeasonNumber = seasonNumber;
                 }
-
                 else
                 {
                     return null;
@@ -270,7 +271,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                         details.Add(new XElement("displayseason", episode.AiredBeforeSeasonNumber));
                         details.Add(new XElement("displayepisode", episode.AiredBeforeEpisodeNumber ?? -1));
                     }
-                    
+
                     var tvdbId = new XElement("uniqueid", episode.TvdbId);
                     tvdbId.SetAttributeValue("type", "tvdb");
                     tvdbId.SetAttributeValue("default", true);
@@ -284,7 +285,6 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                     {
                         details.Add(new XElement("thumb"));
                     }
-
                     else
                     {
                         details.Add(new XElement("thumb", image.Url));
@@ -313,36 +313,36 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                         video.Add(new XElement("scantype", episodeFile.MediaInfo.ScanType));
                         video.Add(new XElement("width", episodeFile.MediaInfo.Width));
 
-                        if (episodeFile.MediaInfo.RunTime != null)
-                        {
-                            video.Add(new XElement("duration", episodeFile.MediaInfo.RunTime.TotalMinutes));
-                            video.Add(new XElement("durationinseconds", Math.Round(episodeFile.MediaInfo.RunTime.TotalSeconds)));
-                        }
+                        video.Add(new XElement("duration", episodeFile.MediaInfo.RunTime.TotalMinutes));
+                        video.Add(new XElement("durationinseconds", Math.Round(episodeFile.MediaInfo.RunTime.TotalSeconds)));
 
                         streamDetails.Add(video);
 
                         var audio = new XElement("audio");
-                        var audioChannelCount = episodeFile.MediaInfo.AudioChannelsStream > 0 ? episodeFile.MediaInfo.AudioChannelsStream : episodeFile.MediaInfo.AudioChannelsContainer;
+                        var audioChannelCount = episodeFile.MediaInfo.AudioChannels;
                         audio.Add(new XElement("bitrate", episodeFile.MediaInfo.AudioBitrate));
                         audio.Add(new XElement("channels", audioChannelCount));
                         audio.Add(new XElement("codec", MediaInfoFormatter.FormatAudioCodec(episodeFile.MediaInfo, sceneName)));
                         audio.Add(new XElement("language", episodeFile.MediaInfo.AudioLanguages));
                         streamDetails.Add(audio);
 
-                        if (episodeFile.MediaInfo.Subtitles.IsNotNullOrWhiteSpace())
+                        if (episodeFile.MediaInfo.Subtitles != null && episodeFile.MediaInfo.Subtitles.Count > 0)
                         {
-                            var subtitle = new XElement("subtitle");
-                            subtitle.Add(new XElement("language", episodeFile.MediaInfo.Subtitles));
-                            streamDetails.Add(subtitle);
+                            foreach (var s in episodeFile.MediaInfo.Subtitles)
+                            {
+                                var subtitle = new XElement("subtitle");
+                                subtitle.Add(new XElement("language", s));
+                                streamDetails.Add(subtitle);
+                            }
                         }
 
                         fileInfo.Add(streamDetails);
                         details.Add(fileInfo);
                     }
 
-                    //Todo: get guest stars, writer and director
-                    //details.Add(new XElement("credits", tvdbEpisode.Writer.FirstOrDefault()));
-                    //details.Add(new XElement("director", tvdbEpisode.Directors.FirstOrDefault()));
+                    // Todo: get guest stars, writer and director
+                    // details.Add(new XElement("credits", tvdbEpisode.Writer.FirstOrDefault()));
+                    // details.Add(new XElement("director", tvdbEpisode.Directors.FirstOrDefault()));
 
                     doc.Add(details);
                     doc.Save(xw);

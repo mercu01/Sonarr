@@ -14,7 +14,8 @@ namespace NzbDrone.Core.Notifications.Twitter
             RuleFor(c => c.ConsumerSecret).NotEmpty();
             RuleFor(c => c.AccessToken).NotEmpty();
             RuleFor(c => c.AccessTokenSecret).NotEmpty();
-            //TODO: Validate that it is a valid username (numbers, letters and underscores - I think)
+
+            // TODO: Validate that it is a valid username (numbers, letters and underscores - I think)
             RuleFor(c => c.Mention).NotEmpty().When(c => c.DirectMessage);
 
             RuleFor(c => c.DirectMessage).Equal(true)

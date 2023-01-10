@@ -4,11 +4,12 @@ using System.Globalization;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.EnsureThat;
-using NzbDrone.Core.Configuration.Events;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Common.Http.Proxy;
+using NzbDrone.Core.Configuration.Events;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Security;
 
@@ -58,7 +59,10 @@ namespace NzbDrone.Core.Configuration
             {
                 object currentValue;
                 allWithDefaults.TryGetValue(configValue.Key, out currentValue);
-                if (currentValue == null || configValue.Value == null) continue;
+                if (currentValue == null || configValue.Value == null)
+                {
+                    continue;
+                }
 
                 var equal = configValue.Value.ToString().Equals(currentValue.ToString());
 
@@ -301,6 +305,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EnableColorImpairedMode", value); }
         }
 
+        public int UILanguage
+        {
+            get { return GetValueInt("UILanguage", (int)Language.English); }
+
+            set { SetValue("UILanguage", value); }
+        }
+
         public bool CleanupMetadataImages
         {
             get { return GetValueBoolean("CleanupMetadataImages", true); }
@@ -342,6 +353,8 @@ namespace NzbDrone.Core.Configuration
 
         public CertificateValidationType CertificateValidation =>
             GetValueEnum("CertificateValidation", CertificateValidationType.Enabled);
+
+        public string ApplicationUrl => GetValue("ApplicationUrl", string.Empty);
 
         private string GetValue(string key)
         {

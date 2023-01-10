@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
@@ -24,7 +25,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
     {
         List<ManualImportItem> GetMediaFiles(int seriesId, int? seasonNumber);
         List<ManualImportItem> GetMediaFiles(string path, string downloadId, int? seriesId, bool filterExistingFiles);
-        ManualImportItem ReprocessItem(string path, string downloadId, int seriesId, int? seasonNumber, List<int> episodeIds, string releaseGroup, QualityModel quality, Language language);
+        ManualImportItem ReprocessItem(string path, string downloadId, int seriesId, int? seasonNumber, List<int> episodeIds, string releaseGroup, QualityModel quality, List<Language> languages);
     }
 
     public class ManualImportService : IExecute<ManualImportCommand>, IManualImportService
@@ -40,6 +41,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
         private readonly ITrackedDownloadService _trackedDownloadService;
         private readonly IDownloadedEpisodesImportService _downloadedEpisodesImportService;
         private readonly IMediaFileService _mediaFileService;
+        private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
@@ -54,6 +56,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                                    ITrackedDownloadService trackedDownloadService,
                                    IDownloadedEpisodesImportService downloadedEpisodesImportService,
                                    IMediaFileService mediaFileService,
+                                   ICustomFormatCalculationService formatCalculator,
                                    IEventAggregator eventAggregator,
                                    Logger logger)
         {
@@ -68,6 +71,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             _trackedDownloadService = trackedDownloadService;
             _downloadedEpisodesImportService = downloadedEpisodesImportService;
             _mediaFileService = mediaFileService;
+            _formatCalculator = formatCalculator;
             _eventAggregator = eventAggregator;
             _logger = logger;
         }
@@ -97,11 +101,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                         Episodes = new List<Episode>(),
                         ReleaseGroup = string.Empty,
                         Quality = new QualityModel(Quality.Unknown),
-                        Language = Language.Unknown,
+                        Languages = new List<Language> { Language.Unknown },
                         Size = _diskProvider.GetFileSize(file),
                         Rejections = Enumerable.Empty<Rejection>()
-                    }
-                ));
+                    }));
             }
 
             return items;
@@ -135,10 +138,18 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             return ProcessFolder(path, path, downloadId, seriesId, filterExistingFiles);
         }
 
-        public ManualImportItem ReprocessItem(string path, string downloadId, int seriesId, int? seasonNumber, List<int> episodeIds, string releaseGroup, QualityModel quality, Language language)
+        public ManualImportItem ReprocessItem(string path, string downloadId, int seriesId, int? seasonNumber, List<int> episodeIds, string releaseGroup, QualityModel quality, List<Language> languages)
         {
             var rootFolder = Path.GetDirectoryName(path);
             var series = _seriesService.GetSeries(seriesId);
+
+            var languageParse = LanguageParser.ParseLanguages(path);
+
+            if (languageParse.Count <= 1 && languageParse.First() == Language.Unknown && series != null)
+            {
+                languageParse = new List<Language> { series.OriginalLanguage };
+                _logger.Debug("Language couldn't be parsed from release, falling back to series original language: {0}", series.OriginalLanguage.Name);
+            }
 
             if (episodeIds.Any())
             {
@@ -154,7 +165,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 localEpisode.ExistingFile = series.Path.IsParentPath(path);
                 localEpisode.Size = _diskProvider.GetFileSize(path);
                 localEpisode.ReleaseGroup = releaseGroup.IsNullOrWhiteSpace() ? Parser.Parser.ParseReleaseGroup(path) : releaseGroup;
-                localEpisode.Language = language == Language.Unknown ? LanguageParser.ParseLanguage(path) : language;
+                localEpisode.Languages = (languages?.SingleOrDefault() ?? Language.Unknown) == Language.Unknown ? languageParse : languages;
                 localEpisode.Quality = quality.Quality == Quality.Unknown ? QualityParser.ParseQuality(path) : quality;
 
                 return MapItem(_importDecisionMaker.GetDecision(localEpisode, downloadClientItem), rootFolder, downloadId, null);
@@ -180,7 +191,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                                        ExistingFile = series.Path.IsParentPath(path),
                                        Size = _diskProvider.GetFileSize(path),
                                        ReleaseGroup = releaseGroup.IsNullOrWhiteSpace() ? Parser.Parser.ParseReleaseGroup(path) : releaseGroup,
-                                       Language = language == Language.Unknown ? LanguageParser.ParseLanguage(path) : language,
+                                       Languages = (languages?.SingleOrDefault() ?? Language.Unknown) == Language.Unknown ? LanguageParser.ParseLanguages(path) : languages,
                                        Quality = quality.Quality == Quality.Unknown ? QualityParser.ParseQuality(path) : quality
                                    };
 
@@ -291,15 +302,21 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                     localEpisode.Path = file;
                     localEpisode.ReleaseGroup = Parser.Parser.ParseReleaseGroup(file);
                     localEpisode.Quality = QualityParser.ParseQuality(file);
-                    localEpisode.Language = LanguageParser.ParseLanguage(file);
+                    localEpisode.Languages = LanguageParser.ParseLanguages(file);
                     localEpisode.Size = _diskProvider.GetFileSize(file);
 
-                    return MapItem(new ImportDecision(localEpisode, new Rejection("Unknown Series")), rootFolder,
-                        downloadId, null);
+                    return MapItem(new ImportDecision(localEpisode,
+                        new Rejection("Unknown Series")),
+                        rootFolder,
+                        downloadId,
+                        null);
                 }
 
-                var importDecisions = _importDecisionMaker.GetImportDecisions(new List<string> {file}, series,
-                    trackedDownload?.DownloadItem, null, SceneSource(series, baseFolder));
+                var importDecisions = _importDecisionMaker.GetImportDecisions(new List<string> { file },
+                    series,
+                    trackedDownload?.DownloadItem,
+                    null,
+                    SceneSource(series, baseFolder));
 
                 if (importDecisions.Any())
                 {
@@ -317,6 +334,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 Path = file,
                 RelativePath = rootFolder.GetRelativePath(file),
                 Name = Path.GetFileNameWithoutExtension(file),
+                Size = _diskProvider.GetFileSize(file),
                 Rejections = new List<Rejection>()
             };
         }
@@ -330,7 +348,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 var localEpisode = new LocalEpisode();
                 localEpisode.Path = file;
                 localEpisode.Quality = new QualityModel(Quality.Unknown);
-                localEpisode.Language = Language.Unknown;
+                localEpisode.Languages = new List<Language> { Language.Unknown };
                 localEpisode.Size = _diskProvider.GetFileSize(file);
 
                 items.Add(MapItem(new ImportDecision(localEpisode), rootFolder, null, null));
@@ -349,7 +367,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             if (downloadId.IsNotNullOrWhiteSpace())
             {
                 var trackedDownload = _trackedDownloadService.Find(downloadId);
-                
+
                 return trackedDownload;
             }
 
@@ -369,6 +387,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             if (decision.LocalEpisode.Series != null)
             {
                 item.Series = decision.LocalEpisode.Series;
+
+                item.CustomFormats = _formatCalculator.ParseCustomFormat(decision.LocalEpisode);
             }
 
             if (decision.LocalEpisode.Episodes.Any() && decision.LocalEpisode.Episodes.Select(c => c.SeasonNumber).Distinct().Count() == 1)
@@ -392,7 +412,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
 
             item.ReleaseGroup = decision.LocalEpisode.ReleaseGroup;
             item.Quality = decision.LocalEpisode.Quality;
-            item.Language = decision.LocalEpisode.Language;
+            item.Languages = decision.LocalEpisode.Languages;
             item.Size = _diskProvider.GetFileSize(decision.LocalEpisode.Path);
             item.Rejections = decision.Rejections;
 
@@ -412,10 +432,11 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             item.Episodes = episodeFile.Episodes.Value;
             item.ReleaseGroup = episodeFile.ReleaseGroup;
             item.Quality = episodeFile.Quality;
-            item.Language = episodeFile.Language;
+            item.Languages = episodeFile.Languages;
             item.Size = _diskProvider.GetFileSize(item.Path);
             item.Rejections = Enumerable.Empty<Rejection>();
             item.EpisodeFileId = episodeFile.Id;
+            item.CustomFormats = _formatCalculator.ParseCustomFormat(episodeFile, series);
 
             return item;
         }
@@ -447,7 +468,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                     Path = file.Path,
                     ReleaseGroup = file.ReleaseGroup,
                     Quality = file.Quality,
-                    Language = file.Language,
+                    Languages = file.Languages,
                     Series = series,
                     Size = 0
                 };
@@ -472,9 +493,9 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 localEpisode.Episodes = episodes;
                 localEpisode.ReleaseGroup = file.ReleaseGroup;
                 localEpisode.Quality = file.Quality;
-                localEpisode.Language = file.Language;
+                localEpisode.Languages = file.Languages;
 
-                //TODO: Cleanup non-tracked downloads
+                // TODO: Cleanup non-tracked downloads
 
                 var importDecision = new ImportDecision(localEpisode);
 
@@ -518,9 +539,9 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 }
 
                 var allEpisodesImported = groupedTrackedDownload.Select(c => c.ImportResult)
-                                                                    .Where(c => c.Result == ImportResultType.Imported)
-                                                                   .SelectMany(c => c.ImportDecision.LocalEpisode.Episodes).Count() >= 
-                                                                                Math.Max(1, trackedDownload.RemoteEpisode?.Episodes?.Count ?? 1);
+                                                                .Where(c => c.Result == ImportResultType.Imported)
+                                                                .SelectMany(c => c.ImportDecision.LocalEpisode.Episodes).Count() >=
+                                                                    Math.Max(1, trackedDownload.RemoteEpisode?.Episodes?.Count ?? 1);
 
                 if (allEpisodesImported)
                 {

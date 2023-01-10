@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes } from 'Helpers/Props';
 import Link from 'Components/Link/Link';
+import { inputTypes } from 'Helpers/Props';
 import AutoCompleteInput from './AutoCompleteInput';
 import CaptchaInputConnector from './CaptchaInputConnector';
 import CheckInput from './CheckInput';
 import DeviceInputConnector from './DeviceInputConnector';
 import DownloadClientSelectInputConnector from './DownloadClientSelectInputConnector';
+import EnhancedSelectInput from './EnhancedSelectInput';
+import EnhancedSelectInputConnector from './EnhancedSelectInputConnector';
+import FormInputHelpText from './FormInputHelpText';
+import IndexerSelectInputConnector from './IndexerSelectInputConnector';
 import KeyValueListInput from './KeyValueListInput';
 import MonitorEpisodesSelectInput from './MonitorEpisodesSelectInput';
 import NumberInput from './NumberInput';
@@ -14,18 +18,14 @@ import OAuthInputConnector from './OAuthInputConnector';
 import PasswordInput from './PasswordInput';
 import PathInputConnector from './PathInputConnector';
 import QualityProfileSelectInputConnector from './QualityProfileSelectInputConnector';
-import LanguageProfileSelectInputConnector from './LanguageProfileSelectInputConnector';
-import IndexerSelectInputConnector from './IndexerSelectInputConnector';
 import RootFolderSelectInputConnector from './RootFolderSelectInputConnector';
 import SeriesTypeSelectInput from './SeriesTypeSelectInput';
-import EnhancedSelectInput from './EnhancedSelectInput';
-import EnhancedSelectInputConnector from './EnhancedSelectInputConnector';
 import TagInputConnector from './TagInputConnector';
 import TagSelectInputConnector from './TagSelectInputConnector';
-import TextTagInputConnector from './TextTagInputConnector';
+import TextArea from './TextArea';
 import TextInput from './TextInput';
+import TextTagInputConnector from './TextTagInputConnector';
 import UMaskInput from './UMaskInput';
-import FormInputHelpText from './FormInputHelpText';
 import styles from './FormInputGroup.css';
 
 function getComponent(type) {
@@ -63,9 +63,6 @@ function getComponent(type) {
     case inputTypes.QUALITY_PROFILE_SELECT:
       return QualityProfileSelectInputConnector;
 
-    case inputTypes.LANGUAGE_PROFILE_SELECT:
-      return LanguageProfileSelectInputConnector;
-
     case inputTypes.INDEXER_SELECT:
       return IndexerSelectInputConnector;
 
@@ -86,6 +83,9 @@ function getComponent(type) {
 
     case inputTypes.TAG:
       return TagInputConnector;
+
+    case inputTypes.TEXT_AREA:
+      return TextArea;
 
     case inputTypes.TEXT_TAG:
       return TextTagInputConnector;

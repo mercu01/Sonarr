@@ -1,292 +1,210 @@
+using System.Collections.Generic;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.DecisionEngine.Specifications;
+using NzbDrone.Core.Profiles;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
-using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Languages;
-using NzbDrone.Core.Profiles.Languages;
-using NzbDrone.Core.Test.Languages;
 
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
     [TestFixture]
     public class UpgradeAllowedSpecificationFixture : CoreTest<UpgradableSpecification>
     {
-        [Test]
-        public void should_return_false_when_quality_are_the_same_language_is_better_and_upgrade_allowed_is_false_for_language_profile()
+        private CustomFormat _customFormatOne;
+        private CustomFormat _customFormatTwo;
+        private QualityProfile _qualityProfile;
+
+        [SetUp]
+        public void Setup()
         {
-            Subject.IsUpgradeAllowed(
-                new QualityProfile
+            _customFormatOne = new CustomFormat
+            {
+                Id = 1,
+                Name = "One"
+            };
+            _customFormatTwo = new CustomFormat
+            {
+                Id = 2,
+                Name = "Two"
+            };
+
+            _qualityProfile = new QualityProfile
+            {
+                Cutoff = Quality.Bluray1080p.Id,
+                Items = Qualities.QualityFixture.GetDefaultQualities(),
+                UpgradeAllowed = false,
+                CutoffFormatScore = 100,
+                FormatItems = new List<ProfileFormatItem>
                 {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English, Language.French),
-                    Cutoff = Language.French,
-                    UpgradeAllowed = false
-                },
-                new QualityModel(Quality.DVD),
-                Language.English,
-                new QualityModel(Quality.DVD),
-                Language.French
-            ).Should().BeFalse();
+                    new ProfileFormatItem
+                    {
+                        Format = _customFormatOne,
+                        Score = 50
+                    },
+                    new ProfileFormatItem
+                    {
+                        Format = _customFormatTwo,
+                        Score = 100
+                    }
+                }
+            };
         }
 
         [Test]
-        public void should_return_false_when_quality_is_better_languages_are_the_same_and_upgrade_allowed_is_false_for_quality_profile()
+        public void should_return_false_when_quality_is_better_custom_formats_are_the_same_and_upgrading_is_not_allowed()
         {
+            _qualityProfile.UpgradeAllowed = false;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = false
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English),
-                    Cutoff = Language.English,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat>(),
                 new QualityModel(Quality.Bluray1080p),
-                Language.English
-            ).Should().BeFalse();
+                new List<CustomFormat>())
+            .Should().BeFalse();
         }
 
         [Test]
-        public void should_return_true_for_language_upgrade_when_upgrading_is_allowed()
+        public void should_return_false_when_quality_is_same_and_custom_format_is_upgrade_and_upgrading_is_not_allowed()
         {
+            _qualityProfile.UpgradeAllowed = false;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English, Language.French),
-                    Cutoff = Language.French,
-                    UpgradeAllowed = true
-                },
-                new QualityModel(Quality.DVD),
-                Language.English,
-                new QualityModel(Quality.DVD),
-                Language.French
-            ).Should().BeTrue();
+                    _qualityProfile,
+                    new QualityModel(Quality.DVD),
+                    new List<CustomFormat> { _customFormatOne },
+                    new QualityModel(Quality.DVD),
+                    new List<CustomFormat> { _customFormatTwo })
+                .Should().BeFalse();
         }
 
         [Test]
-        public void should_return_true_for_same_language_when_upgrading_is_allowed()
+        public void should_return_true_for_custom_format_upgrade_when_upgrading_is_allowed()
         {
+            _qualityProfile.UpgradeAllowed = true;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English, Language.French),
-                    Cutoff = Language.French,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat> { _customFormatOne },
                 new QualityModel(Quality.DVD),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat> { _customFormatTwo })
+            .Should().BeTrue();
         }
 
         [Test]
-        public void should_return_true_for_same_language_when_upgrading_is_not_allowed()
+        public void should_return_true_for_same_custom_format_score_when_upgrading_is_not_allowed()
         {
+            _qualityProfile.UpgradeAllowed = false;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English, Language.French),
-                    Cutoff = Language.French,
-                    UpgradeAllowed = false
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat> { _customFormatOne },
                 new QualityModel(Quality.DVD),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat> { _customFormatOne })
+            .Should().BeTrue();
         }
 
         [Test]
-        public void should_return_true_for_lower_language_when_upgrading_is_allowed()
+        public void should_return_true_for_lower_custom_format_score_when_upgrading_is_allowed()
         {
+            _qualityProfile.UpgradeAllowed = true;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English, Language.French),
-                    Cutoff = Language.French,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.French,
+                new List<CustomFormat> { _customFormatTwo },
                 new QualityModel(Quality.DVD),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat> { _customFormatOne })
+            .Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_for_lower_language_when_upgrading_is_not_allowed()
         {
+            _qualityProfile.UpgradeAllowed = false;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English, Language.French),
-                    Cutoff = Language.French,
-                    UpgradeAllowed = false
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.French,
+                new List<CustomFormat> { _customFormatTwo },
                 new QualityModel(Quality.DVD),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat> { _customFormatOne })
+            .Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_for_quality_upgrade_when_upgrading_is_allowed()
         {
+            _qualityProfile.UpgradeAllowed = true;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English),
-                    Cutoff = Language.English,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat>(),
                 new QualityModel(Quality.Bluray1080p),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat>())
+            .Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_for_same_quality_when_upgrading_is_allowed()
         {
+            _qualityProfile.UpgradeAllowed = true;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English),
-                    Cutoff = Language.English,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat>(),
                 new QualityModel(Quality.DVD),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat>())
+            .Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_for_same_quality_when_upgrading_is_not_allowed()
         {
+            _qualityProfile.UpgradeAllowed = false;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = false
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English),
-                    Cutoff = Language.English,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat>(),
                 new QualityModel(Quality.DVD),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat>())
+            .Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_for_lower_quality_when_upgrading_is_allowed()
         {
+            _qualityProfile.UpgradeAllowed = true;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = true
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English),
-                    Cutoff = Language.English,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat>(),
                 new QualityModel(Quality.SDTV),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat>())
+            .Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_for_lower_quality_when_upgrading_is_not_allowed()
         {
+            _qualityProfile.UpgradeAllowed = false;
+
             Subject.IsUpgradeAllowed(
-                new QualityProfile
-                {
-                    Cutoff = Quality.Bluray1080p.Id,
-                    Items = Qualities.QualityFixture.GetDefaultQualities(),
-                    UpgradeAllowed = false
-                },
-                new LanguageProfile
-                {
-                    Languages = LanguageFixture.GetDefaultLanguages(Language.English),
-                    Cutoff = Language.English,
-                    UpgradeAllowed = true
-                },
+                _qualityProfile,
                 new QualityModel(Quality.DVD),
-                Language.English,
+                new List<CustomFormat>(),
                 new QualityModel(Quality.SDTV),
-                Language.English
-            ).Should().BeTrue();
+                new List<CustomFormat>())
+            .Should().BeTrue();
         }
     }
 }

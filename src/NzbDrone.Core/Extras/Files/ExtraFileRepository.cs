@@ -1,13 +1,14 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Extras.Files
 {
-    public interface IExtraFileRepository<TExtraFile> : IBasicRepository<TExtraFile> where TExtraFile : ExtraFile, new()
+    public interface IExtraFileRepository<TExtraFile> : IBasicRepository<TExtraFile>
+        where TExtraFile : ExtraFile, new()
     {
-        void DeleteForSeries(int seriesId);
+        void DeleteForSeriesIds(List<int> seriesIds);
         void DeleteForSeason(int seriesId, int seasonNumber);
         void DeleteForEpisodeFile(int episodeFileId);
         List<TExtraFile> GetFilesBySeries(int seriesId);
@@ -24,9 +25,9 @@ namespace NzbDrone.Core.Extras.Files
         {
         }
 
-        public void DeleteForSeries(int seriesId)
+        public void DeleteForSeriesIds(List<int> seriesIds)
         {
-            Delete(c => c.SeriesId == seriesId);
+            Delete(c => seriesIds.Contains(c.SeriesId));
         }
 
         public void DeleteForSeason(int seriesId, int seasonNumber)
@@ -41,22 +42,22 @@ namespace NzbDrone.Core.Extras.Files
 
         public List<TExtraFile> GetFilesBySeries(int seriesId)
         {
-            return Query.Where(c => c.SeriesId == seriesId);
+            return Query(c => c.SeriesId == seriesId);
         }
 
         public List<TExtraFile> GetFilesBySeason(int seriesId, int seasonNumber)
         {
-            return Query.Where(c => c.SeriesId == seriesId && c.SeasonNumber == seasonNumber);
+            return Query(c => c.SeriesId == seriesId && c.SeasonNumber == seasonNumber);
         }
 
         public List<TExtraFile> GetFilesByEpisodeFile(int episodeFileId)
         {
-            return Query.Where(c => c.EpisodeFileId == episodeFileId);
+            return Query(c => c.EpisodeFileId == episodeFileId);
         }
 
         public TExtraFile FindByPath(int seriesId, string path)
         {
-            return Query.Where(c => c.SeriesId == seriesId && c.RelativePath == path).SingleOrDefault();
+            return Query(c => c.SeriesId == seriesId && c.RelativePath == path).SingleOrDefault();
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Qualities;
@@ -30,10 +31,8 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                     .With(s => s.Title = "South Park")
                     .Build();
 
-
             _namingConfig = NamingConfig.Default;
             _namingConfig.RenameEpisodes = true;
-
 
             Mocker.GetMock<INamingConfigService>()
                   .Setup(c => c.GetConfig()).Returns(_namingConfig);
@@ -60,10 +59,14 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                             .Build();
 
             _episodeFile = new EpisodeFile { Quality = new QualityModel(Quality.HDTV720p), ReleaseGroup = "SonarrTest" };
-            
+
             Mocker.GetMock<IQualityDefinitionService>()
                 .Setup(v => v.Get(Moq.It.IsAny<Quality>()))
                 .Returns<Quality>(v => Quality.DefaultQualityDefinitions.First(c => c.Quality == v));
+
+            Mocker.GetMock<ICustomFormatService>()
+                  .Setup(v => v.All())
+                  .Returns(new List<CustomFormat>());
         }
 
         private void GivenProper()
@@ -76,7 +79,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _namingConfig.StandardEpisodeFormat = "{Series Title}";
 
-            Subject.BuildFileName(new List<Episode> {_episode1}, _series, _episodeFile)
+            Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
                    .Should().Be("South Park");
         }
 
@@ -86,7 +89,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = 0;
 
-            Subject.BuildFileName(new List<Episode> {_episode1, _episode2}, _series, _episodeFile)
+            Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
                 .Should().Be("South Park - S15E06-07 - City Sushi");
         }
 
@@ -146,7 +149,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _namingConfig.StandardEpisodeFormat =
                 "{Series Title} - S{season:00}E{episode:00} - ({Quality Title}, {MediaInfo Full}, {Release Group}) - {Episode Title}";
-            _namingConfig.MultiEpisodeStyle = (int) MultiEpisodeStyle.Duplicate;
+            _namingConfig.MultiEpisodeStyle = (int)MultiEpisodeStyle.Duplicate;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
                    .Should().Be("South Park - S15E06 - S15E07 - (HDTV-720p, , SonarrTest) - City Sushi");

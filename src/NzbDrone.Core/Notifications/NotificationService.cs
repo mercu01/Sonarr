@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -47,7 +47,6 @@ namespace NzbDrone.Core.Notifications
                 {
                     qualityString += " v" + quality.Revision.Version;
                 }
-
                 else
                 {
                     qualityString += " Proper";
@@ -128,10 +127,13 @@ namespace NzbDrone.Core.Notifications
             {
                 try
                 {
-                    if (!ShouldHandleSeries(notification.Definition, message.Episode.Series)) continue;
+                    if (!ShouldHandleSeries(notification.Definition, message.Episode.Series))
+                    {
+                        continue;
+                    }
+
                     notification.OnGrab(grabMessage);
                 }
-
                 catch (Exception ex)
                 {
                     _logger.Error(ex, "Unable to send OnGrab notification to {0}", notification.Definition.Name);
@@ -169,7 +171,6 @@ namespace NzbDrone.Core.Notifications
                         }
                     }
                 }
-
                 catch (Exception ex)
                 {
                     _logger.Warn(ex, "Unable to send OnDownload notification to: " + notification.Definition.Name);
@@ -188,7 +189,6 @@ namespace NzbDrone.Core.Notifications
                         notification.OnRename(message.Series, message.RenamedFiles);
                     }
                 }
-
                 catch (Exception ex)
                 {
                     _logger.Warn(ex, "Unable to send OnRename notification to: " + notification.Definition.Name);
@@ -252,20 +252,23 @@ namespace NzbDrone.Core.Notifications
 
         public void Handle(SeriesDeletedEvent message)
         {
-            var deleteMessage = new SeriesDeleteMessage(message.Series, message.DeleteFiles);
-
-            foreach (var notification in _notificationFactory.OnSeriesDeleteEnabled())
+            foreach (var series in message.Series)
             {
-                try
+                var deleteMessage = new SeriesDeleteMessage(series, message.DeleteFiles);
+
+                foreach (var notification in _notificationFactory.OnSeriesDeleteEnabled())
                 {
-                    if (ShouldHandleSeries(notification.Definition, deleteMessage.Series))
+                    try
                     {
-                        notification.OnSeriesDelete(deleteMessage);
+                        if (ShouldHandleSeries(notification.Definition, deleteMessage.Series))
+                        {
+                            notification.OnSeriesDelete(deleteMessage);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Warn(ex, "Unable to send OnDelete notification to: " + notification.Definition.Name);
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex, "Unable to send OnDelete notification to: " + notification.Definition.Name);
+                    }
                 }
             }
         }
@@ -289,7 +292,6 @@ namespace NzbDrone.Core.Notifications
                         notification.OnHealthIssue(message.HealthCheck);
                     }
                 }
-
                 catch (Exception ex)
                 {
                     _logger.Warn(ex, "Unable to send OnHealthIssue notification to: " + notification.Definition.Name);

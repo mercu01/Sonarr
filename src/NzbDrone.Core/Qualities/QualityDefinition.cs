@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 using NzbDrone.Core.Datastore;
 
-
 namespace NzbDrone.Core.Qualities
 {
     public class QualityDefinition : ModelBase
@@ -15,10 +14,10 @@ namespace NzbDrone.Core.Qualities
 
         public double? MinSize { get; set; }
         public double? MaxSize { get; set; }
+        public double? PreferredSize { get; set; }
 
         public QualityDefinition()
         {
-
         }
 
         public QualityDefinition(Quality quality)

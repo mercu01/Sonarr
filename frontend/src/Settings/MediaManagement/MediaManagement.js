@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes, sizes } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FieldSet from 'Components/FieldSet';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBody from 'Components/Page/PageContentBody';
-import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import { inputTypes, sizes } from 'Helpers/Props';
 import RootFoldersConnector from 'RootFolder/RootFoldersConnector';
+import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import NamingConnector from './Naming/NamingConnector';
 import AddRootFolderConnector from './RootFolder/AddRootFolderConnector';
 
@@ -50,7 +50,7 @@ class MediaManagement extends Component {
       error,
       settings,
       hasSettings,
-      isMono,
+      isWindows,
       onInputChange,
       onSavePress,
       ...otherProps
@@ -76,9 +76,9 @@ class MediaManagement extends Component {
 
           {
             !isFetching && error &&
-            <FieldSet legend="Naming Settings">
-              <div>Unable to load Media Management settings</div>
-            </FieldSet>
+              <FieldSet legend="Naming Settings">
+                <div>Unable to load Media Management settings</div>
+              </FieldSet>
           }
 
           {
@@ -139,7 +139,7 @@ class MediaManagement extends Component {
                         <FormInputGroup
                           type={inputTypes.SELECT}
                           name="episodeTitleRequired"
-                          helpText="Prevent importing for up to 24 hours if the episode title is in the naming format and the episode title is TBA"
+                          helpText="Prevent importing for up to 48 hours if the episode title is in the naming format and the episode title is TBA"
                           values={episodeTitleRequiredOptions}
                           onChange={onInputChange}
                           {...settings.episodeTitleRequired}
@@ -147,7 +147,8 @@ class MediaManagement extends Component {
                       </FormGroup>
 
                       {
-                        isMono &&
+                        isWindows ?
+                          null :
                           <FormGroup
                             advancedSettings={advancedSettings}
                             isAdvanced={true}
@@ -261,11 +262,11 @@ class MediaManagement extends Component {
                       name="downloadPropersAndRepacks"
                       helpTexts={[
                         'Whether or not to automatically upgrade to Propers/Repacks',
-                        'Use \'Do not Prefer\' to sort by preferred word score over propers/repacks'
+                        'Use \'Do not Prefer\' to sort by custom format score over propers/repacks'
                       ]}
                       helpTextWarning={
                         settings.downloadPropersAndRepacks.value === 'doNotPrefer' ?
-                          'Use preferred words for automatic upgrades to propers/repacks' :
+                          'Use custom formats for automatic upgrades to propers/repacks' :
                           undefined
                       }
                       values={downloadPropersAndRepacksOptions}
@@ -357,7 +358,7 @@ class MediaManagement extends Component {
                 </FieldSet>
 
                 {
-                  advancedSettings && isMono &&
+                  advancedSettings && !isWindows &&
                     <FieldSet
                       legend="Permissions"
                     >
@@ -432,7 +433,7 @@ MediaManagement.propTypes = {
   error: PropTypes.object,
   settings: PropTypes.object.isRequired,
   hasSettings: PropTypes.bool.isRequired,
-  isMono: PropTypes.bool.isRequired,
+  isWindows: PropTypes.bool.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onInputChange: PropTypes.func.isRequired
 };

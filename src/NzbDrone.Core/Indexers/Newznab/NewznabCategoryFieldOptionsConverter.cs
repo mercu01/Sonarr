@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.UI.WebControls;
 using NzbDrone.Core.Annotations;
 
 namespace NzbDrone.Core.Indexers.Newznab
@@ -12,6 +11,7 @@ namespace NzbDrone.Core.Indexers.Newznab
         {
             // Categories not relevant for Sonarr
             var ignoreCategories = new[] { 1000, 3000, 4000, 6000, 7000 };
+
             // And maybe relevant for specific users
             var unimportantCategories = new[] { 0, 2000 };
 

@@ -3,6 +3,7 @@ using System.Linq;
 using FizzWare.NBuilder;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Profiles.Qualities;
@@ -25,6 +26,10 @@ namespace NzbDrone.Core.Test.Profiles
         [Test]
         public void init_should_add_default_profiles()
         {
+            Mocker.GetMock<ICustomFormatService>()
+                  .Setup(s => s.All())
+                  .Returns(new List<CustomFormat>());
+
             Subject.Handle(new ApplicationStartedEvent());
 
             Mocker.GetMock<IProfileRepository>()
@@ -32,8 +37,9 @@ namespace NzbDrone.Core.Test.Profiles
         }
 
         [Test]
-        //This confirms that new profiles are added only if no other profiles exists.
-        //We don't want to keep adding them back if a user deleted them on purpose.
+
+        // This confirms that new profiles are added only if no other profiles exists.
+        // We don't want to keep adding them back if a user deleted them on purpose.
         public void Init_should_skip_if_any_profiles_already_exist()
         {
             Mocker.GetMock<IProfileRepository>()
@@ -46,7 +52,6 @@ namespace NzbDrone.Core.Test.Profiles
                 .Verify(v => v.Insert(It.IsAny<QualityProfile>()), Times.Never());
         }
 
-
         [Test]
         public void should_not_be_able_to_delete_profile_if_assigned_to_series()
         {
@@ -58,7 +63,6 @@ namespace NzbDrone.Core.Test.Profiles
                                             .Random(1)
                                             .With(c => c.QualityProfileId = profile.Id)
                                             .Build().ToList();
-
 
             Mocker.GetMock<ISeriesService>().Setup(c => c.GetAllSeries()).Returns(seriesList);
             Mocker.GetMock<IProfileRepository>().Setup(c => c.Get(profile.Id)).Returns(profile);
@@ -75,7 +79,6 @@ namespace NzbDrone.Core.Test.Profiles
                                             .All()
                                             .With(c => c.QualityProfileId = 2)
                                             .Build().ToList();
-
 
             Mocker.GetMock<ISeriesService>().Setup(c => c.GetAllSeries()).Returns(seriesList);
 
@@ -98,9 +101,7 @@ namespace NzbDrone.Core.Test.Profiles
 
             var importLists = Builder<ImportListDefinition>.CreateListOfSize(3)
                                                            .Random(1)
-                                                           .With(c => c.LanguageProfileId = 1)
                                                            .Build().ToList();
-
 
             Mocker.GetMock<IProfileRepository>().Setup(c => c.Get(profile.Id)).Returns(profile);
             Mocker.GetMock<ISeriesService>().Setup(c => c.GetAllSeries()).Returns(seriesList);
@@ -108,7 +109,6 @@ namespace NzbDrone.Core.Test.Profiles
             Mocker.GetMock<IImportListFactory>()
                   .Setup(s => s.All())
                   .Returns(importLists);
-
 
             Assert.Throws<QualityProfileInUseException>(() => Subject.Delete(1));
 

@@ -1,16 +1,16 @@
+import classNames from 'classnames';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import classNames from 'classnames';
-import formatTime from 'Utilities/Date/formatTime';
-import padNumber from 'Utilities/Number/padNumber';
-import { icons, kinds } from 'Helpers/Props';
+import CalendarEventQueueDetails from 'Calendar/Events/CalendarEventQueueDetails';
 import getStatusStyle from 'Calendar/getStatusStyle';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
-import episodeEntities from 'Episode/episodeEntities';
 import EpisodeDetailsModal from 'Episode/EpisodeDetailsModal';
-import CalendarEventQueueDetails from 'Calendar/Events/CalendarEventQueueDetails';
+import episodeEntities from 'Episode/episodeEntities';
+import { icons, kinds } from 'Helpers/Props';
+import formatTime from 'Utilities/Date/formatTime';
+import padNumber from 'Utilities/Number/padNumber';
 import styles from './AgendaEvent.css';
 
 class AgendaEvent extends Component {
@@ -30,11 +30,11 @@ class AgendaEvent extends Component {
 
   onPress = () => {
     this.setState({ isDetailsModalOpen: true });
-  }
+  };
 
   onDetailsModalClose = () => {
     this.setState({ isDetailsModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -74,12 +74,13 @@ class AgendaEvent extends Component {
     const seasonStatistics = season?.statistics || {};
 
     return (
-      <div>
+      <div className={styles.event}>
         <Link
-          className={styles.event}
-          component="div"
+          className={styles.underlay}
           onPress={this.onPress}
-        >
+        />
+
+        <div className={styles.overlay}>
           <div className={styles.date}>
             {
               showDate &&
@@ -176,19 +177,6 @@ class AgendaEvent extends Component {
             }
 
             {
-              showCutoffUnmetIcon &&
-              !!episodeFile &&
-              episodeFile.languageCutoffNotMet &&
-              !episodeFile.qualityCutoffNotMet &&
-                <Icon
-                  className={styles.statusIcon}
-                  name={icons.EPISODE_FILE}
-                  kind={kinds.WARNING}
-                  title="Language cutoff has not been met"
-                />
-            }
-
-            {
               episodeNumber === 1 && seasonNumber > 0 &&
                 <Icon
                   className={styles.statusIcon}
@@ -222,7 +210,7 @@ class AgendaEvent extends Component {
                 />
             }
           </div>
-        </Link>
+        </div>
 
         <EpisodeDetailsModal
           isOpen={this.state.isDetailsModalOpen}

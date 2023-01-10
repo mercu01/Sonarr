@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
@@ -7,6 +7,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
@@ -41,7 +42,8 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
                 SeriesTitle = _series.Title,
                 SeasonNumber = 1,
                 EpisodeNumbers = new[] { 1 },
-                AbsoluteEpisodeNumbers = new int[0]
+                AbsoluteEpisodeNumbers = new int[0],
+                Languages = new List<Language> { Language.English }
             };
 
             _singleEpisodeSearchCriteria = new SingleEpisodeSearchCriteria
@@ -111,7 +113,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         public void should_fallback_to_daily_episode_lookup_when_search_criteria_episode_doesnt_match()
         {
             GivenDailySeries();
-            _parsedEpisodeInfo.AirDate = DateTime.Today.AddDays(-5).ToString(Episode.AIR_DATE_FORMAT); ;
+            _parsedEpisodeInfo.AirDate = DateTime.Today.AddDays(-5).ToString(Episode.AIR_DATE_FORMAT);
 
             Subject.Map(_parsedEpisodeInfo, _series.TvdbId, _series.TvRageId, _singleEpisodeSearchCriteria);
 
@@ -306,7 +308,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
             Mocker.GetMock<IEpisodeService>()
                   .Setup(s => s.FindEpisodesBySceneNumbering(It.IsAny<int>(), seasonNumber, It.IsAny<int>()))
                   .Returns(new List<Episode>());
-            
+
             Mocker.GetMock<IEpisodeService>()
                   .Setup(s => s.FindEpisode(It.IsAny<int>(), seasonNumber, It.IsAny<int>()))
                   .Returns(_episodes.First());
@@ -326,7 +328,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         {
             GivenAbsoluteNumberingSeries();
             _parsedEpisodeInfo.SeasonNumber = seasonNumber;
-            _parsedEpisodeInfo.EpisodeNumbers = new []{ 1 };
+            _parsedEpisodeInfo.EpisodeNumbers = new[] { 1 };
 
             Mocker.GetMock<IEpisodeService>()
                   .Setup(s => s.FindEpisodesBySceneNumbering(It.IsAny<int>(), It.IsAny<int>()))
@@ -463,7 +465,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         public void should_lookup_full_season_by_season_number_if_series_does_not_use_scene_numbering()
         {
             GivenFullSeason();
-            
+
             Mocker.GetMock<IEpisodeService>()
                 .Setup(s => s.GetEpisodesBySeason(_series.Id, _parsedEpisodeInfo.SeasonNumber))
                 .Returns(_episodes);
@@ -517,6 +519,46 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
 
             Mocker.GetMock<IEpisodeService>()
                 .Verify(v => v.GetEpisodesBySceneSeason(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+        }
+
+        [Test]
+        public void should_use_season_zero_when_looking_up_is_partial_special_episode_found_by_title()
+        {
+            _series.UseSceneNumbering = false;
+            _parsedEpisodeInfo.SeasonNumber = 1;
+            _parsedEpisodeInfo.EpisodeNumbers = new int[] { 0 };
+            _parsedEpisodeInfo.ReleaseTitle = "Series.Title.S01E00.My.Special.Episode.1080p.AMZN.WEB-DL.DDP5.1.H264-TEPES";
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.FindEpisodeByTitle(_series.TvdbId, 0, _parsedEpisodeInfo.ReleaseTitle))
+                  .Returns(
+                      Builder<Episode>.CreateNew()
+                                      .With(e => e.SeasonNumber = 0)
+                                      .With(e => e.EpisodeNumber = 1)
+                                      .Build());
+
+            Subject.Map(_parsedEpisodeInfo, _series.TvdbId, _series.TvRageId);
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.FindEpisode(_series.TvdbId, 0, 1), Times.Once());
+        }
+
+        [Test]
+        public void should_use_original_parse_result_when_special_episode_lookup_by_title_fails()
+        {
+            _series.UseSceneNumbering = false;
+            _parsedEpisodeInfo.SeasonNumber = 1;
+            _parsedEpisodeInfo.EpisodeNumbers = new int[] { 0 };
+            _parsedEpisodeInfo.ReleaseTitle = "Series.Title.S01E00.My.Special.Episode.1080p.AMZN.WEB-DL.DDP5.1.H264-TEPES";
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.FindEpisodeByTitle(_series.TvdbId, 0, _parsedEpisodeInfo.ReleaseTitle))
+                  .Returns((Episode)null);
+
+            Subject.Map(_parsedEpisodeInfo, _series.TvdbId, _series.TvRageId);
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.FindEpisode(_series.TvdbId, _parsedEpisodeInfo.SeasonNumber, _parsedEpisodeInfo.EpisodeNumbers.First()), Times.Once());
         }
     }
 }

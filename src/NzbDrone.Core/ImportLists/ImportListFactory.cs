@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
@@ -21,7 +22,7 @@ namespace NzbDrone.Core.ImportLists
         public ImportListFactory(IImportListStatusService importListStatusService,
                               IImportListRepository providerRepository,
                               IEnumerable<IImportList> providers,
-                              IContainer container,
+                              IServiceProvider container,
                               IEventAggregator eventAggregator,
                               Logger logger)
             : base(providerRepository, providers, container, eventAggregator, logger)
@@ -40,6 +41,7 @@ namespace NzbDrone.Core.ImportLists
             base.SetProviderCharacteristics(provider, definition);
 
             definition.ListType = provider.ListType;
+            definition.MinRefreshInterval = provider.MinRefreshInterval;
         }
 
         public List<IImportList> AutomaticAddEnabled(bool filterBlockedImportLists = true)

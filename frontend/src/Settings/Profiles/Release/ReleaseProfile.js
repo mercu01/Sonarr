@@ -2,11 +2,11 @@ import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import MiddleTruncate from 'react-middle-truncate';
-import { kinds } from 'Helpers/Props';
 import Card from 'Components/Card';
 import Label from 'Components/Label';
-import TagList from 'Components/TagList';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import TagList from 'Components/TagList';
+import { kinds } from 'Helpers/Props';
 import EditReleaseProfileModalConnector from './EditReleaseProfileModalConnector';
 import styles from './ReleaseProfile.css';
 
@@ -29,26 +29,26 @@ class ReleaseProfile extends Component {
 
   onEditReleaseProfilePress = () => {
     this.setState({ isEditReleaseProfileModalOpen: true });
-  }
+  };
 
   onEditReleaseProfileModalClose = () => {
     this.setState({ isEditReleaseProfileModalOpen: false });
-  }
+  };
 
   onDeleteReleaseProfilePress = () => {
     this.setState({
       isEditReleaseProfileModalOpen: false,
       isDeleteReleaseProfileModalOpen: true
     });
-  }
+  };
 
   onDeleteReleaseProfileModalClose= () => {
     this.setState({ isDeleteReleaseProfileModalOpen: false });
-  }
+  };
 
   onConfirmDeleteReleaseProfile = () => {
     this.props.onConfirmDeleteReleaseProfile(this.props.id);
-  }
+  };
 
   //
   // Render
@@ -60,7 +60,6 @@ class ReleaseProfile extends Component {
       enabled,
       required,
       ignored,
-      preferred,
       tags,
       indexerId,
       tagList,
@@ -114,28 +113,6 @@ class ReleaseProfile extends Component {
 
         <div>
           {
-            preferred.map((item) => {
-              const isPreferred = item.value >= 0;
-
-              return (
-                <Label
-                  className={styles.label}
-                  key={item.key}
-                  kind={isPreferred ? kinds.DEFAULT : kinds.WARNING}
-                >
-                  <MiddleTruncate
-                    text={`${item.key} ${isPreferred ? '+' : ''}${item.value}`}
-                    start={10}
-                    end={14}
-                  />
-                </Label>
-              );
-            })
-          }
-        </div>
-
-        <div>
-          {
             ignored.map((item) => {
               if (!item) {
                 return null;
@@ -166,22 +143,22 @@ class ReleaseProfile extends Component {
         <div>
           {
             !enabled &&
-            <Label
-              kind={kinds.DISABLED}
-              outline={true}
-            >
-              Disabled
-            </Label>
+              <Label
+                kind={kinds.DISABLED}
+                outline={true}
+              >
+                Disabled
+              </Label>
           }
 
           {
             indexer &&
-            <Label
-              kind={kinds.INFO}
-              outline={true}
-            >
-              {indexer.name}
-            </Label>
+              <Label
+                kind={kinds.INFO}
+                outline={true}
+              >
+                {indexer.name}
+              </Label>
           }
         </div>
 
@@ -212,7 +189,6 @@ ReleaseProfile.propTypes = {
   enabled: PropTypes.bool.isRequired,
   required: PropTypes.arrayOf(PropTypes.string).isRequired,
   ignored: PropTypes.arrayOf(PropTypes.string).isRequired,
-  preferred: PropTypes.arrayOf(PropTypes.object).isRequired,
   tags: PropTypes.arrayOf(PropTypes.number).isRequired,
   indexerId: PropTypes.number.isRequired,
   tagList: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -224,7 +200,6 @@ ReleaseProfile.defaultProps = {
   enabled: true,
   required: [],
   ignored: [],
-  preferred: [],
   indexerId: 0
 };
 

@@ -1,22 +1,24 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
+import Icon from 'Components/Icon';
+import Link from 'Components/Link/Link';
+import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
+import ConfirmModal from 'Components/Modal/ConfirmModal';
+import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import TableRow from 'Components/Table/TableRow';
+import Popover from 'Components/Tooltip/Popover';
+import Tooltip from 'Components/Tooltip/Tooltip';
+import EpisodeFormats from 'Episode/EpisodeFormats';
+import EpisodeLanguages from 'Episode/EpisodeLanguages';
+import EpisodeQuality from 'Episode/EpisodeQuality';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import formatAge from 'Utilities/Number/formatAge';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatPreferredWordScore from 'Utilities/Number/formatPreferredWordScore';
-import { icons, kinds, tooltipPositions } from 'Helpers/Props';
-import Icon from 'Components/Icon';
-import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
-import Link from 'Components/Link/Link';
-import ConfirmModal from 'Components/Modal/ConfirmModal';
-import TableRow from 'Components/Table/TableRow';
-import TableRowCell from 'Components/Table/Cells/TableRowCell';
-import Popover from 'Components/Tooltip/Popover';
-import EpisodeLanguage from 'Episode/EpisodeLanguage';
-import EpisodeQuality from 'Episode/EpisodeQuality';
-import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
-import ReleaseSceneIndicator from './ReleaseSceneIndicator';
 import Peers from './Peers';
+import ReleaseSceneIndicator from './ReleaseSceneIndicator';
 import styles from './InteractiveSearchRow.css';
 
 function getDownloadIcon(isGrabbing, isGrabbed, grabError) {
@@ -70,11 +72,11 @@ class InteractiveSearchRow extends Component {
       guid,
       indexerId
     });
-  }
+  };
 
   onConfirmGrabPress = () => {
     this.setState({ isConfirmGrabModalOpen: true });
-  }
+  };
 
   onGrabConfirm = () => {
     this.setState({ isConfirmGrabModalOpen: false });
@@ -91,11 +93,11 @@ class InteractiveSearchRow extends Component {
       indexerId,
       ...searchPayload
     });
-  }
+  };
 
   onGrabCancel = () => {
     this.setState({ isConfirmGrabModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -114,8 +116,9 @@ class InteractiveSearchRow extends Component {
       seeders,
       leechers,
       quality,
-      language,
-      preferredWordScore,
+      languages,
+      customFormatScore,
+      customFormats,
       sceneMapping,
       seasonNumber,
       episodeNumbers,
@@ -185,16 +188,22 @@ class InteractiveSearchRow extends Component {
           }
         </TableRowCell>
 
-        <TableRowCell className={styles.language}>
-          <EpisodeLanguage language={language} />
+        <TableRowCell className={styles.languages}>
+          <EpisodeLanguages languages={languages} />
         </TableRowCell>
 
         <TableRowCell className={styles.quality}>
           <EpisodeQuality quality={quality} />
         </TableRowCell>
 
-        <TableRowCell className={styles.preferredWordScore}>
-          {formatPreferredWordScore(preferredWordScore)}
+        <TableRowCell className={styles.customFormatScore}>
+          <Tooltip
+            anchor={
+              formatPreferredWordScore(customFormatScore, customFormats.length)
+            }
+            tooltip={<EpisodeFormats formats={customFormats} />}
+            position={tooltipPositions.BOTTOM}
+          />
         </TableRowCell>
 
         <TableRowCell className={styles.rejected}>
@@ -265,8 +274,9 @@ InteractiveSearchRow.propTypes = {
   seeders: PropTypes.number,
   leechers: PropTypes.number,
   quality: PropTypes.object.isRequired,
-  language: PropTypes.object.isRequired,
-  preferredWordScore: PropTypes.number.isRequired,
+  languages: PropTypes.arrayOf(PropTypes.object).isRequired,
+  customFormats: PropTypes.arrayOf(PropTypes.object),
+  customFormatScore: PropTypes.number.isRequired,
   sceneMapping: PropTypes.object,
   seasonNumber: PropTypes.number,
   episodeNumbers: PropTypes.arrayOf(PropTypes.number),

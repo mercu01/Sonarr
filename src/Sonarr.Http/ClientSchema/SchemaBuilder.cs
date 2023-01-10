@@ -2,16 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Reflection;
+using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Annotations;
 
 namespace Sonarr.Http.ClientSchema
 {
     public static class SchemaBuilder
     {
+        private static readonly string PRIVATE_VALUE = "********";
         private static Dictionary<Type, FieldMapping[]> _mappings = new Dictionary<Type, FieldMapping[]>();
 
         public static List<Field> ToSchema(object model)
@@ -27,13 +29,19 @@ namespace Sonarr.Http.ClientSchema
                 var field = mapping.Field.Clone();
                 field.Value = mapping.GetterFunc(model);
 
+                if (field.Value != null && !field.Value.Equals(string.Empty) &&
+                    (field.Privacy == PrivacyLevel.ApiKey || field.Privacy == PrivacyLevel.Password))
+                {
+                    field.Value = PRIVATE_VALUE;
+                }
+
                 result.Add(field);
             }
 
             return result.OrderBy(r => r.Order).ToList();
         }
 
-        public static object ReadFromSchema(List<Field> fields, Type targetType)
+        public static object ReadFromSchema(List<Field> fields, Type targetType, object model)
         {
             Ensure.That(targetType, () => targetType).IsNotNull();
 
@@ -48,19 +56,24 @@ namespace Sonarr.Http.ClientSchema
 
                 if (field != null)
                 {
-                    mapping.SetterFunc(target, field.Value);
+                    // Use the Privacy property from the mapping's field as Privacy may not be set in the API request (nor is it required)
+                    if ((mapping.Field.Privacy == PrivacyLevel.ApiKey || mapping.Field.Privacy == PrivacyLevel.Password) &&
+                        (field.Value?.ToString()?.Equals(PRIVATE_VALUE) ?? false) &&
+                        model != null)
+                    {
+                        var existingValue = mapping.GetterFunc(model);
+
+                        mapping.SetterFunc(target, existingValue);
+                    }
+                    else
+                    {
+                        mapping.SetterFunc(target, field.Value);
+                    }
                 }
             }
 
             return target;
-
         }
-
-        public static T ReadFromSchema<T>(List<Field> fields)
-        {
-            return (T)ReadFromSchema(fields, typeof(T));
-        }
-
 
         // Ideally this function should begin a System.Linq.Expression expression tree since it's faster.
         // But it's probably not needed till performance issues pop up.
@@ -81,6 +94,7 @@ namespace Sonarr.Http.ClientSchema
 
                     _mappings[type] = result;
                 }
+
                 return result;
             }
         }
@@ -104,7 +118,8 @@ namespace Sonarr.Http.ClientSchema
                         Order = fieldAttribute.Order,
                         Advanced = fieldAttribute.Advanced,
                         Type = fieldAttribute.Type.ToString().FirstCharToLower(),
-                        Section = fieldAttribute.Section
+                        Section = fieldAttribute.Section,
+                        Privacy = fieldAttribute.Privacy
                     };
 
                     if (fieldAttribute.Type == FieldType.Select || fieldAttribute.Type == FieldType.TagSelect)
@@ -131,7 +146,7 @@ namespace Sonarr.Http.ClientSchema
                         Field = field,
                         PropertyType = propertyInfo.PropertyType,
                         GetterFunc = t => propertyInfo.GetValue(targetSelector(t), null),
-                        SetterFunc = (t, v) => propertyInfo.SetValue(targetSelector(t), valueConverter(v), null)
+                        SetterFunc = (t, v) => propertyInfo.SetValue(targetSelector(t), v?.GetType() == propertyInfo.PropertyType ? v : valueConverter(v), null)
                     });
                 }
                 else
@@ -154,33 +169,44 @@ namespace Sonarr.Http.ClientSchema
 
         private static List<SelectOption> GetSelectOptions(Type selectOptions)
         {
-            var options = selectOptions.GetFields().Where(v => v.IsStatic).Select(v =>
+            if (selectOptions.IsEnum)
             {
-                var name = v.Name.Replace('_', ' ');
-                var value = Convert.ToInt32(v.GetRawConstantValue());
-                var attrib = v.GetCustomAttribute<FieldOptionAttribute>();
-                if (attrib != null)
+                var options = selectOptions.GetFields().Where(v => v.IsStatic).Select(v =>
                 {
-                    return new SelectOption
+                    var name = v.Name.Replace('_', ' ');
+                    var value = Convert.ToInt32(v.GetRawConstantValue());
+                    var attrib = v.GetCustomAttribute<FieldOptionAttribute>();
+                    if (attrib != null)
                     {
-                        Value = value,
-                        Name = attrib.Label ?? name,
-                        Order = attrib.Order,
-                        Hint = attrib.Hint ?? $"({value})"
-                    };
-                }
-                else
-                {
-                    return new SelectOption
+                        return new SelectOption
+                        {
+                            Value = value,
+                            Name = attrib.Label ?? name,
+                            Order = attrib.Order,
+                            Hint = attrib.Hint ?? $"({value})"
+                        };
+                    }
+                    else
                     {
-                        Value = value,
-                        Name = name,
-                        Order = value
-                    };
-                }
-            });
+                        return new SelectOption
+                        {
+                            Value = value,
+                            Name = name,
+                            Order = value
+                        };
+                    }
+                });
 
-            return options.OrderBy(o => o.Order).ToList();
+                return options.OrderBy(o => o.Order).ToList();
+            }
+
+            if (typeof(ISelectOptionsConverter).IsAssignableFrom(selectOptions))
+            {
+                var converter = Activator.CreateInstance(selectOptions) as ISelectOptionsConverter;
+                return converter.GetSelectOptions();
+            }
+
+            throw new NotSupportedException();
         }
 
         private static Func<object, object> GetValueConverter(Type propertyType)
@@ -189,32 +215,26 @@ namespace Sonarr.Http.ClientSchema
             {
                 return fieldValue => fieldValue?.ToString().ParseInt32() ?? 0;
             }
-
             else if (propertyType == typeof(long))
             {
                 return fieldValue => fieldValue?.ToString().ParseInt64() ?? 0;
             }
-
             else if (propertyType == typeof(double))
             {
                 return fieldValue => fieldValue?.ToString().ParseDouble() ?? 0.0;
             }
-
             else if (propertyType == typeof(int?))
             {
                 return fieldValue => fieldValue?.ToString().ParseInt32();
             }
-
-            else if (propertyType == typeof(Int64?))
+            else if (propertyType == typeof(long?))
             {
                 return fieldValue => fieldValue?.ToString().ParseInt64();
             }
-
             else if (propertyType == typeof(double?))
             {
                 return fieldValue => fieldValue?.ToString().ParseDouble();
             }
-
             else if (propertyType == typeof(IEnumerable<int>))
             {
                 return fieldValue =>
@@ -223,9 +243,9 @@ namespace Sonarr.Http.ClientSchema
                     {
                         return Enumerable.Empty<int>();
                     }
-                    else if (fieldValue.GetType() == typeof(JArray))
+                    else if (fieldValue is JsonElement e && e.ValueKind == JsonValueKind.Array)
                     {
-                        return ((JArray)fieldValue).Select(s => s.Value<int>());
+                        return e.EnumerateArray().Select(s => s.GetInt32());
                     }
                     else
                     {
@@ -233,7 +253,6 @@ namespace Sonarr.Http.ClientSchema
                     }
                 };
             }
-
             else if (propertyType == typeof(IEnumerable<string>))
             {
                 return fieldValue =>
@@ -242,9 +261,9 @@ namespace Sonarr.Http.ClientSchema
                     {
                         return Enumerable.Empty<string>();
                     }
-                    else if (fieldValue.GetType() == typeof(JArray))
+                    else if (fieldValue is JsonElement e && e.ValueKind == JsonValueKind.Array)
                     {
-                        return ((JArray)fieldValue).Select(s => s.Value<string>());
+                        return e.EnumerateArray().Select(s => s.GetString());
                     }
                     else
                     {
@@ -252,16 +271,26 @@ namespace Sonarr.Http.ClientSchema
                     }
                 };
             }
-
             else
             {
-                return fieldValue => fieldValue;
+                return fieldValue =>
+                {
+                    var element = fieldValue as JsonElement?;
+
+                    if (element == null || !element.HasValue)
+                    {
+                        return null;
+                    }
+
+                    var json = element.Value.GetRawText();
+                    return STJson.Deserialize(json, propertyType);
+                };
             }
         }
 
         private static string GetCamelCaseName(string name)
         {
-            return Char.ToLowerInvariant(name[0]) + name.Substring(1);
+            return char.ToLowerInvariant(name[0]) + name.Substring(1);
         }
     }
 }

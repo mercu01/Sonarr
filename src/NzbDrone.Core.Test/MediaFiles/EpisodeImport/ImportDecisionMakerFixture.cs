@@ -1,22 +1,21 @@
 using System.Collections.Generic;
 using System.Linq;
+using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.Download;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Test.Common;
-using FizzWare.NBuilder;
-using NzbDrone.Core.Download;
-using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation;
-using NzbDrone.Core.Profiles.Qualities;
-using NzbDrone.Core.Profiles.Languages;
 
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 {
@@ -25,7 +24,6 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
     {
         private List<string> _videoFiles;
         private LocalEpisode _localEpisode;
-        private DownloadClientItem _downloadClientItem;
         private Series _series;
         private QualityModel _quality;
 
@@ -59,7 +57,6 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
             _series = Builder<Series>.CreateNew()
                                      .With(e => e.Path = @"C:\Test\Series".AsOsAgnostic())
                                      .With(e => e.QualityProfile = new QualityProfile { Items = Qualities.QualityFixture.GetDefaultQualities() })
-                                     .With(e => e.LanguageProfile = new LanguageProfile { Languages = Languages.LanguageFixture.GetDefaultLanguages() })
                                      .Build();
 
             _quality = new QualityModel(Quality.DVD);
@@ -68,7 +65,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
             {
                 Series = _series,
                 Quality = _quality,
-                Language = Language.Spanish,
+                Languages = new List<Language> { Language.Spanish },
                 Episodes = new List<Episode> { new Episode() },
                 Path = @"C:\Test\Unsorted\The.Office.S03E115.DVDRip.Spanish.XviD-OSiTV.avi"
             };

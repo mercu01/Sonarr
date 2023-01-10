@@ -3,13 +3,14 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
 import { createSelector } from 'reselect';
-import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import { saveDimensions, setIsSidebarVisible } from 'Store/Actions/appActions';
 import { fetchCustomFilters } from 'Store/Actions/customFilterActions';
 import { fetchSeries } from 'Store/Actions/seriesActions';
-import { fetchTags } from 'Store/Actions/tagActions';
-import { fetchQualityProfiles, fetchLanguageProfiles, fetchImportLists, fetchUISettings } from 'Store/Actions/settingsActions';
+import { fetchImportLists, fetchLanguages, fetchQualityProfiles, fetchUISettings } from 'Store/Actions/settingsActions';
 import { fetchStatus } from 'Store/Actions/systemActions';
+import { fetchTags } from 'Store/Actions/tagActions';
+import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
+import createSystemStatusSelector from 'Store/Selectors/createSystemStatusSelector';
 import ErrorPage from './ErrorPage';
 import LoadingPage from './LoadingPage';
 import Page from './Page';
@@ -48,7 +49,7 @@ const selectIsPopulated = createSelector(
   (state) => state.tags.isPopulated,
   (state) => state.settings.ui.isPopulated,
   (state) => state.settings.qualityProfiles.isPopulated,
-  (state) => state.settings.languageProfiles.isPopulated,
+  (state) => state.settings.languages.isPopulated,
   (state) => state.settings.importLists.isPopulated,
   (state) => state.system.status.isPopulated,
   (
@@ -57,7 +58,7 @@ const selectIsPopulated = createSelector(
     tagsIsPopulated,
     uiSettingsIsPopulated,
     qualityProfilesIsPopulated,
-    languageProfilesIsPopulated,
+    languagesIsPopulated,
     importListsIsPopulated,
     systemStatusIsPopulated
   ) => {
@@ -67,7 +68,7 @@ const selectIsPopulated = createSelector(
       tagsIsPopulated &&
       uiSettingsIsPopulated &&
       qualityProfilesIsPopulated &&
-      languageProfilesIsPopulated &&
+      languagesIsPopulated &&
       importListsIsPopulated &&
       systemStatusIsPopulated
     );
@@ -80,7 +81,7 @@ const selectErrors = createSelector(
   (state) => state.tags.error,
   (state) => state.settings.ui.error,
   (state) => state.settings.qualityProfiles.error,
-  (state) => state.settings.languageProfiles.error,
+  (state) => state.settings.languages.error,
   (state) => state.settings.importLists.error,
   (state) => state.system.status.error,
   (
@@ -89,7 +90,7 @@ const selectErrors = createSelector(
     tagsError,
     uiSettingsError,
     qualityProfilesError,
-    languageProfilesError,
+    languagesError,
     importListsError,
     systemStatusError
   ) => {
@@ -99,7 +100,7 @@ const selectErrors = createSelector(
       tagsError ||
       uiSettingsError ||
       qualityProfilesError ||
-      languageProfilesError ||
+      languagesError ||
       importListsError ||
       systemStatusError
     );
@@ -111,7 +112,7 @@ const selectErrors = createSelector(
       tagsError,
       uiSettingsError,
       qualityProfilesError,
-      languageProfilesError,
+      languagesError,
       importListsError,
       systemStatusError
     };
@@ -125,18 +126,21 @@ function createMapStateToProps() {
     selectErrors,
     selectAppProps,
     createDimensionsSelector(),
+    createSystemStatusSelector(),
     (
       enableColorImpairedMode,
       isPopulated,
       errors,
       app,
-      dimensions
+      dimensions,
+      systemStatus
     ) => {
       return {
         ...app,
         ...errors,
         isPopulated,
         isSmallScreen: dimensions.isSmallScreen,
+        authenticationEnabled: systemStatus.authentication !== 'none',
         enableColorImpairedMode
       };
     }
@@ -157,8 +161,8 @@ function createMapDispatchToProps(dispatch, props) {
     dispatchFetchQualityProfiles() {
       dispatch(fetchQualityProfiles());
     },
-    dispatchFetchLanguageProfiles() {
-      dispatch(fetchLanguageProfiles());
+    dispatchFetchLanguages() {
+      dispatch(fetchLanguages());
     },
     dispatchFetchImportLists() {
       dispatch(fetchImportLists());
@@ -197,7 +201,7 @@ class PageConnector extends Component {
       this.props.dispatchFetchCustomFilters();
       this.props.dispatchFetchTags();
       this.props.dispatchFetchQualityProfiles();
-      this.props.dispatchFetchLanguageProfiles();
+      this.props.dispatchFetchLanguages();
       this.props.dispatchFetchImportLists();
       this.props.dispatchFetchUISettings();
       this.props.dispatchFetchStatus();
@@ -209,7 +213,7 @@ class PageConnector extends Component {
 
   onSidebarToggle = () => {
     this.props.onSidebarVisibleChange(!this.props.isSidebarVisible);
-  }
+  };
 
   //
   // Render
@@ -221,7 +225,7 @@ class PageConnector extends Component {
       dispatchFetchSeries,
       dispatchFetchTags,
       dispatchFetchQualityProfiles,
-      dispatchFetchLanguageProfiles,
+      dispatchFetchLanguages,
       dispatchFetchImportLists,
       dispatchFetchUISettings,
       dispatchFetchStatus,
@@ -260,7 +264,7 @@ PageConnector.propTypes = {
   dispatchFetchCustomFilters: PropTypes.func.isRequired,
   dispatchFetchTags: PropTypes.func.isRequired,
   dispatchFetchQualityProfiles: PropTypes.func.isRequired,
-  dispatchFetchLanguageProfiles: PropTypes.func.isRequired,
+  dispatchFetchLanguages: PropTypes.func.isRequired,
   dispatchFetchImportLists: PropTypes.func.isRequired,
   dispatchFetchUISettings: PropTypes.func.isRequired,
   dispatchFetchStatus: PropTypes.func.isRequired,

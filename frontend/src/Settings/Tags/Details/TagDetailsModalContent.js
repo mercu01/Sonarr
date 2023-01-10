@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { kinds } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
-import Button from 'Components/Link/Button';
 import Label from 'Components/Label';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
+import Button from 'Components/Link/Button';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { kinds } from 'Helpers/Props';
 import TagDetailsDelayProfile from './TagDetailsDelayProfile';
 import styles from './TagDetailsModalContent.css';
 
@@ -21,6 +21,7 @@ function TagDetailsModalContent(props) {
     notifications,
     releaseProfiles,
     indexers,
+    autoTags,
     onModalClose,
     onDeleteTagPress
   } = props;
@@ -142,23 +143,6 @@ function TagDetailsModalContent(props) {
 
                       <div>
                         {
-                          item.preferred.map((i) => {
-                            const isPreferred = i.value >= 0;
-
-                            return (
-                              <Label
-                                key={i.key}
-                                kind={isPreferred ? kinds.DEFAULT : kinds.WARNING}
-                              >
-                                {i.key} {isPreferred && '+'}{i.value}
-                              </Label>
-                            );
-                          })
-                        }
-                      </div>
-
-                      <div>
-                        {
                           item.ignored.map((i) => {
                             return (
                               <Label
@@ -184,6 +168,22 @@ function TagDetailsModalContent(props) {
             <FieldSet legend="Indexers">
               {
                 indexers.map((item) => {
+                  return (
+                    <div key={item.id}>
+                      {item.name}
+                    </div>
+                  );
+                })
+              }
+            </FieldSet> :
+            null
+        }
+
+        {
+          autoTags.length ?
+            <FieldSet legend="Auto Tagging">
+              {
+                autoTags.map((item) => {
                   return (
                     <div key={item.id}>
                       {item.name}
@@ -228,6 +228,7 @@ TagDetailsModalContent.propTypes = {
   notifications: PropTypes.arrayOf(PropTypes.object).isRequired,
   releaseProfiles: PropTypes.arrayOf(PropTypes.object).isRequired,
   indexers: PropTypes.arrayOf(PropTypes.object).isRequired,
+  autoTags: PropTypes.arrayOf(PropTypes.object).isRequired,
   onModalClose: PropTypes.func.isRequired,
   onDeleteTagPress: PropTypes.func.isRequired
 };

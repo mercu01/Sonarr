@@ -1,22 +1,22 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, inputTypes, tooltipPositions } from 'Helpers/Props';
-import Icon from 'Components/Icon';
-import SpinnerButton from 'Components/Link/SpinnerButton';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
-import CheckInput from 'Components/Form/CheckInput';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
-import Popover from 'Components/Tooltip/Popover';
-import SeriesPoster from 'Series/SeriesPoster';
-import * as seriesTypes from 'Utilities/Series/seriesTypes';
 import SeriesMonitoringOptionsPopoverContent from 'AddSeries/SeriesMonitoringOptionsPopoverContent';
 import SeriesTypePopoverContent from 'AddSeries/SeriesTypePopoverContent';
+import CheckInput from 'Components/Form/CheckInput';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import Icon from 'Components/Icon';
+import SpinnerButton from 'Components/Link/SpinnerButton';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import Popover from 'Components/Tooltip/Popover';
+import { icons, inputTypes, kinds, tooltipPositions } from 'Helpers/Props';
+import SeriesPoster from 'Series/SeriesPoster';
+import * as seriesTypes from 'Utilities/Series/seriesTypes';
 import styles from './AddNewSeriesModalContent.css';
 
 class AddNewSeriesModalContent extends Component {
@@ -45,11 +45,7 @@ class AddNewSeriesModalContent extends Component {
 
   onQualityProfileIdChange = ({ value }) => {
     this.props.onInputChange({ name: 'qualityProfileId', value: parseInt(value) });
-  }
-
-  onLanguageProfileIdChange = ({ value }) => {
-    this.props.onInputChange({ name: 'languageProfileId', value: parseInt(value) });
-  }
+  };
 
   onAddSeriesPress = () => {
     const {
@@ -59,7 +55,7 @@ class AddNewSeriesModalContent extends Component {
     this.props.onAddSeriesPress(
       seriesType
     );
-  }
+  };
 
   //
   // Render
@@ -74,14 +70,12 @@ class AddNewSeriesModalContent extends Component {
       rootFolderPath,
       monitor,
       qualityProfileId,
-      languageProfileId,
       seriesType,
       seasonFolder,
       searchForMissingEpisodes,
       searchForCutoffUnmetEpisodes,
       folder,
       tags,
-      showLanguageProfile,
       isSmallScreen,
       isWindows,
       onModalClose,
@@ -177,17 +171,6 @@ class AddNewSeriesModalContent extends Component {
                     name="qualityProfileId"
                     onChange={this.onQualityProfileIdChange}
                     {...qualityProfileId}
-                  />
-                </FormGroup>
-
-                <FormGroup className={showLanguageProfile ? undefined : styles.hideLanguageProfile}>
-                  <FormLabel>Language Profile</FormLabel>
-
-                  <FormInputGroup
-                    type={inputTypes.LANGUAGE_PROFILE_SELECT}
-                    name="languageProfileId"
-                    onChange={this.onLanguageProfileIdChange}
-                    {...languageProfileId}
                   />
                 </FormGroup>
 
@@ -299,14 +282,12 @@ AddNewSeriesModalContent.propTypes = {
   rootFolderPath: PropTypes.object,
   monitor: PropTypes.object.isRequired,
   qualityProfileId: PropTypes.object,
-  languageProfileId: PropTypes.object,
   seriesType: PropTypes.object.isRequired,
   seasonFolder: PropTypes.object.isRequired,
   searchForMissingEpisodes: PropTypes.object.isRequired,
   searchForCutoffUnmetEpisodes: PropTypes.object.isRequired,
   folder: PropTypes.string.isRequired,
   tags: PropTypes.object.isRequired,
-  showLanguageProfile: PropTypes.bool.isRequired,
   isSmallScreen: PropTypes.bool.isRequired,
   isWindows: PropTypes.bool.isRequired,
   onModalClose: PropTypes.func.isRequired,

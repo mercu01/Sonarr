@@ -43,7 +43,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[Tenrai-Sensei] Series [BD][1080p][HEVC 10bit x265][Dual Audio]", "Tenrai-Sensei")]
         [TestCase("[Erai-raws] Series - 0955 ~ 1005 [1080p]", "Erai-raws")]
         [TestCase("[Exiled-Destiny] Series Title", "Exiled-Destiny")]
-        //[TestCase("", "")]
+        [TestCase("Series.Title.S01E09.1080p.DSNP.WEB-DL.DDP2.0.H.264-VARYG", "VARYG")]
+
+        // [TestCase("", "")]
         public void should_parse_release_group(string title, string expected)
         {
             Parser.Parser.ParseReleaseGroup(title).Should().Be(expected);
@@ -64,6 +66,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[Anime Time] A Show [BD][Dual Audio][1080p][HEVC 10bit x265][AAC][Eng Sub] [Batch] Title)", "Anime Time")]
         [TestCase("[Project Angel] Anime Series [DVD 480p] [10-bit x265 HEVC | Opus]", "Project Angel")]
         [TestCase("[Hakata Ramen] Show Title - Season 2 - Revival of The Commandments", "Hakata Ramen")]
+        [TestCase("Show Name (2022) S01 (2160p DSNP WEB-DL H265 DV HDR DDP Atmos 5.1 English - HONE)", "HONE")]
+        [TestCase("Show Title (2021) S01 (2160p ATVP WEB-DL Hybrid H265 DV HDR10+ DDP Atmos 5.1 English - HONE)", "HONE")]
+        [TestCase("Series.Title.S01E09.1080p.DSNP.WEB-DL.DDP2.0.H.264-VARYG (Blue Lock, Multi-Subs)", "VARYG")]
         public void should_parse_exception_release_group(string title, string expected)
         {
             Parser.Parser.ParseReleaseGroup(title).Should().Be(expected);
@@ -80,7 +85,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.S02E04.720p.WEBRip.x264-SKGTV English", "SKGTV")]
         [TestCase("Series.Title.S02E04.720p.WEBRip.x264-SKGTV_English", "SKGTV")]
         [TestCase("Series.Title.S02E04.720p.WEBRip.x264-SKGTV.English", "SKGTV")]
-        //[TestCase("", "")]
+
+        // [TestCase("", "")]
         public void should_not_include_language_in_release_group(string title, string expected)
         {
             Parser.Parser.ParseReleaseGroup(title).Should().Be(expected);
@@ -122,8 +128,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[Anime-Koi] Series Title - S01E06 - Guys From Sonarr", "Anime-Koi")]
         [TestCase("[Anime-Koi] Series Title - S01E07 - A High-Grade Sonarr", "Anime-Koi")]
         [TestCase("[Anime-Koi] Series Title 2 - 01 [h264-720p][28D54E2C]", "Anime-Koi")]
-        //[TestCase("Tokyo.Ghoul.02x01.013.HDTV-720p-Anime-Koi", "Anime-Koi")]
-        //[TestCase("", "")]
+
+        // [TestCase("Tokyo.Ghoul.02x01.013.HDTV-720p-Anime-Koi", "Anime-Koi")]
+        // [TestCase("", "")]
         public void should_parse_anime_release_groups(string title, string expected)
         {
             Parser.Parser.ParseReleaseGroup(title).Should().Be(expected);

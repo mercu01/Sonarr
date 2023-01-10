@@ -1,6 +1,8 @@
 using System;
+using System.Data;
 using FluentMigrator;
-using FluentMigrator.Runner;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 using NUnit.Framework;
 using NzbDrone.Core.Datastore.Migration.Framework;
 
@@ -8,20 +10,35 @@ namespace NzbDrone.Core.Test.Framework
 {
     [Category("DbMigrationTest")]
     [Category("DbTest")]
-    public abstract class MigrationTest<TMigration> : DbTest where TMigration : NzbDroneMigrationBase
+    public abstract class MigrationTest<TMigration> : DbTest
+        where TMigration : NzbDroneMigrationBase
     {
-        protected long MigrationVersion
+        protected long MigrationVersion => ((MigrationAttribute)Attribute.GetCustomAttribute(typeof(TMigration), typeof(MigrationAttribute))).Version;
+
+        [SetUp]
+        public override void SetupDb()
         {
-            get
-            {
-                var attrib = (MigrationAttribute)Attribute.GetCustomAttribute(typeof(TMigration), typeof(MigrationAttribute));
-                return attrib.Version;
-            }
+            SetupContainer();
         }
 
         protected virtual IDirectDataMapper WithMigrationTestDb(Action<TMigration> beforeMigration = null)
         {
-            var db = WithTestDb(new MigrationContext(MigrationType, MigrationVersion)
+            return WithMigrationAction(beforeMigration).GetDirectDataMapper();
+        }
+
+        protected virtual IDbConnection WithDapperMigrationTestDb(Action<TMigration> beforeMigration = null)
+        {
+            return WithMigrationAction(beforeMigration).OpenConnection();
+        }
+
+        protected override void SetupLogging()
+        {
+            Mocker.SetConstant<ILoggerProvider>(Mocker.Resolve<NLogLoggerProvider>());
+        }
+
+        private ITestDatabase WithMigrationAction(Action<TMigration> beforeMigration = null)
+        {
+            return WithTestDb(new MigrationContext(MigrationType, MigrationVersion)
             {
                 BeforeMigration = m =>
                 {
@@ -31,15 +48,6 @@ namespace NzbDrone.Core.Test.Framework
                     }
                 }
             });
-
-            return db.GetDirectDataMapper();
-        }
-
-        [SetUp]
-        public override void SetupDb()
-        {
-            Mocker.SetConstant<IAnnouncer>(Mocker.Resolve<MigrationLogger>());
-            SetupContainer();
         }
     }
 }

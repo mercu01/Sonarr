@@ -22,6 +22,7 @@ namespace NzbDrone.Core.Indexers.Rarbg
                     {
                         throw new IndexerException(indexerResponse, "Indexer API call returned an unexpected StatusCode [{0}]", indexerResponse.HttpResponse.StatusCode);
                     }
+
                     break;
             }
 
@@ -29,9 +30,12 @@ namespace NzbDrone.Core.Indexers.Rarbg
 
             if (jsonResponse.Resource.error_code.HasValue)
             {
-                if (jsonResponse.Resource.error_code == 20 || jsonResponse.Resource.error_code == 8)
+                if (jsonResponse.Resource.error_code == 5 || jsonResponse.Resource.error_code == 8
+                    || jsonResponse.Resource.error_code == 9 || jsonResponse.Resource.error_code == 10
+                    || jsonResponse.Resource.error_code == 13 || jsonResponse.Resource.error_code == 14
+                    || jsonResponse.Resource.error_code == 20)
                 {
-                    // No results found
+                    // No results, rate limit, tvdbid not found/invalid, or imdbid not found/invalid
                     return results;
                 }
 
@@ -88,6 +92,5 @@ namespace NzbDrone.Core.Indexers.Rarbg
                 return string.Format("rarbg-{0}", torrent.download);
             }
         }
-
     }
 }

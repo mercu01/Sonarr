@@ -1,4 +1,4 @@
-﻿using NzbDrone.Core.Languages;
+using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.Parser
 {
@@ -6,12 +6,15 @@ namespace NzbDrone.Core.Parser
     {
         public string TwoLetterCode { get; set; }
         public string ThreeLetterCode { get; set; }
+        public string CountryCode { get; set; }
         public Language Language { get; set; }
+        public string CountyCodeLower => CountryCode?.ToLower();
 
-        public IsoLanguage(string twoLetterCode, string threeLetterCode, Language language)
+        public IsoLanguage(string twoLetterCode, string countryCode, string threeLetterCode, Language language)
         {
             TwoLetterCode = twoLetterCode;
             ThreeLetterCode = threeLetterCode;
+            CountryCode = countryCode;
             Language = language;
         }
     }

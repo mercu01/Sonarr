@@ -47,7 +47,6 @@ namespace NzbDrone.Common.EnvironmentInfo
             {
                 throw new SonarrStartupException("Cannot create AppFolder, Access to the path {0} is denied", _appFolderInfo.AppDataFolder);
             }
-            
 
             if (OsInfo.IsWindows)
             {
@@ -70,7 +69,7 @@ namespace NzbDrone.Common.EnvironmentInfo
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "Coudn't set app folder permission");
+                _logger.Warn(ex, "Couldn't set app folder permission");
             }
         }
 
@@ -82,16 +81,34 @@ namespace NzbDrone.Common.EnvironmentInfo
 
                 if (_startupContext.Args.ContainsKey(StartupContext.APPDATA))
                 {
-                    if (_diskProvider.FileExists(_appFolderInfo.GetDatabase())) return;
-                    if (!_diskProvider.FileExists(oldDbFile)) return;
+                    if (_diskProvider.FileExists(_appFolderInfo.GetDatabase()))
+                    {
+                        return;
+                    }
+
+                    if (!_diskProvider.FileExists(oldDbFile))
+                    {
+                        return;
+                    }
 
                     MoveSqliteDatabase(oldDbFile, _appFolderInfo.GetDatabase());
                     RemovePidFile();
                 }
 
-                if (_appFolderInfo.LegacyAppDataFolder.IsNullOrWhiteSpace()) return;
-                if (_diskProvider.FileExists(_appFolderInfo.GetDatabase()) || _diskProvider.FileExists(_appFolderInfo.GetConfigPath())) return;
-                if (!_diskProvider.FolderExists(_appFolderInfo.LegacyAppDataFolder)) return;
+                if (_appFolderInfo.LegacyAppDataFolder.IsNullOrWhiteSpace())
+                {
+                    return;
+                }
+
+                if (_diskProvider.FileExists(_appFolderInfo.GetDatabase()) || _diskProvider.FileExists(_appFolderInfo.GetConfigPath()))
+                {
+                    return;
+                }
+
+                if (!_diskProvider.FolderExists(_appFolderInfo.LegacyAppDataFolder))
+                {
+                    return;
+                }
 
                 // Delete the bin folder on Windows
                 var binFolder = Path.Combine(_appFolderInfo.LegacyAppDataFolder, "bin");
@@ -125,25 +142,33 @@ namespace NzbDrone.Common.EnvironmentInfo
 
         private void InitializeMonoApplicationData()
         {
-            if (OsInfo.IsWindows) return;
+            if (OsInfo.IsWindows)
+            {
+                return;
+            }
 
             try
             {
-                var configHome = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                if (configHome == "/.config" ||
-                    configHome.EndsWith("/.config") && !_diskProvider.FolderExists(configHome.GetParentPath()) ||
+                // It seems that DoNotVerify is the mono behaviour even though .net docs specify a blank string
+                // should be returned if the data doesn't exist.  For compatibility with .net core, explicitly
+                // set DoNotVerify (which makes sense given we're explicitly checking that the folder exists)
+                var configHome = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.DoNotVerify);
+                if (configHome.IsNullOrWhiteSpace() ||
+                    configHome == "/.config" ||
+                    (configHome.EndsWith("/.config") && !_diskProvider.FolderExists(configHome.GetParentPath())) ||
                     !_diskProvider.FolderExists(configHome))
                 {
-                    // Tell mono to use appData/.config as ApplicationData folder.
+                    // Tell mono/netcore to use appData/.config as ApplicationData folder.
                     Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", Path.Combine(_appFolderInfo.AppDataFolder, ".config"));
                 }
 
-                var dataHome = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                if (dataHome == "/.local/share" ||
-                    dataHome.EndsWith("/.local/share") && !_diskProvider.FolderExists(dataHome.GetParentPath().GetParentPath()) ||
+                var dataHome = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify);
+                if (dataHome.IsNullOrWhiteSpace() ||
+                    dataHome == "/.local/share" ||
+                    (dataHome.EndsWith("/.local/share") && !_diskProvider.FolderExists(dataHome.GetParentPath().GetParentPath())) ||
                     !_diskProvider.FolderExists(dataHome))
                 {
-                    // Tell mono to use appData/.config/share as LocalApplicationData folder.
+                    // Tell mono/netcore to use appData/.config/share as LocalApplicationData folder.
                     Environment.SetEnvironmentVariable("XDG_DATA_HOME", Path.Combine(_appFolderInfo.AppDataFolder, ".config/share"));
                 }
             }

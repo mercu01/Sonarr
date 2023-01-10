@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes, sizes } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import { inputTypes, sizes } from 'Helpers/Props';
 
 function HostSettings(props) {
   const {
@@ -19,9 +19,12 @@ function HostSettings(props) {
     bindAddress,
     port,
     urlBase,
+    instanceName,
+    applicationUrl,
     enableSsl,
     sslPort,
-    sslCertHash,
+    sslCertPath,
+    sslCertPassword,
     launchBrowser
   } = settings;
 
@@ -36,7 +39,7 @@ function HostSettings(props) {
         <FormInputGroup
           type={inputTypes.TEXT}
           name="bindAddress"
-          helpText="Valid IPv4 address or '*' for all interfaces"
+          helpText="Valid IP address, localhost or '*' for all interfaces"
           helpTextWarning="Requires restart to take effect"
           onChange={onInputChange}
           {...bindAddress}
@@ -68,6 +71,37 @@ function HostSettings(props) {
           helpTextWarning="Requires restart to take effect"
           onChange={onInputChange}
           {...urlBase}
+        />
+      </FormGroup>
+
+      <FormGroup
+        advancedSettings={advancedSettings}
+        isAdvanced={true}
+      >
+        <FormLabel>Instance Name</FormLabel>
+
+        <FormInputGroup
+          type={inputTypes.TEXT}
+          name="instanceName"
+          helpText="Instance name in tab and for Syslog app name"
+          helpTextWarning="Requires restart to take effect"
+          onChange={onInputChange}
+          {...instanceName}
+        />
+      </FormGroup>
+
+      <FormGroup
+        advancedSettings={advancedSettings}
+        isAdvanced={true}
+      >
+        <FormLabel>Application URL</FormLabel>
+
+        <FormInputGroup
+          type={inputTypes.TEXT}
+          name="applicationUrl"
+          helpText="This application's external URL including http(s)://, port and URL base"
+          onChange={onInputChange}
+          {...applicationUrl}
         />
       </FormGroup>
 
@@ -109,19 +143,40 @@ function HostSettings(props) {
       }
 
       {
-        isWindows && enableSsl.value ?
+        enableSsl.value ?
           <FormGroup
             advancedSettings={advancedSettings}
             isAdvanced={true}
           >
-            <FormLabel>SSL Cert Hash</FormLabel>
+            <FormLabel>SSL Cert Path</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
-              name="sslCertHash"
+              name="sslCertPath"
+              helpText="Path to pfx file"
               helpTextWarning="Requires restart to take effect"
               onChange={onInputChange}
-              {...sslCertHash}
+              {...sslCertPath}
+            />
+          </FormGroup> :
+          null
+      }
+
+      {
+        enableSsl.value ?
+          <FormGroup
+            advancedSettings={advancedSettings}
+            isAdvanced={true}
+          >
+            <FormLabel>SSL Cert Password</FormLabel>
+
+            <FormInputGroup
+              type={inputTypes.PASSWORD}
+              name="sslCertPassword"
+              helpText="Password for pfx file"
+              helpTextWarning="Requires restart to take effect"
+              onChange={onInputChange}
+              {...sslCertPassword}
             />
           </FormGroup> :
           null

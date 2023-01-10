@@ -1,8 +1,8 @@
 ﻿using System;
-using System.IO;
+using System.Net;
 using System.Text.RegularExpressions;
-using Nancy;
-using Nancy.Responses;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using NzbDrone.Core.MediaCover;
 
 namespace Sonarr.Http.Frontend.Mappers
@@ -12,10 +12,12 @@ namespace Sonarr.Http.Frontend.Mappers
         private readonly Regex _regex = new Regex(@"/MediaCoverProxy/(?<hash>\w+)/(?<filename>(.+)\.(jpg|png|gif))");
 
         private readonly IMediaCoverProxy _mediaCoverProxy;
+        private readonly IContentTypeProvider _mimeTypeProvider;
 
         public MediaCoverProxyMapper(IMediaCoverProxy mediaCoverProxy)
         {
             _mediaCoverProxy = mediaCoverProxy;
+            _mimeTypeProvider = new FileExtensionContentTypeProvider();
         }
 
         public string Map(string resourceUrl)
@@ -28,13 +30,13 @@ namespace Sonarr.Http.Frontend.Mappers
             return resourceUrl.StartsWith("/MediaCoverProxy/", StringComparison.InvariantCultureIgnoreCase);
         }
 
-        public Response GetResponse(string resourceUrl)
+        public IActionResult GetResponse(string resourceUrl)
         {
             var match = _regex.Match(resourceUrl);
 
             if (!match.Success)
             {
-                return new NotFoundResponse();
+                return new StatusCodeResult((int)HttpStatusCode.NotFound);
             }
 
             var hash = match.Groups["hash"].Value;
@@ -42,7 +44,12 @@ namespace Sonarr.Http.Frontend.Mappers
 
             var imageData = _mediaCoverProxy.GetImage(hash);
 
-            return new StreamResponse(() => new MemoryStream(imageData), MimeTypes.GetMimeType(filename));
+            if (!_mimeTypeProvider.TryGetContentType(filename, out var contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
+            return new FileContentResult(imageData, contentType);
         }
     }
 }

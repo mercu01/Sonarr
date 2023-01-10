@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
-import Button from 'Components/Link/Button';
-import SpinnerButton from 'Components/Link/SpinnerButton';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import Button from 'Components/Link/Button';
+import SpinnerButton from 'Components/Link/SpinnerButton';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
 import MoveSeriesModal from 'Series/MoveSeries/MoveSeriesModal';
 import styles from './EditSeriesModalContent.css';
 
@@ -43,13 +43,13 @@ class EditSeriesModalContent extends Component {
 
       onSavePress(false);
     }
-  }
+  };
 
   onMoveSeriesPress = () => {
     this.setState({ isConfirmMoveModalOpen: false });
 
     this.props.onSavePress(true);
-  }
+  };
 
   //
   // Render
@@ -59,7 +59,6 @@ class EditSeriesModalContent extends Component {
       title,
       item,
       isSaving,
-      showLanguageProfile,
       originalPath,
       onInputChange,
       onModalClose,
@@ -71,7 +70,6 @@ class EditSeriesModalContent extends Component {
       monitored,
       seasonFolder,
       qualityProfileId,
-      languageProfileId,
       seriesType,
       path,
       tags
@@ -119,20 +117,6 @@ class EditSeriesModalContent extends Component {
                 onChange={onInputChange}
               />
             </FormGroup>
-
-            {
-              showLanguageProfile &&
-                <FormGroup>
-                  <FormLabel>Language Profile</FormLabel>
-
-                  <FormInputGroup
-                    type={inputTypes.LANGUAGE_PROFILE_SELECT}
-                    name="languageProfileId"
-                    {...languageProfileId}
-                    onChange={onInputChange}
-                  />
-                </FormGroup>
-            }
 
             <FormGroup>
               <FormLabel>Series Type</FormLabel>
@@ -209,7 +193,6 @@ EditSeriesModalContent.propTypes = {
   title: PropTypes.string.isRequired,
   item: PropTypes.object.isRequired,
   isSaving: PropTypes.bool.isRequired,
-  showLanguageProfile: PropTypes.bool.isRequired,
   isPathChanging: PropTypes.bool.isRequired,
   originalPath: PropTypes.string.isRequired,
   onInputChange: PropTypes.func.isRequired,

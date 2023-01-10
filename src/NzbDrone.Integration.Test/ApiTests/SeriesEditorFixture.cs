@@ -1,7 +1,8 @@
-﻿using FluentAssertions;
-using NUnit.Framework;
 using System.Linq;
+using FluentAssertions;
+using NUnit.Framework;
 using NzbDrone.Test.Common;
+using Sonarr.Api.V3.Series;
 
 namespace NzbDrone.Integration.Test.ApiTests
 {
@@ -10,12 +11,13 @@ namespace NzbDrone.Integration.Test.ApiTests
     {
         private void GivenExistingSeries()
         {
+            WaitForCompletion(() => Profiles.All().Count > 0);
+
             foreach (var title in new[] { "90210", "Dexter" })
             {
                 var newSeries = Series.Lookup(title).First();
 
-                newSeries.ProfileId = 1;
-                newSeries.LanguageProfileId = 1;
+                newSeries.QualityProfileId = 1;
                 newSeries.Path = string.Format(@"C:\Test\{0}", title).AsOsAgnostic();
 
                 Series.Post(newSeries);
@@ -29,15 +31,16 @@ namespace NzbDrone.Integration.Test.ApiTests
 
             var series = Series.All();
 
-            foreach (var s in series)
+            var seriesEditor = new SeriesEditorResource
             {
-                s.ProfileId = 2;
-            }
+                QualityProfileId = 2,
+                SeriesIds = series.Select(s => s.Id).ToList()
+            };
 
-            var result = Series.Editor(series);
+            var result = Series.Editor(seriesEditor);
 
             result.Should().HaveCount(2);
-            result.TrueForAll(s => s.ProfileId == 2).Should().BeTrue();
+            result.TrueForAll(s => s.QualityProfileId == 2).Should().BeTrue();
         }
     }
 }

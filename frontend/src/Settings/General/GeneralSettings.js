@@ -1,13 +1,13 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds } from 'Helpers/Props';
+import Form from 'Components/Form/Form';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import { kinds } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
-import Form from 'Components/Form/Form';
-import ConfirmModal from 'Components/Modal/ConfirmModal';
 import AnalyticSettings from './AnalyticSettings';
 import BackupSettings from './BackupSettings';
 import HostSettings from './HostSettings';
@@ -20,12 +20,11 @@ const requiresRestartKeys = [
   'bindAddress',
   'port',
   'urlBase',
+  'instanceName',
   'enableSsl',
   'sslPort',
   'sslCertHash',
-  'authenticationMethod',
-  'username',
-  'password'
+  'sslCertPassword'
 ];
 
 class GeneralSettings extends Component {
@@ -83,11 +82,11 @@ class GeneralSettings extends Component {
   onConfirmRestart = () => {
     this.setState({ isRestartRequiredModalOpen: false });
     this.props.onConfirmRestart();
-  }
+  };
 
   onCloseRestartRequiredModalOpen = () => {
     this.setState({ isRestartRequiredModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -101,7 +100,6 @@ class GeneralSettings extends Component {
       settings,
       hasSettings,
       isResettingApiKey,
-      isMono,
       isWindows,
       isWindowsService,
       mode,
@@ -167,7 +165,7 @@ class GeneralSettings extends Component {
                 <UpdateSettings
                   advancedSettings={advancedSettings}
                   settings={settings}
-                  isMono={isMono}
+                  isWindows={isWindows}
                   packageUpdateMechanism={packageUpdateMechanism}
                   onInputChange={onInputChange}
                 />
@@ -209,7 +207,6 @@ GeneralSettings.propTypes = {
   settings: PropTypes.object.isRequired,
   isResettingApiKey: PropTypes.bool.isRequired,
   hasSettings: PropTypes.bool.isRequired,
-  isMono: PropTypes.bool.isRequired,
   isWindows: PropTypes.bool.isRequired,
   isWindowsService: PropTypes.bool.isRequired,
   mode: PropTypes.string.isRequired,

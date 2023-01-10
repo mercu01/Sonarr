@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React, { useEffect } from 'react';
-import { kinds } from 'Helpers/Props';
 import keyboardShortcuts from 'Components/keyboardShortcuts';
 import Button from 'Components/Link/Button';
 import Modal from 'Components/Modal/Modal';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { kinds } from 'Helpers/Props';
 
 function PendingChangesModal(props) {
   const {
@@ -19,7 +19,7 @@ function PendingChangesModal(props) {
 
   useEffect(() => {
     bindShortcut('enter', onConfirm);
-  }, [onConfirm]);
+  }, [bindShortcut, onConfirm]);
 
   return (
     <Modal

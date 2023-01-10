@@ -1,15 +1,18 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FieldSet from 'Components/FieldSet';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBody from 'Components/Page/PageContentBody';
-import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import { inputTypes } from 'Helpers/Props';
+import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
+import themes from 'Styles/Themes';
+import titleCase from 'Utilities/String/titleCase';
+import translate from 'Utilities/String/translate';
 
 export const firstDayOfWeekOptions = [
   { key: 0, value: 'Sunday' },
@@ -55,8 +58,12 @@ class UISettings extends Component {
       hasSettings,
       onInputChange,
       onSavePress,
+      languages,
       ...otherProps
     } = this.props;
+
+    const themeOptions = Object.keys(themes)
+      .map((theme) => ({ key: theme, value: titleCase(theme) }));
 
     return (
       <PageContent title="UI Settings">
@@ -67,17 +74,19 @@ class UISettings extends Component {
 
         <PageContentBody>
           {
-            isFetching &&
-              <LoadingIndicator />
+            isFetching ?
+              <LoadingIndicator /> :
+              null
           }
 
           {
-            !isFetching && error &&
-              <div>Unable to load UI settings</div>
+            !isFetching && error ?
+              <div>Unable to load UI settings</div> :
+              null
           }
 
           {
-            hasSettings && !isFetching && !error &&
+            hasSettings && !isFetching && !error ?
               <Form
                 id="uiSettings"
                 {...otherProps}
@@ -164,6 +173,18 @@ class UISettings extends Component {
                   legend="Style"
                 >
                   <FormGroup>
+                    <FormLabel>Theme</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="theme"
+                      helpText="Change Application UI Theme, 'Auto' Theme will use your OS Theme to set Light or Dark mode. Inspired by Theme.Park"
+                      values={themeOptions}
+                      onChange={onInputChange}
+                      {...settings.theme}
+                    />
+                  </FormGroup>
+
+                  <FormGroup>
                     <FormLabel>Enable Color-Impaired Mode</FormLabel>
                     <FormInputGroup
                       type={inputTypes.CHECK}
@@ -174,7 +195,23 @@ class UISettings extends Component {
                     />
                   </FormGroup>
                 </FieldSet>
-              </Form>
+
+                <FieldSet legend={translate('Language')}>
+                  <FormGroup>
+                    <FormLabel>{translate('UI Language')}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="uiLanguage"
+                      values={languages}
+                      helpText={translate('Language that Sonarr will use for UI')}
+                      helpTextWarning={translate('Browser Reload Required')}
+                      onChange={onInputChange}
+                      {...settings.uiLanguage}
+                    />
+                  </FormGroup>
+                </FieldSet>
+              </Form> :
+              null
           }
         </PageContentBody>
       </PageContent>
@@ -188,6 +225,7 @@ UISettings.propTypes = {
   error: PropTypes.object,
   settings: PropTypes.object.isRequired,
   hasSettings: PropTypes.bool.isRequired,
+  languages: PropTypes.arrayOf(PropTypes.object).isRequired,
   onSavePress: PropTypes.func.isRequired,
   onInputChange: PropTypes.func.isRequired
 };

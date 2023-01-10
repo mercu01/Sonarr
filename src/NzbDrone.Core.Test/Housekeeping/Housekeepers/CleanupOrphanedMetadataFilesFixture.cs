@@ -1,9 +1,11 @@
-﻿using FizzWare.NBuilder;
+using System.Collections.Generic;
+using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Housekeeping.Housekeepers;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
@@ -69,8 +71,9 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
                                         .BuildNew();
 
             var episodeFile = Builder<EpisodeFile>.CreateNew()
-                                                  .With(h => h.Quality = new QualityModel())
-                                                  .BuildNew();
+                .With(h => h.Quality = new QualityModel())
+                .With(h => h.Languages = new List<Language> { Language.English })
+                .BuildNew();
 
             Db.Insert(series);
             Db.Insert(episodeFile);

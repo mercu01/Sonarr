@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using NLog;
+using NzbDrone.Common.Cache;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
-using System.Net;
-using NzbDrone.Common.Cache;
 
 namespace NzbDrone.Core.Download.Clients.Nzbget
 {
@@ -102,6 +103,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
             return droneId;
         }
+
         private string DownloadNzbLegacy12(byte[] nzbData, string title, string category, int priority, NzbgetSettings settings)
         {
             var response = ProcessRequest<bool>(settings, "append", title, category, priority, false, nzbData);
@@ -158,7 +160,6 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
             return ProcessRequest<List<NzbgetConfigItem>>(settings, "config").ToDictionary(v => v.Name, v => v.Value);
         }
 
-
         public void RemoveItem(string id, NzbgetSettings settings)
         {
             var queue = GetQueue(settings);
@@ -187,7 +188,6 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
                     _logger.Warn("Failed to remove item from nzbget queue, {0} [{1}]", queueItem.NzbName, queueItem.NzbId);
                 }
             }
-
             else if (historyItem != null)
             {
                 if (!EditQueue("HistoryDelete", 0, "", historyItem.Id, settings))
@@ -195,7 +195,6 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
                     _logger.Warn("Failed to remove item from nzbget history, {0} [{1}]", historyItem.Name, historyItem.Id);
                 }
             }
-
             else
             {
                 _logger.Warn("Unable to remove item from nzbget, Unknown ID: {0}", id);
@@ -231,7 +230,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
             var requestBuilder = new JsonRpcRequestBuilder(baseUrl, method, parameters);
             requestBuilder.LogResponseContent = true;
-            requestBuilder.NetworkCredential = new NetworkCredential(settings.Username, settings.Password);
+            requestBuilder.NetworkCredential = new BasicNetworkCredential(settings.Username, settings.Password);
 
             var httpRequest = requestBuilder.Build();
 
@@ -249,7 +248,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
                 throw new DownloadClientException("Unable to connect to NzbGet. " + ex.Message, ex);
             }
-            catch (WebException ex)
+            catch (HttpRequestException ex)
             {
                 throw new DownloadClientUnavailableException("Unable to connect to NzbGet. " + ex.Message, ex);
             }

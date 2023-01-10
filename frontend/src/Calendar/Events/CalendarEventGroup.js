@@ -1,17 +1,17 @@
+import classNames from 'classnames';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import classNames from 'classnames';
-import formatTime from 'Utilities/Date/formatTime';
-import padNumber from 'Utilities/Number/padNumber';
-import { icons, kinds } from 'Helpers/Props';
+import CalendarEventConnector from 'Calendar/Events/CalendarEventConnector';
+import getStatusStyle from 'Calendar/getStatusStyle';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
-import getStatusStyle from 'Calendar/getStatusStyle';
-import CalendarEventConnector from 'Calendar/Events/CalendarEventConnector';
+import { icons, kinds } from 'Helpers/Props';
+import formatTime from 'Utilities/Date/formatTime';
+import padNumber from 'Utilities/Number/padNumber';
 import styles from './CalendarEventGroup.css';
 
-function getEventsInfo(events) {
+function getEventsInfo(series, events) {
   let files = 0;
   let queued = 0;
   let monitored = 0;
@@ -26,7 +26,7 @@ function getEventsInfo(events) {
       queued++;
     }
 
-    if (event.monitored) {
+    if (series.monitored && event.monitored) {
       monitored++;
     }
 
@@ -61,7 +61,7 @@ class CalendarEventGroup extends Component {
 
   onExpandPress = () => {
     this.setState({ isExpanded: !this.state.isExpanded });
-  }
+  };
 
   //
   // Render
@@ -85,7 +85,7 @@ class CalendarEventGroup extends Component {
       anyQueued,
       anyMonitored,
       allAbsoluteEpisodeNumbers
-    } = getEventsInfo(events);
+    } = getEventsInfo(series, events);
     const anyDownloading = isDownloading || anyQueued;
     const firstEpisode = events[0];
     const lastEpisode = events[events.length -1];

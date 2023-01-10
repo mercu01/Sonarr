@@ -1,16 +1,16 @@
 import _ from 'lodash';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
 import { sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
-import createClearReducer from './Creators/Reducers/createClearReducer';
-import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
+import { set, updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
 import createServerSideCollectionHandlers from './Creators/createServerSideCollectionHandlers';
-import { set, updateItem } from './baseActions';
+import createClearReducer from './Creators/Reducers/createClearReducer';
+import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
 
 //
 // Variables
@@ -75,20 +75,20 @@ export const defaultState = {
         isVisible: true
       },
       {
-        name: 'episode.title',
+        name: 'episodes.title',
         label: 'Episode Title',
         isSortable: true,
         isVisible: true
       },
       {
-        name: 'episode.airDateUtc',
+        name: 'episodes.airDateUtc',
         label: 'Episode Air Date',
         isSortable: true,
         isVisible: false
       },
       {
-        name: 'language',
-        label: 'Language',
+        name: 'languages',
+        label: 'Languages',
         isSortable: true,
         isVisible: false
       },
@@ -96,6 +96,12 @@ export const defaultState = {
         name: 'quality',
         label: 'Quality',
         isSortable: true,
+        isVisible: true
+      },
+      {
+        name: 'customFormats',
+        label: 'Formats',
+        isSortable: false,
         isVisible: true
       },
       {
@@ -406,6 +412,7 @@ export const actionHandlers = handleThunks({
       url: `/queue/bulk?removeFromClient=${remove}&blocklist=${blocklist}`,
       method: 'DELETE',
       dataType: 'json',
+      contentType: 'application/json',
       data: JSON.stringify({ ids })
     }).request;
 

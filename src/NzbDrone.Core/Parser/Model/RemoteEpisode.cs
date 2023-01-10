@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Download.Clients;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Parser.Model
@@ -19,12 +21,16 @@ namespace NzbDrone.Core.Parser.Model
         public bool EpisodeRequested { get; set; }
         public bool DownloadAllowed { get; set; }
         public TorrentSeedConfiguration SeedConfiguration { get; set; }
-        public int PreferredWordScore { get; set; }
+        public List<CustomFormat> CustomFormats { get; set; }
+        public int CustomFormatScore { get; set; }
         public SeriesMatchType SeriesMatchType { get; set; }
+        public List<Language> Languages { get; set; }
 
         public RemoteEpisode()
         {
             Episodes = new List<Episode>();
+            CustomFormats = new List<CustomFormat>();
+            Languages = new List<Language>();
         }
 
         public bool IsRecentEpisode()

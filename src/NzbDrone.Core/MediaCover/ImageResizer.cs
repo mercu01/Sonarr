@@ -1,9 +1,9 @@
-﻿using NzbDrone.Common.Disk;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Memory;
 
 namespace NzbDrone.Core.MediaCover
 {
@@ -21,12 +21,6 @@ namespace NzbDrone.Core.MediaCover
         {
             _diskProvider = diskProvider;
 
-            // Random segfaults on mono 5.0 and 5.4
-            if (PlatformInfo.IsMono && platformInfo.Version < new System.Version(5, 8))
-            {
-                return;
-            }
-
             _enabled = true;
 
             // More conservative memory allocation
@@ -41,7 +35,10 @@ namespace NzbDrone.Core.MediaCover
 
         public void Resize(string source, string destination, int height)
         {
-            if (!_enabled) return;
+            if (!_enabled)
+            {
+                return;
+            }
 
             try
             {
@@ -57,6 +54,7 @@ namespace NzbDrone.Core.MediaCover
                 {
                     _diskProvider.DeleteFile(destination);
                 }
+
                 throw;
             }
         }

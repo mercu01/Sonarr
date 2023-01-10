@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using FluentMigrator;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore.Migration.Framework;
@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Datastore.Migration
                         var settings = Json.Deserialize<PushoverSettingsForV33>(reader.GetString(settingsIndex));
                         settings.ApiKey = API_KEY;
 
-                        //Set priority to high if its currently emergency
+                        // Set priority to high if its currently emergency
                         if (settings.Priority == 2)
                         {
                             settings.Priority = 1;
@@ -44,8 +44,8 @@ namespace NzbDrone.Core.Datastore.Migration
                             var text = string.Format("UPDATE Notifications " +
                                                      "SET Settings = '{0}'" +
                                                      "WHERE Id = {1}",
-                                settings.ToJson(), id
-                                );
+                                settings.ToJson(),
+                                id);
 
                             updateCmd.Transaction = tran;
                             updateCmd.CommandText = text;

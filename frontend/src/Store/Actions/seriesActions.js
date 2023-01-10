@@ -1,17 +1,17 @@
 import _ from 'lodash';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import sortByName from 'Utilities/Array/sortByName';
-import dateFilterPredicate from 'Utilities/Date/dateFilterPredicate';
 import { filterBuilderTypes, filterBuilderValueTypes, filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
-import createSetSettingValueReducer from './Creators/Reducers/createSetSettingValueReducer';
+import sortByName from 'Utilities/Array/sortByName';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import dateFilterPredicate from 'Utilities/Date/dateFilterPredicate';
+import { set, updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
-import createSaveProviderHandler from './Creators/createSaveProviderHandler';
-import createRemoveItemHandler from './Creators/createRemoveItemHandler';
 import createHandleActions from './Creators/createHandleActions';
-import { updateItem, set } from './baseActions';
+import createRemoveItemHandler from './Creators/createRemoveItemHandler';
+import createSaveProviderHandler from './Creators/createSaveProviderHandler';
+import createSetSettingValueReducer from './Creators/Reducers/createSetSettingValueReducer';
 import { fetchEpisodes } from './episodeActions';
 
 //
@@ -131,6 +131,13 @@ export const filterPredicates = {
     return predicate(item.ratings.value * 10, filterValue);
   },
 
+  originalLanguage: function(item, filterValue, type) {
+    const predicate = filterTypePredicates[type];
+    const { originalLanguage } = item;
+
+    return predicate(originalLanguage ? originalLanguage.name : '', filterValue);
+  },
+
   releaseGroups: function(item, filterValue, type) {
     const { statistics = {} } = item;
 
@@ -157,6 +164,30 @@ export const filterPredicates = {
       0;
 
     return predicate(sizeOnDisk, filterValue);
+  },
+
+  hasMissingSeason: function(item, filterValue, type) {
+    const { seasons = [] } = item;
+
+    return seasons.some((season) => {
+      const {
+        seasonNumber,
+        statistics = {}
+      } = season;
+
+      const {
+        episodeFileCount = 0,
+        episodeCount = 0,
+        totalEpisodeCount = 0
+      } = statistics;
+
+      return (
+        seasonNumber > 0 &&
+        totalEpisodeCount > 0 &&
+        episodeCount === totalEpisodeCount &&
+        episodeFileCount === 0
+      );
+    });
   }
 };
 
@@ -203,12 +234,6 @@ export const filterBuilderProps = [
     label: 'Quality Profile',
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.QUALITY_PROFILE
-  },
-  {
-    name: 'languageProfileId',
-    label: 'Language Profile',
-    type: filterBuilderTypes.EXACT,
-    valueType: filterBuilderValueTypes.LANGUAGE_PROFILE
   },
   {
     name: 'nextAiring',
@@ -274,6 +299,25 @@ export const filterBuilderProps = [
     }
   },
   {
+    name: 'originalLanguage',
+    label: 'Original Language',
+    type: filterBuilderTypes.EXACT,
+    optionsSelector: function(items) {
+      const languageList = items.reduce((acc, series) => {
+        if (series.originalLanguage) {
+          acc.push({
+            id: series.originalLanguage.name,
+            name: series.originalLanguage.name
+          });
+        }
+
+        return acc;
+      }, []);
+
+      return languageList.sort(sortByName);
+    }
+  },
+  {
     name: 'releaseGroups',
     label: 'Release Groups',
     type: filterBuilderTypes.ARRAY
@@ -297,6 +341,11 @@ export const filterBuilderProps = [
   {
     name: 'useSceneNumbering',
     label: 'Scene Numbering',
+    type: filterBuilderTypes.EXACT
+  },
+  {
+    name: 'hasMissingSeason',
+    label: 'Has Missing Season',
     type: filterBuilderTypes.EXACT
   }
 ];
@@ -335,8 +384,15 @@ export const defaultState = {
   items: [],
   sortKey: 'sortTitle',
   sortDirection: sortDirections.ASCENDING,
-  pendingChanges: {}
+  pendingChanges: {},
+  deleteOptions: {
+    addImportListExclusion: false
+  }
 };
+
+export const persistState = [
+  'series.deleteOptions'
+];
 
 //
 // Actions Types
@@ -349,6 +405,8 @@ export const DELETE_SERIES = 'series/deleteSeries';
 export const TOGGLE_SERIES_MONITORED = 'series/toggleSeriesMonitored';
 export const TOGGLE_SEASON_MONITORED = 'series/toggleSeasonMonitored';
 export const UPDATE_SERIES_MONITOR = 'series/updateSeriesMonitor';
+
+export const SET_DELETE_OPTION = 'series/setDeleteOption';
 
 //
 // Action Creators
@@ -390,6 +448,8 @@ export const setSeriesValue = createAction(SET_SERIES_VALUE, (payload) => {
     ...payload
   };
 });
+
+export const setDeleteOption = createAction(SET_DELETE_OPTION);
 
 //
 // Helpers
@@ -606,6 +666,15 @@ export const actionHandlers = handleThunks({
 
 export const reducers = createHandleActions({
 
-  [SET_SERIES_VALUE]: createSetSettingValueReducer(section)
+  [SET_SERIES_VALUE]: createSetSettingValueReducer(section),
+
+  [SET_DELETE_OPTION]: (state, { payload }) => {
+    return {
+      ...state,
+      deleteOptions: {
+        ...payload
+      }
+    };
+  }
 
 }, defaultState, section);

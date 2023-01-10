@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { align, sortDirections } from 'Helpers/Props';
-import SortMenu from 'Components/Menu/SortMenu';
 import MenuContent from 'Components/Menu/MenuContent';
+import SortMenu from 'Components/Menu/SortMenu';
 import SortMenuItem from 'Components/Menu/SortMenuItem';
+import { align, sortDirections } from 'Helpers/Props';
 
 function SeriesIndexSortMenu(props) {
   const {
@@ -47,21 +47,21 @@ function SeriesIndexSortMenu(props) {
         </SortMenuItem>
 
         <SortMenuItem
+          name="originalLanguage"
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onPress={onSortSelect}
+        >
+          Original Language
+        </SortMenuItem>
+
+        <SortMenuItem
           name="qualityProfileId"
           sortKey={sortKey}
           sortDirection={sortDirection}
           onPress={onSortSelect}
         >
           Quality Profile
-        </SortMenuItem>
-
-        <SortMenuItem
-          name="languageProfileId"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          Language Profile
         </SortMenuItem>
 
         <SortMenuItem

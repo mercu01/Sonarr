@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,8 +9,10 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.DataAugmentation.DailySeries;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MetadataSource.SkyHook.Resource;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MetadataSource.SkyHook
@@ -30,7 +32,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                             Logger logger)
         {
             _httpClient = httpClient;
-             _requestBuilder = requestBuilder.SkyHookTvdb;
+            _requestBuilder = requestBuilder.SkyHookTvdb;
             _logger = logger;
             _seriesService = seriesService;
             _dailySeriesService = dailySeriesService;
@@ -65,6 +67,20 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             var series = MapSeries(httpResponse.Resource);
 
             return new Tuple<Series, List<Episode>>(series, episodes.ToList());
+        }
+
+        public List<Series> SearchForNewSeriesByImdbId(string imdbId)
+        {
+            imdbId = Parser.Parser.NormalizeImdbId(imdbId);
+
+            if (imdbId == null)
+            {
+                return new List<Series>();
+            }
+
+            var results = SearchForNewSeries($"imdb:{imdbId}");
+
+            return results;
         }
 
         public List<Series> SearchForNewSeries(string title)
@@ -158,6 +174,10 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             series.CleanTitle = Parser.Parser.CleanSeriesTitle(show.Title);
             series.SortTitle = SeriesTitleNormalizer.Normalize(show.Title, show.TvdbId);
 
+            series.OriginalLanguage = show.OriginalLanguage.IsNotNullOrWhiteSpace() ?
+                IsoLanguages.Find(show.OriginalLanguage.ToLower())?.Language ?? Language.English :
+                Language.English;
+
             if (show.FirstAired != null)
             {
                 series.FirstAired = DateTime.ParseExact(show.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
@@ -238,7 +258,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
 
             episode.Ratings = MapRatings(oracleEpisode.Rating);
 
-            //Don't include series fanart images as episode screenshot
+            // Don't include series fanart images as episode screenshot
             if (oracleEpisode.Image != null)
             {
                 episode.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Screenshot, oracleEpisode.Image));

@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Net.Http;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
@@ -5,9 +9,6 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.IPTorrents;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using System;
-using System.Linq;
-using FluentAssertions;
 
 namespace NzbDrone.Core.Test.IndexerTests.IPTorrentsTests
 {
@@ -88,7 +89,7 @@ namespace NzbDrone.Core.Test.IndexerTests.IPTorrentsTests
             var recentFeed = ReadAllText(@"Files/Indexers/IPTorrents/IPTorrents.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
+                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
                 .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
 
             var releases = Subject.FetchRecent();

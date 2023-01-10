@@ -3,12 +3,11 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import createSeriesSelector from 'Store/Selectors/createSeriesSelector';
+import * as commandNames from 'Commands/commandNames';
+import { executeCommand } from 'Store/Actions/commandActions';
 import createExecutingCommandsSelector from 'Store/Selectors/createExecutingCommandsSelector';
 import createSeriesQualityProfileSelector from 'Store/Selectors/createSeriesQualityProfileSelector';
-import createSeriesLanguageProfileSelector from 'Store/Selectors/createSeriesLanguageProfileSelector';
-import { executeCommand } from 'Store/Actions/commandActions';
-import * as commandNames from 'Commands/commandNames';
+import createSeriesSelector from 'Store/Selectors/createSeriesSelector';
 
 function selectShowSearchAction() {
   return createSelector(
@@ -32,13 +31,11 @@ function createMapStateToProps() {
   return createSelector(
     createSeriesSelector(),
     createSeriesQualityProfileSelector(),
-    createSeriesLanguageProfileSelector(),
     selectShowSearchAction(),
     createExecutingCommandsSelector(),
     (
       series,
       qualityProfile,
-      languageProfile,
       showSearchAction,
       executingCommands
     ) => {
@@ -71,7 +68,6 @@ function createMapStateToProps() {
       return {
         ...series,
         qualityProfile,
-        languageProfile,
         latestSeason,
         showSearchAction,
         isRefreshingSeries,
@@ -95,14 +91,14 @@ class SeriesIndexItemConnector extends Component {
       name: commandNames.REFRESH_SERIES,
       seriesId: this.props.id
     });
-  }
+  };
 
   onSearchPress = () => {
     this.props.dispatchExecuteCommand({
       name: commandNames.SERIES_SEARCH,
       seriesId: this.props.id
     });
-  }
+  };
 
   //
   // Render

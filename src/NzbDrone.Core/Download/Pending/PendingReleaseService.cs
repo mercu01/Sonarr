@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Marr.Data;
 using NLog;
 using NzbDrone.Common.Crypto;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Jobs;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -43,6 +45,8 @@ namespace NzbDrone.Core.Download.Pending
         private readonly IDelayProfileService _delayProfileService;
         private readonly ITaskManager _taskManager;
         private readonly IConfigService _configService;
+        private readonly ICustomFormatCalculationService _formatCalculator;
+        private readonly IRemoteEpisodeAggregationService _aggregationService;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
@@ -53,6 +57,8 @@ namespace NzbDrone.Core.Download.Pending
                                     IDelayProfileService delayProfileService,
                                     ITaskManager taskManager,
                                     IConfigService configService,
+                                    ICustomFormatCalculationService formatCalculator,
+                                    IRemoteEpisodeAggregationService aggregationService,
                                     IEventAggregator eventAggregator,
                                     Logger logger)
         {
@@ -63,6 +69,8 @@ namespace NzbDrone.Core.Download.Pending
             _delayProfileService = delayProfileService;
             _taskManager = taskManager;
             _configService = configService;
+            _formatCalculator = formatCalculator;
+            _aggregationService = aggregationService;
             _eventAggregator = eventAggregator;
             _logger = logger;
         }
@@ -154,6 +162,7 @@ namespace NzbDrone.Core.Download.Pending
             var nextRssSync = new Lazy<DateTime>(() => _taskManager.GetNextExecution(typeof(RssSyncCommand)));
 
             var pendingReleases = IncludeRemoteEpisodes(_repository.WithoutFallback());
+
             foreach (var pendingRelease in pendingReleases)
             {
                 foreach (var episode in pendingRelease.RemoteEpisode.Episodes)
@@ -181,7 +190,7 @@ namespace NzbDrone.Core.Download.Pending
                                     Id = GetQueueId(pendingRelease, episode),
                                     Series = pendingRelease.RemoteEpisode.Series,
                                     Episode = episode,
-                                    Language = pendingRelease.RemoteEpisode.ParsedEpisodeInfo.Language,
+                                    Languages = pendingRelease.RemoteEpisode.Languages,
                                     Quality = pendingRelease.RemoteEpisode.ParsedEpisodeInfo.Quality,
                                     Title = pendingRelease.Title,
                                     Size = pendingRelease.RemoteEpisode.Release.Size,
@@ -198,7 +207,7 @@ namespace NzbDrone.Core.Download.Pending
                 }
             }
 
-            //Return best quality release for each episode
+            // Return best quality release for each episode
             var deduped = queued.GroupBy(q => q.Episode.Id).Select(g =>
             {
                 var series = g.First().Series;
@@ -289,7 +298,16 @@ namespace NzbDrone.Core.Download.Pending
                 var series = seriesMap.GetValueOrDefault(release.SeriesId);
 
                 // Just in case the series was removed, but wasn't cleaned up yet (housekeeper will clean it up)
-                if (series == null) return null;
+                if (series == null)
+                {
+                    return null;
+                }
+
+                // Languages will be empty if added before upgrading to v4, reparsing the languages if they're empty will set it to Unknown or better.
+                if (release.ParsedEpisodeInfo.Languages.Empty())
+                {
+                    release.ParsedEpisodeInfo.Languages = LanguageParser.ParseLanguages(release.Title);
+                }
 
                 release.RemoteEpisode = new RemoteEpisode
                 {
@@ -316,6 +334,9 @@ namespace NzbDrone.Core.Download.Pending
                     release.RemoteEpisode.MappedSeasonNumber = release.ParsedEpisodeInfo.SeasonNumber;
                     release.RemoteEpisode.Episodes = new List<Episode>();
                 }
+
+                _aggregationService.Augment(release.RemoteEpisode);
+                release.RemoteEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(release.RemoteEpisode, release.Release.Size);
 
                 result.Add(release);
             }
@@ -372,15 +393,15 @@ namespace NzbDrone.Core.Download.Pending
                 return;
             }
 
-            var profile = remoteEpisode.Series.QualityProfile.Value;
+            var profile = remoteEpisode.Series.QualityProfile;
 
             foreach (var existingReport in existingReports)
             {
                 var compare = new QualityModelComparer(profile).Compare(remoteEpisode.ParsedEpisodeInfo.Quality,
                                                                         existingReport.RemoteEpisode.ParsedEpisodeInfo.Quality);
 
-                //Only remove lower/equal quality pending releases
-                //It is safer to retry these releases on the next round than remove it and try to re-add it (if its still in the feed)
+                // Only remove lower/equal quality pending releases
+                // It is safer to retry these releases on the next round than remove it and try to re-add it (if its still in the feed)
                 if (compare >= 0)
                 {
                     _logger.Debug("Removing previously pending release, as it was grabbed.");
@@ -430,7 +451,7 @@ namespace NzbDrone.Core.Download.Pending
 
         public void Handle(SeriesDeletedEvent message)
         {
-            _repository.DeleteBySeriesId(message.Series.Id);
+            _repository.DeleteBySeriesIds(message.Series.Select(m => m.Id).ToList());
         }
 
         public void Handle(EpisodeGrabbedEvent message)

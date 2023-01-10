@@ -11,7 +11,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.NotificationTests.Xbmc.Json
 {
     [TestFixture]
-    public class GetSeriesPathFixture : CoreTest<JsonApiProvider>
+    public class GetSeriesPathFixture : CoreTest<XbmcService>
     {
         private const int TVDB_ID = 5;
         private XbmcSettings _settings;
@@ -61,7 +61,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc.Json
             {
                 TvdbId = 1000,
                 Title = "Does not exist"
-            }; 
+            };
         }
 
         [Test]

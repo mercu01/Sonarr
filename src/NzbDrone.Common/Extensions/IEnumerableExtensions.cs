@@ -1,21 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 
 namespace NzbDrone.Common.Extensions
 {
     public static class EnumerableExtensions
     {
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            var knownKeys = new HashSet<TKey>();
-
-            return source.Where(element => knownKeys.Add(keySelector(element)));
-        }
-
-        public static IEnumerable<TFirst> IntersectBy<TFirst, TSecond, TKey>(this IEnumerable<TFirst> first, Func<TFirst, TKey> firstKeySelector,
-                                                                             IEnumerable<TSecond> second, Func<TSecond, TKey> secondKeySelector,
+        public static IEnumerable<TFirst> IntersectBy<TFirst, TSecond, TKey>(this IEnumerable<TFirst> first,
+                                                                             Func<TFirst, TKey> firstKeySelector,
+                                                                             IEnumerable<TSecond> second,
+                                                                             Func<TSecond, TKey> secondKeySelector,
                                                                              IEqualityComparer<TKey> keyComparer)
         {
             var keys = new HashSet<TKey>(second.Select(secondKeySelector), keyComparer);
@@ -32,9 +26,11 @@ namespace NzbDrone.Common.Extensions
             }
         }
 
-        public static IEnumerable<TFirst> ExceptBy<TFirst, TSecond, TKey>(this IEnumerable<TFirst> first, Func<TFirst, TKey> firstKeySelector,
-                                                                             IEnumerable<TSecond> second, Func<TSecond, TKey> secondKeySelector,
-                                                                             IEqualityComparer<TKey> keyComparer)
+        public static IEnumerable<TFirst> ExceptBy<TFirst, TSecond, TKey>(this IEnumerable<TFirst> first,
+                                                                          Func<TFirst, TKey> firstKeySelector,
+                                                                          IEnumerable<TSecond> second,
+                                                                          Func<TSecond, TKey> secondKeySelector,
+                                                                          IEqualityComparer<TKey> keyComparer)
         {
             var keys = new HashSet<TKey>(second.Select(secondKeySelector), keyComparer);
             var matchedKeys = new HashSet<TKey>();
@@ -63,6 +59,7 @@ namespace NzbDrone.Common.Extensions
                     result[key] = item;
                 }
             }
+
             return result;
         }
 
@@ -77,6 +74,7 @@ namespace NzbDrone.Common.Extensions
                     result[key] = valueSelector(item);
                 }
             }
+
             return result;
         }
 
@@ -110,12 +108,50 @@ namespace NzbDrone.Common.Extensions
             return source.Select(predicate).ToList();
         }
 
-//        public static IOrderedEnumerable<TEntity> OrderBy<TEntity>(this IEnumerable<TEntity> source, string propertyName, bool descending)
-//        {
-//            var property = typeof(TEntity).GetProperty(propertyName);
-//            Func<TEntity, Object> orderByFunc = x => property.GetValue(x, null);
-//
-//            return descending ? source.OrderByDescending(orderByFunc) : source.OrderBy(orderByFunc);
-//        }
+        public static IEnumerable<T> DropLast<T>(this IEnumerable<T> source, int n)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException("source");
+            }
+
+            if (n < 0)
+            {
+                throw new ArgumentOutOfRangeException("n",
+                    "Argument n should be non-negative.");
+            }
+
+            return InternalDropLast(source, n);
+        }
+
+        private static IEnumerable<T> InternalDropLast<T>(IEnumerable<T> source, int n)
+        {
+            Queue<T> buffer = new Queue<T>(n + 1);
+
+            foreach (T x in source)
+            {
+                buffer.Enqueue(x);
+
+                if (buffer.Count == n + 1)
+                {
+                    yield return buffer.Dequeue();
+                }
+            }
+        }
+
+        public static string ConcatToString<TSource>(this IEnumerable<TSource> source, string separator = ", ")
+        {
+            return string.Join(separator, source.Select(x => x.ToString()));
+        }
+
+        public static string ConcatToString<TSource>(this IEnumerable<TSource> source, Func<TSource, string> predicate, string separator = ", ")
+        {
+            return string.Join(separator, source.Select(predicate));
+        }
+
+        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source, IEqualityComparer<T> comparer = null)
+        {
+            return new HashSet<T>(source, comparer);
+        }
     }
 }

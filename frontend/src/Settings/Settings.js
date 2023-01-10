@@ -48,6 +48,17 @@ function Settings() {
 
         <Link
           className={styles.link}
+          to="/settings/customformats"
+        >
+          Custom Formats
+        </Link>
+
+        <div className={styles.summary}>
+          Custom Formats and Settings
+        </div>
+
+        <Link
+          className={styles.link}
           to="/settings/indexers"
         >
           Indexers
@@ -99,6 +110,17 @@ function Settings() {
 
         <div className={styles.summary}>
           Create metadata files when episodes are imported or series are refreshed
+        </div>
+
+        <Link
+          className={styles.link}
+          to="/settings/metadatasource"
+        >
+          Metadata Source
+        </Link>
+
+        <div className={styles.summary}>
+          Information on where Sonarr gets Series and Episode information
         </div>
 
         <Link

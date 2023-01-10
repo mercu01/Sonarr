@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Net.Http;
 using FizzWare.NBuilder;
 using Moq;
 using NUnit.Framework;
@@ -22,7 +23,7 @@ namespace NzbDrone.Core.Test.IndexerTests
             _series = Builder<Series>.CreateNew().Build();
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
+                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
                 .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), "<xml></xml>"));
         }
 
@@ -36,11 +37,11 @@ namespace NzbDrone.Core.Test.IndexerTests
 
             var requestGenerator = Mocker.GetMock<IIndexerRequestGenerator>();
             Subject._requestGenerator = requestGenerator.Object;
-            
+
             var requests = Builder<IndexerRequest>.CreateListOfSize(paging ? 100 : 1)
                 .All()
                 .WithFactory(() => new IndexerRequest("http://my.feed.local/", HttpAccept.Rss))
-                .With(v => v.HttpRequest.Method = HttpMethod.GET)
+                .With(v => v.HttpRequest.Method = HttpMethod.Get)
                 .Build();
 
             var pageable = new IndexerPageableRequestChain();
@@ -64,7 +65,7 @@ namespace NzbDrone.Core.Test.IndexerTests
         {
             WithIndexer(true, 25);
 
-            Subject.Fetch(new SeasonSearchCriteria { Series = _series, SceneTitles = new List<string>{_series.Title} });
+            Subject.Fetch(new SeasonSearchCriteria { Series = _series, SceneTitles = new List<string> { _series.Title } });
 
             Mocker.GetMock<IHttpClient>().Verify(v => v.Execute(It.IsAny<HttpRequest>()), Times.Once());
         }

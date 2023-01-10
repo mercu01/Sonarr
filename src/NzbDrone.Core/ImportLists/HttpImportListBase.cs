@@ -22,7 +22,7 @@ namespace NzbDrone.Core.ImportLists
         protected const int MaxNumResultsPerQuery = 1000;
 
         protected readonly IHttpClient _httpClient;
-        
+
         public bool SupportsPaging => PageSize > 0;
 
         public virtual int PageSize => 0;
@@ -124,6 +124,7 @@ namespace NzbDrone.Core.ImportLists
                 {
                     _importListStatusService.RecordFailure(Definition.Id, TimeSpan.FromHours(1));
                 }
+
                 _logger.Warn("API Request Limit reached for {0}", this);
             }
             catch (HttpException ex)
@@ -164,9 +165,9 @@ namespace NzbDrone.Core.ImportLists
             return CleanupListItems(releases);
         }
 
-        protected virtual bool IsValidItem(ImportListItemInfo release)
+        protected virtual bool IsValidItem(ImportListItemInfo listItem)
         {
-            if (release.Title.IsNullOrWhiteSpace())
+            if (listItem.Title.IsNullOrWhiteSpace() && listItem.ImdbId.IsNullOrWhiteSpace() && listItem.TmdbId == 0)
             {
                 return false;
             }
@@ -215,7 +216,7 @@ namespace NzbDrone.Core.ImportLists
                 {
                     return new NzbDroneValidationFailure(string.Empty,
                                "No results were returned from your import list, please check your settings.")
-                           {IsWarning = true};
+                           { IsWarning = true };
                 }
             }
             catch (RequestLimitReachedException)
@@ -244,5 +245,4 @@ namespace NzbDrone.Core.ImportLists
             return null;
         }
     }
-
 }

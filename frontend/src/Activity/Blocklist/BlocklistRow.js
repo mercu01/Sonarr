@@ -1,13 +1,14 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds } from 'Helpers/Props';
 import IconButton from 'Components/Link/IconButton';
-import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellConnector';
-import TableRow from 'Components/Table/TableRow';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
-import EpisodeLanguage from 'Episode/EpisodeLanguage';
+import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
+import TableRow from 'Components/Table/TableRow';
+import EpisodeFormats from 'Episode/EpisodeFormats';
+import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
+import { icons, kinds } from 'Helpers/Props';
 import SeriesTitleLink from 'Series/SeriesTitleLink';
 import BlocklistDetailsModal from './BlocklistDetailsModal';
 import styles from './BlocklistRow.css';
@@ -30,11 +31,11 @@ class BlocklistRow extends Component {
 
   onDetailsPress = () => {
     this.setState({ isDetailsModalOpen: true });
-  }
+  };
 
   onDetailsModalClose = () => {
     this.setState({ isDetailsModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -44,8 +45,9 @@ class BlocklistRow extends Component {
       id,
       series,
       sourceTitle,
-      language,
+      languages,
       quality,
+      customFormats,
       date,
       protocol,
       indexer,
@@ -94,14 +96,14 @@ class BlocklistRow extends Component {
               );
             }
 
-            if (name === 'language') {
+            if (name === 'languages') {
               return (
                 <TableRowCell
                   key={name}
-                  className={styles.language}
+                  className={styles.languages}
                 >
-                  <EpisodeLanguage
-                    language={language}
+                  <EpisodeLanguages
+                    languages={languages}
                   />
                 </TableRowCell>
               );
@@ -115,6 +117,16 @@ class BlocklistRow extends Component {
                 >
                   <EpisodeQuality
                     quality={quality}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'customFormats') {
+              return (
+                <TableRowCell key={name}>
+                  <EpisodeFormats
+                    formats={customFormats}
                   />
                 </TableRowCell>
               );
@@ -183,8 +195,9 @@ BlocklistRow.propTypes = {
   id: PropTypes.number.isRequired,
   series: PropTypes.object.isRequired,
   sourceTitle: PropTypes.string.isRequired,
-  language: PropTypes.object.isRequired,
+  languages: PropTypes.arrayOf(PropTypes.object).isRequired,
   quality: PropTypes.object.isRequired,
+  customFormats: PropTypes.arrayOf(PropTypes.object).isRequired,
   date: PropTypes.string.isRequired,
   protocol: PropTypes.string.isRequired,
   indexer: PropTypes.string,

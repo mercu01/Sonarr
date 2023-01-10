@@ -1,19 +1,27 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, inputTypes } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputButton from 'Components/Form/FormInputButton';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import Icon from 'Components/Icon';
 import ClipboardButton from 'Components/Link/ClipboardButton';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
-import FormInputButton from 'Components/Form/FormInputButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import { icons, inputTypes, kinds } from 'Helpers/Props';
 
-const authenticationMethodOptions = [
-  { key: 'none', value: 'None' },
+export const authenticationRequiredWarning = 'To prevent remote access without authentication, Sonarr now requires authentication to be enabled. You can optionally disable authentication from local addresses.';
+
+export const authenticationMethodOptions = [
+  { key: 'none', value: 'None', isDisabled: true },
+  { key: 'external', value: 'External', isHidden: true },
   { key: 'basic', value: 'Basic (Browser Popup)' },
   { key: 'forms', value: 'Forms (Login Page)' }
+];
+
+export const authenticationRequiredOptions = [
+  { key: 'enabled', value: 'Enabled' },
+  { key: 'disabledForLocalAddresses', value: 'Disabled for Local Addresses' }
 ];
 
 const certificateValidationOptions = [
@@ -40,20 +48,20 @@ class SecuritySettings extends Component {
 
   onApikeyFocus = (event) => {
     event.target.select();
-  }
+  };
 
   onResetApiKeyPress = () => {
     this.setState({ isConfirmApiKeyResetModalOpen: true });
-  }
+  };
 
   onConfirmResetApiKey = () => {
     this.setState({ isConfirmApiKeyResetModalOpen: false });
     this.props.onConfirmResetApiKey();
-  }
+  };
 
   onCloseResetApiKeyModal = () => {
     this.setState({ isConfirmApiKeyResetModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -67,6 +75,7 @@ class SecuritySettings extends Component {
 
     const {
       authenticationMethod,
+      authenticationRequired,
       username,
       password,
       apiKey,
@@ -85,40 +94,57 @@ class SecuritySettings extends Component {
             name="authenticationMethod"
             values={authenticationMethodOptions}
             helpText="Require Username and Password to access Sonarr"
-            helpTextWarning="Requires restart to take effect"
+            helpTextWarning={authenticationRequiredWarning}
             onChange={onInputChange}
             {...authenticationMethod}
           />
         </FormGroup>
 
         {
-          authenticationEnabled &&
-          <FormGroup>
-            <FormLabel>Username</FormLabel>
+          authenticationEnabled ?
+            <FormGroup>
+              <FormLabel>Authentication Required</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.TEXT}
-              name="username"
-              helpTextWarning="Requires restart to take effect"
-              onChange={onInputChange}
-              {...username}
-            />
-          </FormGroup>
+              <FormInputGroup
+                type={inputTypes.SELECT}
+                name="authenticationRequired"
+                values={authenticationRequiredOptions}
+                helpText="Change which requests authentication is required for. Do not change unless you understand the risks."
+                onChange={onInputChange}
+                {...authenticationRequired}
+              />
+            </FormGroup> :
+            null
         }
 
         {
-          authenticationEnabled &&
-          <FormGroup>
-            <FormLabel>Password</FormLabel>
+          authenticationEnabled ?
+            <FormGroup>
+              <FormLabel>Username</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.PASSWORD}
-              name="password"
-              helpTextWarning="Requires restart to take effect"
-              onChange={onInputChange}
-              {...password}
-            />
-          </FormGroup>
+              <FormInputGroup
+                type={inputTypes.TEXT}
+                name="username"
+                onChange={onInputChange}
+                {...username}
+              />
+            </FormGroup> :
+            null
+        }
+
+        {
+          authenticationEnabled ?
+            <FormGroup>
+              <FormLabel>Password</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.PASSWORD}
+                name="password"
+                onChange={onInputChange}
+                {...password}
+              />
+            </FormGroup> :
+            null
         }
 
         <FormGroup>

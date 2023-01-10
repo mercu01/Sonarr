@@ -1,21 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net462</TargetFramework>
-    <Platforms>x86</Platforms>
+    <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
+  <!--
+       The netstandard version here doesn't work in net framework
+       See https://github.com/xamarin/XamarinComponents/issues/282
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\NzbDrone.Common.Test\Sonarr.Common.Test.csproj" />
-    <ProjectReference Include="..\NzbDrone.Test.Common\Sonarr.Test.Common.csproj" />
-    <ProjectReference Include="..\NzbDrone.Mono\Sonarr.Mono.csproj" />
+    <PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1.34-servarr24" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Mono.Posix">
-      <HintPath>..\Libraries\Mono.Posix.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\NzbDrone.Common.Test\Sonarr.Common.Test.csproj" />
+    <ProjectReference Include="..\NzbDrone.Mono\Sonarr.Mono.csproj" />
+    <ProjectReference Include="..\NzbDrone.Test.Common\Sonarr.Test.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Files\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-</ItemGroup>
+  </ItemGroup>
 </Project>

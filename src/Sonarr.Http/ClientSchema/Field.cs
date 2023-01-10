@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NzbDrone.Core.Annotations;
 
 namespace Sonarr.Http.ClientSchema
 {
@@ -17,7 +18,7 @@ namespace Sonarr.Http.ClientSchema
         public string SelectOptionsProviderAction { get; set; }
         public string Section { get; set; }
         public string Hidden { get; set; }
-
+        public PrivacyLevel Privacy { get; set; }
         public Field Clone()
         {
             return (Field)MemberwiseClone();

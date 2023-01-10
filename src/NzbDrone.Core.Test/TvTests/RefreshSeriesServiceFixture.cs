@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
-using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MetadataSource;
@@ -40,10 +40,14 @@ namespace NzbDrone.Core.Test.TvTests
             Mocker.GetMock<ISeriesService>()
                   .Setup(s => s.GetSeries(_series.Id))
                   .Returns(_series);
-            
+
             Mocker.GetMock<IProvideSeriesInfo>()
                   .Setup(s => s.GetSeriesInfo(It.IsAny<int>()))
                   .Callback<int>(p => { throw new SeriesNotFoundException(p); });
+
+            Mocker.GetMock<IAutoTaggingService>()
+                .Setup(s => s.GetTagChanges(_series))
+                .Returns(new AutoTaggingChanges());
         }
 
         private void GivenNewSeriesInfo(Series series)
@@ -224,7 +228,6 @@ namespace NzbDrone.Core.Test.TvTests
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2), It.IsAny<bool>(), It.IsAny<bool>()));
-
         }
 
         [Test]

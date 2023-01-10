@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Validation;
 
@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Indexers.TorrentRss
 
     public class TorrentRssIndexerSettings : ITorrentIndexerSettings
     {
-        private static readonly TorrentRssIndexerSettingsValidator validator = new TorrentRssIndexerSettingsValidator();
+        private static readonly TorrentRssIndexerSettingsValidator Validator = new TorrentRssIndexerSettingsValidator();
 
         public TorrentRssIndexerSettings()
         {
@@ -38,11 +38,11 @@ namespace NzbDrone.Core.Indexers.TorrentRss
         public int MinimumSeeders { get; set; }
 
         [FieldDefinition(4)]
-        public SeedCriteriaSettings SeedCriteria { get; } = new SeedCriteriaSettings();
+        public SeedCriteriaSettings SeedCriteria { get; set; } = new SeedCriteriaSettings();
 
         public NzbDroneValidationResult Validate()
         {
-            return new NzbDroneValidationResult(validator.Validate(this));
+            return new NzbDroneValidationResult(Validator.Validate(this));
         }
     }
 }

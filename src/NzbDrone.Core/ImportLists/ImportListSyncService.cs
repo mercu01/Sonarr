@@ -6,8 +6,8 @@ using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.ImportLists.Exclusions;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
-using NzbDrone.Core.Tv;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.ImportLists
 {
@@ -38,7 +38,6 @@ namespace NzbDrone.Core.ImportLists
             _logger = logger;
         }
 
-
         private void SyncAll()
         {
             _logger.ProgressInfo("Starting Import List Sync");
@@ -48,7 +47,6 @@ namespace NzbDrone.Core.ImportLists
             var reports = rssReleases.ToList();
 
             ProcessReports(reports);
-
         }
 
         private void SyncList(ImportListDefinition definition)
@@ -60,7 +58,6 @@ namespace NzbDrone.Core.ImportLists
             var reports = rssReleases.ToList();
 
             ProcessReports(reports);
-
         }
 
         private void ProcessReports(List<ImportListItemInfo> reports)
@@ -72,6 +69,8 @@ namespace NzbDrone.Core.ImportLists
             var reportNumber = 1;
 
             var listExclusions = _importListExclusionService.All();
+            var importLists = _importListFactory.All();
+            var existingTvdbIds = _seriesService.AllSeriesTvdbIds();
 
             foreach (var report in reports)
             {
@@ -79,7 +78,20 @@ namespace NzbDrone.Core.ImportLists
 
                 reportNumber++;
 
-                var importList = _importListFactory.Get(report.ImportListId);
+                var importList = importLists.Single(x => x.Id == report.ImportListId);
+
+                // Map by IMDbId if we have it
+                if (report.TvdbId <= 0 && report.ImdbId.IsNotNullOrWhiteSpace())
+                {
+                    var mappedSeries = _seriesSearchService.SearchForNewSeriesByImdbId(report.ImdbId)
+                        .FirstOrDefault();
+
+                    if (mappedSeries != null)
+                    {
+                        report.TvdbId = mappedSeries.TvdbId;
+                        report.Title = mappedSeries?.Title;
+                    }
+                }
 
                 // Map TVDb if we only have a series name
                 if (report.TvdbId <= 0 && report.Title.IsNotNullOrWhiteSpace())
@@ -94,22 +106,19 @@ namespace NzbDrone.Core.ImportLists
                     }
                 }
 
-                // Check to see if series in DB
-                var existingSeries = _seriesService.FindByTvdbId(report.TvdbId);
-
-                // Break if Series Exists in DB
-                if (existingSeries != null)
-                {
-                    _logger.Debug("{0} [{1}] Rejected, Series Exists in DB", report.TvdbId, report.Title);
-                    continue;
-                }
-
                 // Check to see if series excluded
                 var excludedSeries = listExclusions.Where(s => s.TvdbId == report.TvdbId).SingleOrDefault();
 
                 if (excludedSeries != null)
                 {
-                    _logger.Debug("{0} [{1}] Rejected due to list exlcusion", report.TvdbId, report.Title);
+                    _logger.Debug("{0} [{1}] Rejected due to list exclusion", report.TvdbId, report.Title);
+                    continue;
+                }
+
+                // Break if Series Exists in DB
+                if (existingTvdbIds.Any(x => x == report.TvdbId))
+                {
+                    _logger.Debug("{0} [{1}] Rejected, Series Exists in DB", report.TvdbId, report.Title);
                     continue;
                 }
 
@@ -126,7 +135,6 @@ namespace NzbDrone.Core.ImportLists
                         Monitored = monitored,
                         RootFolderPath = importList.RootFolderPath,
                         QualityProfileId = importList.QualityProfileId,
-                        LanguageProfileId = importList.LanguageProfileId,
                         SeriesType = importList.SeriesType,
                         SeasonFolder = importList.SeasonFolder,
                         Tags = importList.Tags,

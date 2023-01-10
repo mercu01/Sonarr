@@ -1,20 +1,27 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
-import { boolSettingShape, numberSettingShape, tagSettingShape } from 'Helpers/Props/Shapes/settingShape';
+import Alert from 'Components/Alert';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import Button from 'Components/Link/Button';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import Alert from 'Components/Alert';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
+import { boolSettingShape, numberSettingShape, tagSettingShape } from 'Helpers/Props/Shapes/settingShape';
 import styles from './EditDelayProfileModalContent.css';
+
+const protocolOptions = [
+  { key: 'preferUsenet', value: 'Prefer Usenet' },
+  { key: 'preferTorrent', value: 'Prefer Torrent' },
+  { key: 'onlyUsenet', value: 'Only Usenet' },
+  { key: 'onlyTorrent', value: 'Only Torrent' }
+];
 
 function EditDelayProfileModalContent(props) {
   const {
@@ -25,7 +32,6 @@ function EditDelayProfileModalContent(props) {
     saveError,
     item,
     protocol,
-    protocolOptions,
     onInputChange,
     onProtocolChange,
     onSavePress,
@@ -51,20 +57,22 @@ function EditDelayProfileModalContent(props) {
 
       <ModalBody>
         {
-          isFetching &&
-            <LoadingIndicator />
+          isFetching ?
+            <LoadingIndicator /> :
+            null
         }
 
         {
-          !isFetching && !!error &&
-            <div>Unable to add a new quality profile, please try again.</div>
+          !isFetching && !!error ?
+            <div>Unable to add a new quality profile, please try again.</div> :
+            null
         }
 
         {
-          !isFetching && !error &&
+          !isFetching && !error ?
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>Protocol</FormLabel>
+                <FormLabel>Preferred Protocol</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
@@ -140,19 +148,21 @@ function EditDelayProfileModalContent(props) {
                     />
                   </FormGroup>
               }
-            </Form>
+            </Form> :
+            null
         }
       </ModalBody>
       <ModalFooter>
         {
-          id && id > 1 &&
+          id && id > 1 ?
             <Button
               className={styles.deleteButton}
               kind={kinds.DANGER}
               onPress={onDeleteDelayProfilePress}
             >
               Delete
-            </Button>
+            </Button> :
+            null
         }
 
         <Button
@@ -190,7 +200,6 @@ EditDelayProfileModalContent.propTypes = {
   saveError: PropTypes.object,
   item: PropTypes.shape(delayProfileShape).isRequired,
   protocol: PropTypes.string.isRequired,
-  protocolOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
   onInputChange: PropTypes.func.isRequired,
   onProtocolChange: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,

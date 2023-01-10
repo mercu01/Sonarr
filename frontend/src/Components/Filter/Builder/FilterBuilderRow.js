@@ -1,13 +1,12 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { filterBuilderTypes, filterBuilderValueTypes, icons } from 'Helpers/Props';
 import SelectInput from 'Components/Form/SelectInput';
 import IconButton from 'Components/Link/IconButton';
+import { filterBuilderTypes, filterBuilderValueTypes, icons } from 'Helpers/Props';
 import BoolFilterBuilderRowValue from './BoolFilterBuilderRowValue';
 import DateFilterBuilderRowValue from './DateFilterBuilderRowValue';
 import FilterBuilderRowValueConnector from './FilterBuilderRowValueConnector';
 import IndexerFilterBuilderRowValueConnector from './IndexerFilterBuilderRowValueConnector';
-import LanguageProfileFilterBuilderRowValueConnector from './LanguageProfileFilterBuilderRowValueConnector';
 import ProtocolFilterBuilderRowValue from './ProtocolFilterBuilderRowValue';
 import QualityFilterBuilderRowValueConnector from './QualityFilterBuilderRowValueConnector';
 import QualityProfileFilterBuilderRowValueConnector from './QualityProfileFilterBuilderRowValueConnector';
@@ -60,9 +59,6 @@ function getRowValueConnector(selectedFilterBuilderProp) {
 
     case filterBuilderValueTypes.INDEXER:
       return IndexerFilterBuilderRowValueConnector;
-
-    case filterBuilderValueTypes.LANGUAGE_PROFILE:
-      return LanguageProfileFilterBuilderRowValueConnector;
 
     case filterBuilderValueTypes.PROTOCOL:
       return ProtocolFilterBuilderRowValue;
@@ -154,7 +150,7 @@ class FilterBuilderRow extends Component {
 
     this.selectedFilterBuilderProp = selectedFilterBuilderProp;
     onFilterChange(index, filter);
-  }
+  };
 
   onFilterChange = ({ name, value }) => {
     const {
@@ -174,7 +170,7 @@ class FilterBuilderRow extends Component {
     filter[name] = value;
 
     onFilterChange(index, filter);
-  }
+  };
 
   onAddPress = () => {
     const {
@@ -183,7 +179,7 @@ class FilterBuilderRow extends Component {
     } = this.props;
 
     onAddPress(index);
-  }
+  };
 
   onRemovePress = () => {
     const {
@@ -192,7 +188,7 @@ class FilterBuilderRow extends Component {
     } = this.props;
 
     onRemovePress(index);
-  }
+  };
 
   //
   // Render
@@ -214,7 +210,7 @@ class FilterBuilderRow extends Component {
         key: availablePropFilter.name,
         value: availablePropFilter.label
       };
-    });
+    }).sort((a, b) => a.value.localeCompare(b.value));
 
     const ValueComponent = getRowValueConnector(selectedFilterBuilderProp);
 

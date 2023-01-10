@@ -47,7 +47,6 @@ namespace NzbDrone.Core.Test.MediaFiles
                   .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, null, ImportMode.Auto))
                   .Returns(new List<ImportResult>());
 
-
             var downloadItem = Builder<DownloadClientItem>.CreateNew()
                 .With(v => v.DownloadId = "sab1")
                 .With(v => v.Status = DownloadItemStatus.Downloading)
@@ -286,7 +285,7 @@ namespace NzbDrone.Core.Test.MediaFiles
 
             Mocker.GetMock<IDiskProvider>()
                   .Setup(s => s.GetFiles(It.IsAny<string>(), SearchOption.AllDirectories))
-                  .Returns(new []{ _videoFiles.First().Replace(".ext", ".rar") });
+                  .Returns(new[] { _videoFiles.First().Replace(".ext", ".rar") });
 
             Mocker.GetMock<IDiskProvider>()
                   .Setup(s => s.GetFileSize(It.IsAny<string>()))
@@ -318,7 +317,6 @@ namespace NzbDrone.Core.Test.MediaFiles
 
             var imported = new List<ImportDecision>();
             imported.Add(new ImportDecision(localEpisode));
-
 
             Subject.ProcessPath(fileName);
 
@@ -446,6 +444,58 @@ namespace NzbDrone.Core.Test.MediaFiles
 
             Mocker.GetMock<IDiskProvider>()
                   .Verify(v => v.DeleteFolder(It.IsAny<string>(), true), Times.Never());
+        }
+
+        [Test]
+        public void should_return_rejection_if_nothing_imported_and_contains_rar_file()
+        {
+            GivenValidSeries();
+
+            var path = @"C:\Test\Unsorted\Series.Title.S01E01.abc-Sonarr".AsOsAgnostic();
+            var imported = new List<ImportDecision>();
+
+            Mocker.GetMock<IMakeImportDecision>()
+                .Setup(s => s.GetImportDecisions(It.IsAny<List<string>>(), It.IsAny<Series>(), It.IsAny<DownloadClientItem>(), null, true, true))
+                .Returns(imported);
+
+            Mocker.GetMock<IImportApprovedEpisodes>()
+                .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, null, ImportMode.Auto))
+                .Returns(imported.Select(i => new ImportResult(i)).ToList());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(It.IsAny<string>(), SearchOption.AllDirectories))
+                .Returns(new[] { _videoFiles.First().Replace(".ext", ".rar") });
+
+            var result = Subject.ProcessPath(path);
+
+            result.Count.Should().Be(1);
+            result.First().Result.Should().Be(ImportResultType.Rejected);
+        }
+
+        [Test]
+        public void should_return_rejection_if_nothing_imported_and_contains_executable_file()
+        {
+            GivenValidSeries();
+
+            var path = @"C:\Test\Unsorted\Series.Title.S01E01.abc-Sonarr".AsOsAgnostic();
+            var imported = new List<ImportDecision>();
+
+            Mocker.GetMock<IMakeImportDecision>()
+                .Setup(s => s.GetImportDecisions(It.IsAny<List<string>>(), It.IsAny<Series>(), It.IsAny<DownloadClientItem>(), null, true, true))
+                .Returns(imported);
+
+            Mocker.GetMock<IImportApprovedEpisodes>()
+                .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, null, ImportMode.Auto))
+                .Returns(imported.Select(i => new ImportResult(i)).ToList());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(It.IsAny<string>(), SearchOption.AllDirectories))
+                .Returns(new[] { _videoFiles.First().Replace(".ext", ".exe") });
+
+            var result = Subject.ProcessPath(path);
+
+            result.Count.Should().Be(1);
+            result.First().Result.Should().Be(ImportResultType.Rejected);
         }
 
         private void VerifyNoImport()

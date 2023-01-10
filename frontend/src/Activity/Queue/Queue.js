@@ -1,27 +1,27 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
+import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
+import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
+import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
+import Table from 'Components/Table/Table';
+import TableBody from 'Components/Table/TableBody';
+import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
+import TablePager from 'Components/Table/TablePager';
+import { align, icons } from 'Helpers/Props';
 import getRemovedItems from 'Utilities/Object/getRemovedItems';
 import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
 import getSelectedIds from 'Utilities/Table/getSelectedIds';
 import removeOldSelectedState from 'Utilities/Table/removeOldSelectedState';
 import selectAll from 'Utilities/Table/selectAll';
 import toggleSelected from 'Utilities/Table/toggleSelected';
-import { align, icons } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import Table from 'Components/Table/Table';
-import TableBody from 'Components/Table/TableBody';
-import TablePager from 'Components/Table/TablePager';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBody from 'Components/Page/PageContentBody';
-import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
-import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
-import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
-import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
-import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
-import RemoveQueueItemsModal from './RemoveQueueItemsModal';
 import QueueOptionsConnector from './QueueOptionsConnector';
 import QueueRowConnector from './QueueRowConnector';
+import RemoveQueueItemsModal from './RemoveQueueItemsModal';
 
 class Queue extends Component {
 
@@ -72,13 +72,23 @@ class Queue extends Component {
       return;
     }
 
+    const nextState = {};
+
+    if (prevProps.items !== items) {
+      nextState.items = items;
+    }
+
     const selectedIds = this.getSelectedIds();
     const isPendingSelected = _.some(this.props.items, (item) => {
       return selectedIds.indexOf(item.id) > -1 && item.status === 'delay';
     });
 
     if (isPendingSelected !== this.state.isPendingSelected) {
-      this.setState({ isPendingSelected });
+      nextState.isPendingSelected = isPendingSelected;
+    }
+
+    if (!_.isEmpty(nextState)) {
+      this.setState(nextState);
     }
   }
 
@@ -87,45 +97,45 @@ class Queue extends Component {
 
   getSelectedIds = () => {
     return getSelectedIds(this.state.selectedState);
-  }
+  };
 
   //
   // Listeners
 
   onQueueRowModalOpenOrClose = (isOpen) => {
     this._shouldBlockRefresh = isOpen;
-  }
+  };
 
   onSelectAllChange = ({ value }) => {
     this.setState(selectAll(this.state.selectedState, value));
-  }
+  };
 
   onSelectedChange = ({ id, value, shiftKey = false }) => {
     this.setState((state) => {
       return toggleSelected(state, this.props.items, id, value, shiftKey);
     });
-  }
+  };
 
   onGrabSelectedPress = () => {
     this.props.onGrabSelectedPress(this.getSelectedIds());
-  }
+  };
 
   onRemoveSelectedPress = () => {
     this.setState({ isConfirmRemoveModalOpen: true }, () => {
       this._shouldBlockRefresh = true;
     });
-  }
+  };
 
   onRemoveSelectedConfirmed = (payload) => {
     this._shouldBlockRefresh = false;
     this.props.onRemoveSelectedPress({ ids: this.getSelectedIds(), ...payload });
     this.setState({ isConfirmRemoveModalOpen: false });
-  }
+  };
 
   onConfirmRemoveModalClose = () => {
     this._shouldBlockRefresh = false;
     this.setState({ isConfirmRemoveModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -211,26 +221,29 @@ class Queue extends Component {
 
         <PageContentBody>
           {
-            isRefreshing && !isAllPopulated &&
-              <LoadingIndicator />
+            isRefreshing && !isAllPopulated ?
+              <LoadingIndicator /> :
+              null
           }
 
           {
-            !isRefreshing && hasError &&
+            !isRefreshing && hasError ?
               <div>
                 Failed to load Queue
-              </div>
+              </div> :
+              null
           }
 
           {
-            isAllPopulated && !hasError && !items.length &&
+            isAllPopulated && !hasError && !items.length ?
               <div>
                 Queue is empty
-              </div>
+              </div> :
+              null
           }
 
           {
-            isAllPopulated && !hasError && !!items.length &&
+            isAllPopulated && !hasError && !!items.length ?
               <div>
                 <Table
                   columns={columns}
@@ -265,7 +278,8 @@ class Queue extends Component {
                   isFetching={isRefreshing}
                   {...otherProps}
                 />
-              </div>
+              </div> :
+              null
           }
         </PageContentBody>
 

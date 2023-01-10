@@ -58,6 +58,7 @@ namespace NzbDrone.Host.AccessControl
             {
                 _logger.Warn(ex, "Failed to check for open port in firewall");
             }
+
             return false;
         }
 
@@ -76,7 +77,7 @@ namespace NzbDrone.Host.AccessControl
                 var netFwMgrType = Type.GetTypeFromProgID("HNetCfg.FwMgr", false);
                 var mgr = (INetFwMgr)Activator.CreateInstance(netFwMgrType);
 
-                //Open the port for the standard profile, should help when the user has multiple network adapters
+                // Open the port for the standard profile, should help when the user has multiple network adapters
                 mgr.LocalPolicy.GetProfileByType(FIREWALL_PROFILE).GloballyOpenPorts.Add(port);
             }
             catch (Exception ex)
@@ -87,7 +88,10 @@ namespace NzbDrone.Host.AccessControl
 
         private bool IsFirewallEnabled()
         {
-            if (OsInfo.IsNotWindows) return false;
+            if (OsInfo.IsNotWindows)
+            {
+                return false;
+            }
 
             try
             {

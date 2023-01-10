@@ -1,16 +1,16 @@
 import _ from 'lodash';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import monitorOptions from 'Utilities/Series/monitorOptions';
-import getSectionState from 'Utilities/State/getSectionState';
-import updateSectionState from 'Utilities/State/updateSectionState';
+import { createThunk, handleThunks } from 'Store/thunks';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import getNewSeries from 'Utilities/Series/getNewSeries';
+import monitorOptions from 'Utilities/Series/monitorOptions';
 import * as seriesTypes from 'Utilities/Series/seriesTypes';
-import { createThunk, handleThunks } from 'Store/thunks';
-import createSetSettingValueReducer from './Creators/Reducers/createSetSettingValueReducer';
-import createHandleActions from './Creators/createHandleActions';
+import getSectionState from 'Utilities/State/getSectionState';
+import updateSectionState from 'Utilities/State/updateSectionState';
 import { set, update, updateItem } from './baseActions';
+import createHandleActions from './Creators/createHandleActions';
+import createSetSettingValueReducer from './Creators/Reducers/createSetSettingValueReducer';
 
 //
 // Variables
@@ -34,7 +34,6 @@ export const defaultState = {
     rootFolderPath: '',
     monitor: monitorOptions[0].key,
     qualityProfileId: 0,
-    languageProfileId: 0,
     seriesType: seriesTypes.STANDARD,
     seasonFolder: true,
     searchForMissingEpisodes: false,
@@ -125,6 +124,7 @@ export const actionHandlers = handleThunks({
     const promise = createAjaxRequest({
       url: '/series',
       method: 'POST',
+      dataType: 'json',
       contentType: 'application/json',
       data: JSON.stringify(newSeries)
     }).request;

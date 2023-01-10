@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using NLog;
@@ -12,7 +12,7 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
     {
         HadoukenSystemInfo GetSystemInfo(HadoukenSettings settings);
         HadoukenTorrent[] GetTorrents(HadoukenSettings settings);
-        IDictionary<string, object> GetConfig(HadoukenSettings settings);
+        IReadOnlyDictionary<string, object> GetConfig(HadoukenSettings settings);
         string AddTorrentFile(HadoukenSettings settings, byte[] fileContent);
         void AddTorrentUri(HadoukenSettings settings, string torrentUrl);
         void RemoveTorrent(HadoukenSettings settings, string downloadId);
@@ -38,13 +38,13 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
         public HadoukenTorrent[] GetTorrents(HadoukenSettings settings)
         {
             var result = ProcessRequest<HadoukenTorrentResponse>(settings, "webui.list");
-            
+
             return GetTorrents(result.Torrents);
         }
 
-        public IDictionary<string, object> GetConfig(HadoukenSettings settings)
+        public IReadOnlyDictionary<string, object> GetConfig(HadoukenSettings settings)
         {
-            return ProcessRequest<IDictionary<string, object>>(settings, "webui.getSettings");
+            return ProcessRequest<IReadOnlyDictionary<string, object>>(settings, "webui.getSettings");
         }
 
         public string AddTorrentFile(HadoukenSettings settings, byte[] fileContent)
@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
 
             var requestBuilder = new JsonRpcRequestBuilder(baseUrl, method, parameters);
             requestBuilder.LogResponseContent = true;
-            requestBuilder.NetworkCredential = new NetworkCredential(settings.Username, settings.Password);
+            requestBuilder.NetworkCredential = new BasicNetworkCredential(settings.Username, settings.Password);
             requestBuilder.Headers.Add("Accept-Encoding", "gzip,deflate");
 
             var httpRequest = requestBuilder.Build();
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
                     SavePath = Convert.ToString(item[26])
                 };
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to map Hadouken torrent data.");
             }

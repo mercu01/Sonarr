@@ -1,8 +1,8 @@
-﻿using NzbDrone.Core.Notifications;
+using NzbDrone.Core.Notifications;
 
 namespace Sonarr.Api.V3.Notifications
 {
-    public class NotificationResource : ProviderResource
+    public class NotificationResource : ProviderResource<NotificationResource>
     {
         public string Link { get; set; }
         public bool OnGrab { get; set; }
@@ -31,7 +31,10 @@ namespace Sonarr.Api.V3.Notifications
     {
         public override NotificationResource ToResource(NotificationDefinition definition)
         {
-            if (definition == null) return default(NotificationResource);
+            if (definition == null)
+            {
+                return default(NotificationResource);
+            }
 
             var resource = base.ToResource(definition);
 
@@ -58,11 +61,14 @@ namespace Sonarr.Api.V3.Notifications
             return resource;
         }
 
-        public override NotificationDefinition ToModel(NotificationResource resource)
+        public override NotificationDefinition ToModel(NotificationResource resource, NotificationDefinition existingDefinition)
         {
-            if (resource == null) return default(NotificationDefinition);
+            if (resource == null)
+            {
+                return default(NotificationDefinition);
+            }
 
-            var definition = base.ToModel(resource);
+            var definition = base.ToModel(resource, existingDefinition);
 
             definition.OnGrab = resource.OnGrab;
             definition.OnDownload = resource.OnDownload;

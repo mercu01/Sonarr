@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.CustomFormats.Events;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Events;
@@ -20,17 +23,26 @@ namespace NzbDrone.Core.Profiles.Qualities
         QualityProfile GetDefaultProfile(string name, Quality cutoff = null, params Quality[] allowed);
     }
 
-    public class QualityProfileService : IQualityProfileService, IHandle<ApplicationStartedEvent>
+    public class QualityProfileService : IQualityProfileService,
+                                         IHandle<ApplicationStartedEvent>,
+                                         IHandle<CustomFormatAddedEvent>,
+                                         IHandle<CustomFormatDeletedEvent>
     {
         private readonly IProfileRepository _profileRepository;
         private readonly IImportListFactory _importListFactory;
+        private readonly ICustomFormatService _formatService;
         private readonly ISeriesService _seriesService;
         private readonly Logger _logger;
 
-        public QualityProfileService(IProfileRepository profileRepository, IImportListFactory importListFactory, ISeriesService seriesService, Logger logger)
+        public QualityProfileService(IProfileRepository profileRepository,
+                                     IImportListFactory importListFactory,
+                                     ICustomFormatService formatService,
+                                     ISeriesService seriesService,
+                                     Logger logger)
         {
             _profileRepository = profileRepository;
             _importListFactory = importListFactory;
+            _formatService = formatService;
             _seriesService = seriesService;
             _logger = logger;
         }
@@ -70,14 +82,18 @@ namespace NzbDrone.Core.Profiles.Qualities
         {
             return _profileRepository.Exists(id);
         }
-        
+
         public void Handle(ApplicationStartedEvent message)
         {
-            if (All().Any()) return;
+            if (All().Any())
+            {
+                return;
+            }
 
             _logger.Info("Setting up default quality profiles");
 
-            AddDefaultProfile("Any", Quality.SDTV,
+            AddDefaultProfile("Any",
+                Quality.SDTV,
                 Quality.SDTV,
                 Quality.WEBRip480p,
                 Quality.WEBDL480p,
@@ -91,31 +107,36 @@ namespace NzbDrone.Core.Profiles.Qualities
                 Quality.Bluray720p,
                 Quality.Bluray1080p);
 
-            AddDefaultProfile("SD", Quality.SDTV,
+            AddDefaultProfile("SD",
+                Quality.SDTV,
                 Quality.SDTV,
                 Quality.WEBRip480p,
                 Quality.WEBDL480p,
                 Quality.DVD);
 
-            AddDefaultProfile("HD-720p", Quality.HDTV720p,
+            AddDefaultProfile("HD-720p",
+                Quality.HDTV720p,
                 Quality.HDTV720p,
                 Quality.WEBRip720p,
                 Quality.WEBDL720p,
                 Quality.Bluray720p);
 
-            AddDefaultProfile("HD-1080p", Quality.HDTV1080p,
+            AddDefaultProfile("HD-1080p",
+                Quality.HDTV1080p,
                 Quality.HDTV1080p,
                 Quality.WEBRip1080p,
                 Quality.WEBDL1080p,
                 Quality.Bluray1080p);
 
-            AddDefaultProfile("Ultra-HD", Quality.HDTV2160p,
+            AddDefaultProfile("Ultra-HD",
+                Quality.HDTV2160p,
                 Quality.HDTV2160p,
                 Quality.WEBRip2160p,
                 Quality.WEBDL2160p,
                 Quality.Bluray2160p);
 
-            AddDefaultProfile("HD - 720p/1080p", Quality.HDTV720p,
+            AddDefaultProfile("HD - 720p/1080p",
+                Quality.HDTV720p,
                 Quality.HDTV720p,
                 Quality.HDTV1080p,
                 Quality.WEBRip720p,
@@ -124,6 +145,39 @@ namespace NzbDrone.Core.Profiles.Qualities
                 Quality.WEBDL1080p,
                 Quality.Bluray720p,
                 Quality.Bluray1080p);
+        }
+
+        public void Handle(CustomFormatAddedEvent message)
+        {
+            var all = All();
+
+            foreach (var profile in all)
+            {
+                profile.FormatItems.Insert(0, new ProfileFormatItem
+                {
+                    Score = 0,
+                    Format = message.CustomFormat
+                });
+
+                Update(profile);
+            }
+        }
+
+        public void Handle(CustomFormatDeletedEvent message)
+        {
+            var all = All();
+            foreach (var profile in all)
+            {
+                profile.FormatItems = profile.FormatItems.Where(c => c.Format.Id != message.CustomFormat.Id).ToList();
+
+                if (profile.FormatItems.Empty())
+                {
+                    profile.MinFormatScore = 0;
+                    profile.CutoffFormatScore = 0;
+                }
+
+                Update(profile);
+            }
         }
 
         public QualityProfile GetDefaultProfile(string name, Quality cutoff = null, params Quality[] allowed)
@@ -165,11 +219,20 @@ namespace NzbDrone.Core.Profiles.Qualities
                 groupId++;
             }
 
+            var formatItems = _formatService.All().Select(format => new ProfileFormatItem
+            {
+                Score = 0,
+                Format = format
+            }).ToList();
+
             var qualityProfile = new QualityProfile
                                  {
                                      Name = name,
                                      Cutoff = profileCutoff,
-                                     Items = items
+                                     Items = items,
+                                     MinFormatScore = 0,
+                                     CutoffFormatScore = 0,
+                                     FormatItems = formatItems
                                  };
 
             return qualityProfile;

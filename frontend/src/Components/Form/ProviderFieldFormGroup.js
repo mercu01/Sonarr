@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes } from 'Helpers/Props';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import { inputTypes } from 'Helpers/Props';
 
 function getType({ type, selectOptionsProviderAction }) {
   switch (type) {
@@ -35,6 +35,8 @@ function getType({ type, selectOptionsProviderAction }) {
       return inputTypes.TEXT;
     case 'oAuth':
       return inputTypes.OAUTH;
+    case 'rootFolder':
+      return inputTypes.ROOT_FOLDER_SELECT;
     default:
       return inputTypes.TEXT;
   }

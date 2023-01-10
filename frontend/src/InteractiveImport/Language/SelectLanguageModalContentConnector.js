@@ -3,33 +3,35 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { fetchLanguageProfileSchema } from 'Store/Actions/settingsActions';
-import { updateInteractiveImportItems, reprocessInteractiveImportItems } from 'Store/Actions/interactiveImportActions';
+import { reprocessInteractiveImportItems, updateInteractiveImportItems } from 'Store/Actions/interactiveImportActions';
+import createLanguagesSelector from 'Store/Selectors/createLanguagesSelector';
 import SelectLanguageModalContent from './SelectLanguageModalContent';
 
 function createMapStateToProps() {
   return createSelector(
-    (state) => state.settings.languageProfiles,
-    (languageProfiles) => {
+    createLanguagesSelector(),
+    (languages) => {
       const {
-        isSchemaFetching: isFetching,
-        isSchemaPopulated: isPopulated,
-        schemaError: error,
-        schema
-      } = languageProfiles;
+        isFetching,
+        isPopulated,
+        error,
+        items
+      } = languages;
+
+      const filterItems = ['Any', 'Original'];
+      const filteredLanguages = items.filter((lang) => !filterItems.includes(lang.name));
 
       return {
         isFetching,
         isPopulated,
         error,
-        items: schema.languages ? [...schema.languages].reverse() : []
+        items: filteredLanguages
       };
     }
   );
 }
 
 const mapDispatchToProps = {
-  dispatchFetchLanguageProfileSchema: fetchLanguageProfileSchema,
   dispatchUpdateInteractiveImportItems: updateInteractiveImportItems,
   dispatchReprocessInteractiveImportItems: reprocessInteractiveImportItems
 };
@@ -37,37 +39,35 @@ const mapDispatchToProps = {
 class SelectLanguageModalContentConnector extends Component {
 
   //
-  // Lifecycle
-
-  componentDidMount = () => {
-    if (!this.props.isPopulated) {
-      this.props.dispatchFetchLanguageProfileSchema();
-    }
-  }
-
-  //
   // Listeners
 
-  onLanguageSelect = ({ value }) => {
+  onLanguageSelect = ({ languageIds }) => {
     const {
       ids,
       dispatchUpdateInteractiveImportItems,
       dispatchReprocessInteractiveImportItems
     } = this.props;
 
-    const languageId = parseInt(value);
-    const language = _.find(this.props.items,
-      (item) => item.language.id === languageId).language;
+    const languages = [];
+
+    languageIds.forEach((languageId) => {
+      const language = _.find(this.props.items,
+        (item) => item.id === parseInt(languageId));
+
+      if (language !== undefined) {
+        languages.push(language);
+      }
+    });
 
     dispatchUpdateInteractiveImportItems({
       ids,
-      language
+      languages
     });
 
     dispatchReprocessInteractiveImportItems({ ids });
 
     this.props.onModalClose(true);
-  }
+  };
 
   //
   // Render
@@ -88,7 +88,6 @@ SelectLanguageModalContentConnector.propTypes = {
   isPopulated: PropTypes.bool.isRequired,
   error: PropTypes.object,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
-  dispatchFetchLanguageProfileSchema: PropTypes.func.isRequired,
   dispatchUpdateInteractiveImportItems: PropTypes.func.isRequired,
   dispatchReprocessInteractiveImportItems: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired

@@ -1,5 +1,9 @@
 using System;
+using System.IO;
 using System.Net.Sockets;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Exceptions;
@@ -14,7 +18,7 @@ namespace NzbDrone.Console
     {
         private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(ConsoleApp));
 
-        private enum ExitCodes : int
+        private enum ExitCodes
         {
             Normal = 0,
             UnknownFailure = 1,
@@ -39,7 +43,8 @@ namespace NzbDrone.Console
                     System.Console.WriteLine("NLog Exception: " + ex.ToString());
                     throw;
                 }
-                Bootstrap.Start(startupArgs, new ConsoleAlerts());
+
+                Bootstrap.Start(args);
             }
             catch (SonarrStartupException ex)
             {
@@ -54,6 +59,20 @@ namespace NzbDrone.Console
                 System.Console.WriteLine("");
                 Logger.Fatal(ex.Message + ". This can happen if another instance of Sonarr is already running another application is using the same port (default: 8989) or the user has insufficient permissions");
                 Exit(ExitCodes.RecoverableFailure, startupArgs);
+            }
+            catch (IOException ex)
+            {
+                if (ex.InnerException is AddressInUseException)
+                {
+                    System.Console.WriteLine("");
+                    System.Console.WriteLine("");
+                    Logger.Fatal(ex.Message + " This can happen if another instance of Sonarr is already running another application is using the same port (default: 8989) or the user has insufficient permissions");
+                    Exit(ExitCodes.RecoverableFailure, startupArgs);
+                }
+                else
+                {
+                    throw;
+                }
             }
             catch (RemoteAccessException ex)
             {
@@ -70,7 +89,7 @@ namespace NzbDrone.Console
                 System.Console.WriteLine("EPIC FAIL! " + ex.ToString());
                 Exit(ExitCodes.UnknownFailure, startupArgs);
             }
-            
+
             Logger.Info("Exiting main.");
 
             Exit(ExitCodes.Normal, startupArgs);
@@ -88,8 +107,6 @@ namespace NzbDrone.Console
 
                 if (exitCode == ExitCodes.NonRecoverableFailure)
                 {
-                    
-
                     if (startupArgs?.ExitImmediately == true)
                     {
                         System.Console.WriteLine("Non-recoverable failure, but set to exit immediately");
@@ -102,7 +119,10 @@ namespace NzbDrone.Console
                     {
                         System.Threading.Thread.Sleep(1000);
 
-                        if (System.Console.KeyAvailable) break;
+                        if (System.Console.KeyAvailable)
+                        {
+                            break;
+                        }
                     }
                 }
 

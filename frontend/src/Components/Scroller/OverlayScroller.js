@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { Scrollbars } from 'react-custom-scrollbars';
+import { Scrollbars } from 'react-custom-scrollbars-2';
 import { scrollDirections } from 'Helpers/Props';
 import styles from './OverlayScroller.css';
 
@@ -41,7 +41,7 @@ class OverlayScroller extends Component {
     if (ref) {
       this.props.registerScroller(ref.view);
     }
-  }
+  };
 
   _renderThumb = (props) => {
     return (
@@ -50,7 +50,7 @@ class OverlayScroller extends Component {
         {...props}
       />
     );
-  }
+  };
 
   _renderTrackHorizontal = ({ style, props }) => {
     const finalStyle = {
@@ -69,7 +69,7 @@ class OverlayScroller extends Component {
         {...props}
       />
     );
-  }
+  };
 
   _renderTrackVertical = ({ style, props }) => {
     const finalStyle = {
@@ -88,7 +88,7 @@ class OverlayScroller extends Component {
         {...props}
       />
     );
-  }
+  };
 
   _renderView = (props) => {
     return (
@@ -97,18 +97,18 @@ class OverlayScroller extends Component {
         {...props}
       />
     );
-  }
+  };
 
   //
   // Listers
 
   onScrollStart = () => {
     this._isScrolling = true;
-  }
+  };
 
   onScrollStop = () => {
     this._isScrolling = false;
-  }
+  };
 
   onScroll = (event) => {
     const {
@@ -122,7 +122,7 @@ class OverlayScroller extends Component {
     if (onScroll) {
       onScroll({ scrollTop, scrollLeft });
     }
-  }
+  };
 
   //
   // Render

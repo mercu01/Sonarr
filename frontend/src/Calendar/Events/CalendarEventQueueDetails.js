@@ -1,8 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import colors from 'Styles/Variables/colors';
-import CircularProgressBar from 'Components/CircularProgressBar';
 import QueueDetails from 'Activity/Queue/QueueDetails';
+import CircularProgressBar from 'Components/CircularProgressBar';
 
 function CalendarEventQueueDetails(props) {
   const {
@@ -13,6 +12,7 @@ function CalendarEventQueueDetails(props) {
     status,
     trackedDownloadState,
     trackedDownloadStatus,
+    statusMessages,
     errorMessage
   } = props;
 
@@ -27,16 +27,15 @@ function CalendarEventQueueDetails(props) {
       status={status}
       trackedDownloadState={trackedDownloadState}
       trackedDownloadStatus={trackedDownloadStatus}
+      statusMessages={statusMessages}
       errorMessage={errorMessage}
       progressBar={
-        <div title={`Episode is downloading - ${progress.toFixed(1)}% ${title}`}>
-          <CircularProgressBar
-            progress={progress}
-            size={20}
-            strokeWidth={2}
-            strokeColor={colors.purple}
-          />
-        </div>
+        <CircularProgressBar
+          progress={progress}
+          size={20}
+          strokeWidth={2}
+          strokeColor={'#7a43b6'}
+        />
       }
     />
   );
@@ -50,6 +49,7 @@ CalendarEventQueueDetails.propTypes = {
   status: PropTypes.string.isRequired,
   trackedDownloadState: PropTypes.string.isRequired,
   trackedDownloadStatus: PropTypes.string.isRequired,
+  statusMessages: PropTypes.arrayOf(PropTypes.object),
   errorMessage: PropTypes.string
 };
 

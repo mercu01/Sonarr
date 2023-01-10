@@ -1,7 +1,7 @@
-using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common;
@@ -41,7 +41,6 @@ namespace NzbDrone.Core.RootFolders
                                                                      ".grab"
                                                                  };
 
-
         public RootFolderService(IRootFolderRepository rootFolderRepository,
                                  IDiskProvider diskProvider,
                                  ISeriesRepository seriesRepository,
@@ -74,7 +73,8 @@ namespace NzbDrone.Core.RootFolders
                         GetDetails(folder, seriesPaths, true);
                     }
                 }
-                //We don't want an exception to prevent the root folders from loading in the UI, so they can still be deleted
+
+                // We don't want an exception to prevent the root folders from loading in the UI, so they can still be deleted
                 catch (Exception ex)
                 {
                     _logger.Error(ex, "Unable to get free space and unmapped folders for root folder {0}", folder.Path);
@@ -122,7 +122,7 @@ namespace NzbDrone.Core.RootFolders
             _rootFolderRepository.Delete(id);
         }
 
-        private List<UnmappedFolder> GetUnmappedFolders(string path, List<string> seriesPaths)
+        private List<UnmappedFolder> GetUnmappedFolders(string path, Dictionary<int, string> seriesPaths)
         {
             _logger.Debug("Generating list of unmapped folders");
 
@@ -140,7 +140,7 @@ namespace NzbDrone.Core.RootFolders
             }
 
             var possibleSeriesFolders = _diskProvider.GetDirectories(path).ToList();
-            var unmappedFolders = possibleSeriesFolders.Except(seriesPaths, PathEqualityComparer.Instance).ToList();
+            var unmappedFolders = possibleSeriesFolders.Except(seriesPaths.Select(s => s.Value), PathEqualityComparer.Instance).ToList();
 
             foreach (string unmappedFolder in unmappedFolders)
             {
@@ -179,7 +179,7 @@ namespace NzbDrone.Core.RootFolders
             return possibleRootFolder.Path;
         }
 
-        private void GetDetails(RootFolder rootFolder, List<string> seriesPaths, bool timeout)
+        private void GetDetails(RootFolder rootFolder, Dictionary<int, string> seriesPaths, bool timeout)
         {
             Task.Run(() =>
             {

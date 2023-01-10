@@ -1,17 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds } from 'Helpers/Props';
-import SelectInput from 'Components/Form/SelectInput';
-import LanguageProfileSelectInputConnector from 'Components/Form/LanguageProfileSelectInputConnector';
 import QualityProfileSelectInputConnector from 'Components/Form/QualityProfileSelectInputConnector';
 import RootFolderSelectInputConnector from 'Components/Form/RootFolderSelectInputConnector';
+import SelectInput from 'Components/Form/SelectInput';
 import SeriesTypeSelectInput from 'Components/Form/SeriesTypeSelectInput';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import PageContentFooter from 'Components/Page/PageContentFooter';
+import { kinds } from 'Helpers/Props';
 import MoveSeriesModal from 'Series/MoveSeries/MoveSeriesModal';
-import TagsModal from './Tags/TagsModal';
 import DeleteSeriesModal from './Delete/DeleteSeriesModal';
 import SeriesEditorFooterLabel from './SeriesEditorFooterLabel';
+import TagsModal from './Tags/TagsModal';
 import styles from './SeriesEditorFooter.css';
 
 const NO_CHANGE = 'noChange';
@@ -27,7 +26,6 @@ class SeriesEditorFooter extends Component {
     this.state = {
       monitored: NO_CHANGE,
       qualityProfileId: NO_CHANGE,
-      languageProfileId: NO_CHANGE,
       seriesType: NO_CHANGE,
       seasonFolder: NO_CHANGE,
       rootFolderPath: NO_CHANGE,
@@ -49,7 +47,6 @@ class SeriesEditorFooter extends Component {
       this.setState({
         monitored: NO_CHANGE,
         qualityProfileId: NO_CHANGE,
-        languageProfileId: NO_CHANGE,
         seriesType: NO_CHANGE,
         seasonFolder: NO_CHANGE,
         rootFolderPath: NO_CHANGE,
@@ -84,7 +81,7 @@ class SeriesEditorFooter extends Component {
       default:
         this.props.onSaveSelected({ [name]: value });
     }
-  }
+  };
 
   onApplyTagsPress = (tags, applyTags) => {
     this.setState({
@@ -96,23 +93,23 @@ class SeriesEditorFooter extends Component {
       tags,
       applyTags
     });
-  }
+  };
 
   onDeleteSelectedPress = () => {
     this.setState({ isDeleteSeriesModalOpen: true });
-  }
+  };
 
   onDeleteSeriesModalClose = () => {
     this.setState({ isDeleteSeriesModalOpen: false });
-  }
+  };
 
   onTagsPress = () => {
     this.setState({ isTagsModalOpen: true });
-  }
+  };
 
   onTagsModalClose = () => {
     this.setState({ isTagsModalOpen: false });
-  }
+  };
 
   onSaveRootFolderPress = () => {
     this.setState({
@@ -121,7 +118,7 @@ class SeriesEditorFooter extends Component {
     });
 
     this.props.onSaveSelected({ rootFolderPath: this.state.destinationRootFolder });
-  }
+  };
 
   onMoveSeriesPress = () => {
     this.setState({
@@ -133,7 +130,7 @@ class SeriesEditorFooter extends Component {
       rootFolderPath: this.state.destinationRootFolder,
       moveFiles: true
     });
-  }
+  };
 
   //
   // Render
@@ -152,7 +149,6 @@ class SeriesEditorFooter extends Component {
     const {
       monitored,
       qualityProfileId,
-      languageProfileId,
       seriesType,
       seasonFolder,
       rootFolderPath,
@@ -217,28 +213,6 @@ class SeriesEditorFooter extends Component {
                   <QualityProfileSelectInputConnector
                     name="qualityProfileId"
                     value={qualityProfileId}
-                    includeNoChange={true}
-                    isDisabled={!selectedCount}
-                    onChange={this.onInputChange}
-                  />
-                </div>
-              );
-            }
-
-            if (name === 'languageProfileId') {
-              return (
-                <div
-                  key={name}
-                  className={styles.inputContainer}
-                >
-                  <SeriesEditorFooterLabel
-                    label="Language Profile"
-                    isSaving={isSaving && languageProfileId !== NO_CHANGE}
-                  />
-
-                  <LanguageProfileSelectInputConnector
-                    name="languageProfileId"
-                    value={languageProfileId}
                     includeNoChange={true}
                     isDisabled={!selectedCount}
                     onChange={this.onInputChange}
@@ -392,7 +366,6 @@ SeriesEditorFooter.propTypes = {
   isDeleting: PropTypes.bool.isRequired,
   deleteError: PropTypes.object,
   isOrganizingSeries: PropTypes.bool.isRequired,
-  showLanguageProfile: PropTypes.bool.isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   onSaveSelected: PropTypes.func.isRequired,
   onOrganizeSeriesPress: PropTypes.func.isRequired

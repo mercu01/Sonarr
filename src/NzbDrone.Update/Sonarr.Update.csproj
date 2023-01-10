@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net462</TargetFramework>
-    <Platforms>x86</Platforms>
+    <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NLog" Version="4.6.6" />
+    <PackageReference Include="DryIoc.dll" Version="5.3.0" />
+    <PackageReference Include="DryIoc.Microsoft.DependencyInjection" Version="6.1.0" />
+    <PackageReference Include="NLog" Version="4.7.14" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NzbDrone.Common\Sonarr.Common.csproj" />

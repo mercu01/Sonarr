@@ -1,15 +1,15 @@
 import moment from 'moment';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
+import { sortDirections } from 'Helpers/Props';
+import { createThunk, handleThunks } from 'Store/thunks';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import updateSectionState from 'Utilities/State/updateSectionState';
 import naturalExpansion from 'Utilities/String/naturalExpansion';
-import { createThunk, handleThunks } from 'Store/thunks';
-import { sortDirections } from 'Helpers/Props';
-import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
+import { set, update, updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
-import { set, update, updateItem } from './baseActions';
+import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
 
 //
 // Variables
@@ -34,7 +34,7 @@ export const defaultState = {
   sortKey: 'quality',
   sortDirection: sortDirections.DESCENDING,
   recentFolders: [],
-  importMode: 'move',
+  importMode: 'chooseImportMode',
   sortPredicates: {
     relativePath: function(item, direction) {
       const relativePath = item.relativePath;
@@ -177,7 +177,7 @@ export const actionHandlers = handleThunks({
         seasonNumber: item.seasonNumber,
         episodeIds: (item.episodes || []).map((e) => e.id),
         quality: item.quality,
-        language: item.language,
+        languages: item.languages,
         releaseGroup: item.releaseGroup,
         downloadId: item.downloadId
       };

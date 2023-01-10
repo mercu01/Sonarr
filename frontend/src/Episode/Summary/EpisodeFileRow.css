@@ -4,11 +4,17 @@
   width: 100px;
 }
 
-.language,
+.languages,
 .quality {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
   width: 100px;
+}
+
+.customFormats {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 175px;
 }
 
 .actions {

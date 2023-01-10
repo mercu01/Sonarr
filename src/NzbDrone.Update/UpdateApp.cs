@@ -1,11 +1,14 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DryIoc;
 using NLog;
-using NzbDrone.Common.Composition;
+using NzbDrone.Common.Composition.Extensions;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation;
+using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Processes;
 using NzbDrone.Update.UpdateEngine;
 
@@ -15,7 +18,6 @@ namespace NzbDrone.Update
     {
         private readonly IInstallUpdateService _installUpdateService;
         private readonly IProcessProvider _processProvider;
-        private static IContainer _container;
 
         private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(UpdateApp));
 
@@ -29,14 +31,18 @@ namespace NzbDrone.Update
         {
             try
             {
-                var startupContext = new StartupContext(args);
-                NzbDroneLogger.Register(startupContext, true, true);
+                var startupArgument = new StartupContext(args);
+                NzbDroneLogger.Register(startupArgument, true, true);
 
                 Logger.Info("Starting Sonarr Update Client");
 
-                _container = UpdateContainerBuilder.Build(startupContext);
-                _container.Resolve<InitializeLogger>().Initialize();
-                _container.Resolve<UpdateApp>().Start(args);
+                var container = new Container(rules => rules.WithNzbDroneRules())
+                    .AutoAddServices(new List<string> { "Sonarr.Update" })
+                    .AddNzbDroneLogger()
+                    .AddStartupContext(startupArgument);
+
+                container.Resolve<InitializeLogger>().Initialize();
+                container.Resolve<UpdateApp>().Start(args);
 
                 Logger.Info("Update completed successfully");
             }
@@ -58,17 +64,17 @@ namespace NzbDrone.Update
         {
             if (args == null || !args.Any())
             {
-                throw new ArgumentOutOfRangeException(nameof(args), "args must be specified");
+                throw new ArgumentOutOfRangeException("args", "args must be specified");
             }
 
             var startupContext = new UpdateStartupContext
-                                 {
-                                     ProcessId = ParseProcessId(args[0])
-                                 };
+            {
+                ProcessId = ParseProcessId(args[0])
+            };
 
             if (OsInfo.IsNotWindows)
             {
-                switch (args.Count())
+                switch (args.Length)
                 {
                     case 1:
                         return startupContext;
@@ -97,7 +103,7 @@ namespace NzbDrone.Update
             int id;
             if (!int.TryParse(arg, out id) || id <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(arg), "Invalid process ID");
+                throw new ArgumentOutOfRangeException("arg", "Invalid process ID");
             }
 
             Logger.Debug("NzbDrone process ID: {0}", id);
@@ -114,7 +120,6 @@ namespace NzbDrone.Update
 
                 return exeFileInfo.DirectoryName;
             }
-
             else
             {
                 Logger.Debug("Using executing application: {0}", startupContext.ExecutingApplication);

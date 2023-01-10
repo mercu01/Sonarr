@@ -1,18 +1,18 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import formatBytes from 'Utilities/Number/formatBytes';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
 import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellConnector';
-import TableRow from 'Components/Table/TableRow';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
-import EpisodeSearchCellConnector from 'Episode/EpisodeSearchCellConnector';
+import TableRow from 'Components/Table/TableRow';
+import EpisodeFormats from 'Episode/EpisodeFormats';
 import EpisodeNumber from 'Episode/EpisodeNumber';
-import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
+import EpisodeSearchCellConnector from 'Episode/EpisodeSearchCellConnector';
 import EpisodeStatusConnector from 'Episode/EpisodeStatusConnector';
+import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
 import EpisodeFileLanguageConnector from 'EpisodeFile/EpisodeFileLanguageConnector';
 import MediaInfoConnector from 'EpisodeFile/MediaInfoConnector';
 import * as mediaInfoTypes from 'EpisodeFile/mediaInfoTypes';
-
+import formatBytes from 'Utilities/Number/formatBytes';
 import styles from './EpisodeRow.css';
 
 class EpisodeRow extends Component {
@@ -33,15 +33,15 @@ class EpisodeRow extends Component {
 
   onManualSearchPress = () => {
     this.setState({ isDetailsModalOpen: true });
-  }
+  };
 
   onDetailsModalClose = () => {
     this.setState({ isDetailsModalOpen: false });
-  }
+  };
 
   onMonitorEpisodePress = (monitored, options) => {
     this.props.onMonitorEpisodePress(this.props.id, monitored, options);
-  }
+  };
 
   //
   // Render
@@ -69,6 +69,7 @@ class EpisodeRow extends Component {
       episodeFileRelativePath,
       episodeFileSize,
       releaseGroup,
+      customFormats,
       alternateTitles,
       columns
     } = this.props;
@@ -169,11 +170,21 @@ class EpisodeRow extends Component {
               );
             }
 
-            if (name === 'language') {
+            if (name === 'customFormats') {
+              return (
+                <TableRowCell key={name}>
+                  <EpisodeFormats
+                    formats={customFormats}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'languages') {
               return (
                 <TableRowCell
                   key={name}
-                  className={styles.language}
+                  className={styles.languages}
                 >
                   <EpisodeFileLanguageConnector
                     episodeFileId={episodeFileId}
@@ -329,6 +340,7 @@ EpisodeRow.propTypes = {
   episodeFileRelativePath: PropTypes.string,
   episodeFileSize: PropTypes.number,
   releaseGroup: PropTypes.string,
+  customFormats: PropTypes.arrayOf(PropTypes.object),
   mediaInfo: PropTypes.object,
   alternateTitles: PropTypes.arrayOf(PropTypes.object).isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -336,7 +348,8 @@ EpisodeRow.propTypes = {
 };
 
 EpisodeRow.defaultProps = {
-  alternateTitles: []
+  alternateTitles: [],
+  customFormats: []
 };
 
 export default EpisodeRow;

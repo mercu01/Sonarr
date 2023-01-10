@@ -3,17 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using Unity;
+using DryIoc;
 using Moq;
-using Moq.Language.Flow;
+using NzbDrone.Common.Composition;
 using NzbDrone.Common.EnvironmentInfo;
-using NzbDrone.Test.Common.AutoMoq.Unity;
-using Unity.Resolution;
-
-[assembly: InternalsVisibleTo("AutoMoq.Tests")]
 
 namespace NzbDrone.Test.Common.AutoMoq
 {
@@ -21,44 +15,30 @@ namespace NzbDrone.Test.Common.AutoMoq
     public class AutoMoqer
     {
         public readonly MockBehavior DefaultBehavior = MockBehavior.Default;
-        public Type ResolveType;
-        private IUnityContainer _container;
+        private IContainer _container;
         private IDictionary<Type, object> _registeredMocks;
 
         public AutoMoqer()
         {
-            SetupAutoMoqer(new UnityContainer());
-        }
-
-        public AutoMoqer(MockBehavior defaultBehavior)
-        {
-            DefaultBehavior = defaultBehavior;
-            SetupAutoMoqer(new UnityContainer());
-
-        }
-
-        public AutoMoqer(IUnityContainer container)
-        {
-            SetupAutoMoqer(container);
+            SetupAutoMoqer(CreateTestContainer(new Container()));
         }
 
         public virtual T Resolve<T>()
         {
-            ResolveType = typeof(T);
             var result = _container.Resolve<T>();
             SetConstant(result);
-            ResolveType = null;
             return result;
         }
 
-        public virtual Mock<T> GetMock<T>() where T : class
+        public virtual Mock<T> GetMock<T>()
+            where T : class
         {
             return GetMock<T>(DefaultBehavior);
         }
 
-        public virtual Mock<T> GetMock<T>(MockBehavior behavior) where T : class
+        public virtual Mock<T> GetMock<T>(MockBehavior behavior)
+            where T : class
         {
-            ResolveType = null;
             var type = GetTheMockType<T>();
             if (GetMockHasNotBeenCalledForThisType(type))
             {
@@ -77,82 +57,96 @@ namespace NzbDrone.Test.Common.AutoMoq
 
         public virtual void SetMock(Type type, Mock mock)
         {
-            if (_registeredMocks.ContainsKey(type) == false)
+            if (GetMockHasNotBeenCalledForThisType(type))
+            {
                 _registeredMocks.Add(type, mock);
+            }
+
             if (mock != null)
-                _container.RegisterInstance(type, mock.Object);
+            {
+                _container.RegisterInstance(type, mock.Object, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
+            }
         }
 
         public virtual void SetConstant<T>(T instance)
         {
-            _container.RegisterInstance(instance);
+            _container.RegisterInstance(instance, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
             SetMock(instance.GetType(), null);
         }
 
-        public ISetup<T> Setup<T>(Expression<Action<T>> expression) where T : class
+        private IContainer CreateTestContainer(IContainer container)
         {
-            return GetMock<T>().Setup(expression);
+            var c = container.CreateChild(IfAlreadyRegistered.Replace,
+                container.Rules
+                    .WithDynamicRegistration((serviceType, serviceKey) =>
+                    {
+                        // ignore services with non-default key
+                        if (serviceKey != null)
+                        {
+                            return null;
+                        }
+
+                        if (serviceType == typeof(object))
+                        {
+                            return null;
+                        }
+
+                        if (serviceType.IsGenericType && serviceType.IsOpenGeneric())
+                        {
+                            return null;
+                        }
+
+                        if (serviceType == typeof(System.Text.Json.Serialization.JsonConverter))
+                        {
+                            return null;
+                        }
+
+                        // get the Mock object for the abstract class or interface
+                        if (serviceType.IsInterface || serviceType.IsAbstract)
+                        {
+                            var mockType = typeof(Mock<>).MakeGenericType(serviceType);
+                            var mockFactory = DelegateFactory.Of(r =>
+                            {
+                                var mock = (Mock)r.Resolve(mockType);
+                                SetMock(serviceType, mock);
+                                return mock.Object;
+                            }, Reuse.Singleton);
+
+                            return new[] { new DynamicRegistration(mockFactory, IfAlreadyRegistered.Keep) };
+                        }
+
+                        // concrete types
+                        var concreteTypeFactory = serviceType.ToFactory(Reuse.Singleton, FactoryMethod.ConstructorWithResolvableArgumentsIncludingNonPublic);
+
+                        return new[] { new DynamicRegistration(concreteTypeFactory) };
+                    },
+                    DynamicRegistrationFlags.Service | DynamicRegistrationFlags.AsFallback));
+
+            c.Register(typeof(Mock<>), Reuse.Singleton, FactoryMethod.DefaultConstructor());
+
+            return c;
         }
 
-        public ISetup<T, TResult> Setup<T, TResult>(Expression<Func<T, TResult>> expression) where T : class
-        {
-            return GetMock<T>().Setup(expression);
-        }
-
-        public void Verify<T>(Expression<Action<T>> expression) where T : class
-        {
-            GetMock<T>().Verify(expression);
-        }
-
-        public void Verify<T>(Expression<Action<T>> expression, string failMessage) where T : class
-        {
-            GetMock<T>().Verify(expression, failMessage);
-        }
-
-        public void Verify<T>(Expression<Action<T>> expression, Times times) where T : class
-        {
-            GetMock<T>().Verify(expression, times);
-        }
-
-        public void Verify<T>(Expression<Action<T>> expression, Times times, string failMessage) where T : class
-        {
-            GetMock<T>().Verify(expression, times, failMessage);
-        }
-
-        public void VerifyAllMocks()
-        {
-            foreach (var registeredMock in _registeredMocks)
-            {
-                if (registeredMock.Value is Mock mock)
-                    mock.VerifyAll();
-            }
-        }
-
-        #region private methods
-
-        private void SetupAutoMoqer(IUnityContainer container)
+        private void SetupAutoMoqer(IContainer container)
         {
             _container = container;
             container.RegisterInstance(this);
 
-            RegisterPlatformLibrary(container);
-
             _registeredMocks = new Dictionary<Type, object>();
-            AddTheAutoMockingContainerExtensionToTheContainer(container);
+
+            LoadPlatformLibrary();
+
+            AssemblyLoader.RegisterNativeResolver(new[] { "System.Data.SQLite", "Sonarr.Core" });
         }
 
-        private static void AddTheAutoMockingContainerExtensionToTheContainer(IUnityContainer container)
-        {
-            container.AddNewExtension<AutoMockingContainerExtension>();
-            return;
-        }
-
-        private Mock<T> TheRegisteredMockForThisType<T>(Type type) where T : class
+        private Mock<T> TheRegisteredMockForThisType<T>(Type type)
+            where T : class
         {
             return (Mock<T>)_registeredMocks.First(x => x.Key == type).Value;
         }
 
-        private void CreateANewMockAndRegisterIt<T>(Type type, MockBehavior behavior) where T : class
+        private void CreateANewMockAndRegisterIt<T>(Type type, MockBehavior behavior)
+            where T : class
         {
             var mock = new Mock<T>(behavior);
             _container.RegisterInstance(mock.Object);
@@ -161,15 +155,16 @@ namespace NzbDrone.Test.Common.AutoMoq
 
         private bool GetMockHasNotBeenCalledForThisType(Type type)
         {
-            return _registeredMocks.ContainsKey(type) == false;
+            return !_registeredMocks.ContainsKey(type);
         }
 
-        private static Type GetTheMockType<T>() where T : class
+        private static Type GetTheMockType<T>()
+            where T : class
         {
             return typeof(T);
         }
 
-        private void RegisterPlatformLibrary(IUnityContainer container)
+        private void LoadPlatformLibrary()
         {
             var assemblyName = "Sonarr.Windows";
 
@@ -185,7 +180,5 @@ namespace NzbDrone.Test.Common.AutoMoq
 
             Assembly.Load(assemblyName);
         }
-
-        #endregion
     }
 }

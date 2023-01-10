@@ -44,7 +44,7 @@ namespace NzbDrone.Core.MediaFiles
             _mediaFileService = mediaFileService;
             _seriesService = seriesService;
             _configService = configService;
-            _eventAggregator = eventAggregator; 
+            _eventAggregator = eventAggregator;
             _logger = logger;
         }
 
@@ -81,7 +81,7 @@ namespace NzbDrone.Core.MediaFiles
                     throw new NzbDroneClientException(HttpStatusCode.InternalServerError, "Unable to delete episode file");
                 }
             }
-            
+
             // Delete the episode file from the database to clean it up even if the file was already deleted
             _mediaFileService.Delete(episodeFile, DeleteMediaFileReason.Manual);
 
@@ -92,31 +92,37 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (message.DeleteFiles)
             {
-                var series = message.Series;
-                var allSeries = _seriesService.GetAllSeries();
+                var allSeries = _seriesService.GetAllSeriesPaths();
 
-                foreach (var s in allSeries)
+                foreach (var series in message.Series)
                 {
-                    if (s.Id == series.Id) continue;
-
-                    if (series.Path.IsParentPath(s.Path))
+                    foreach (var s in allSeries)
                     {
-                        _logger.Error("Series path: '{0}' is a parent of another series, not deleting files.", series.Path);
-                        return;
+                        if (s.Key == series.Id)
+                        {
+                            continue;
+                        }
+
+                        if (series.Path.IsParentPath(s.Value))
+                        {
+                            _logger.Error("Series path: '{0}' is a parent of another series, not deleting files.", series.Path);
+                            return;
+                        }
+
+                        if (series.Path.PathEquals(s.Value))
+                        {
+                            _logger.Error("Series path: '{0}' is the same as another series, not deleting files.", series.Path);
+                            return;
+                        }
                     }
 
-                    if (series.Path.PathEquals(s.Path))
+                    if (_diskProvider.FolderExists(series.Path))
                     {
-                        _logger.Error("Series path: '{0}' is the same as another series, not deleting files.", series.Path);
-                        return;
+                        _recycleBinProvider.DeleteFolder(series.Path);
                     }
-                }
 
-                if (_diskProvider.FolderExists(message.Series.Path))
-                {
-                    _recycleBinProvider.DeleteFolder(message.Series.Path);
+                    _eventAggregator.PublishEvent(new DeleteCompletedEvent());
                 }
-                _eventAggregator.PublishEvent(new DeleteCompletedEvent());
             }
         }
 

@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
-import getErrorMessage from 'Utilities/Object/getErrorMessage';
-import { align, icons, sortDirections } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Icon from 'Components/Icon';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageMenuButton from 'Components/Menu/PageMenuButton';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
+import { align, icons, sortDirections } from 'Helpers/Props';
+import getErrorMessage from 'Utilities/Object/getErrorMessage';
 import InteractiveSearchFilterModalConnector from './InteractiveSearchFilterModalConnector';
 import InteractiveSearchRow from './InteractiveSearchRow';
 import styles from './InteractiveSearch.css';
@@ -51,7 +51,7 @@ const columns = [
   },
   {
     name: 'languageWeight',
-    label: 'Language',
+    label: 'Languages',
     isSortable: true,
     isVisible: true
   },
@@ -62,10 +62,10 @@ const columns = [
     isVisible: true
   },
   {
-    name: 'preferredWordScore',
+    name: 'customFormatScore',
     label: React.createElement(Icon, {
       name: icons.SCORE,
-      title: 'Preferred word score'
+      title: 'Custom format score'
     }),
     isSortable: true,
     isVisible: true

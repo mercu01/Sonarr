@@ -1,4 +1,4 @@
-﻿using NLog;
+using NLog;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
 
@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Notifications.Emby
         {
             var scheme = settings.UseSsl ? "https" : "http";
             var url = $@"{scheme}://{settings.Address}/mediabrowser";
-            
+
             return new HttpRequestBuilder(url).Resource(path).Build();
         }
 
@@ -76,7 +76,7 @@ namespace NzbDrone.Core.Notifications.Emby
         {
             _logger.Debug("Looking for error in response: {0}", response);
 
-            //TODO: actually check for the error
+            // TODO: actually check for the error
         }
     }
 }

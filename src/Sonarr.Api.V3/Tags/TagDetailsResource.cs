@@ -13,6 +13,7 @@ namespace Sonarr.Api.V3.Tags
         public List<int> NotificationIds { get; set; }
         public List<int> RestrictionIds { get; set; }
         public List<int> IndexerIds { get; set; }
+        public List<int> AutoTagIds { get; set; }
         public List<int> SeriesIds { get; set; }
     }
 
@@ -20,7 +21,10 @@ namespace Sonarr.Api.V3.Tags
     {
         public static TagDetailsResource ToResource(this TagDetails model)
         {
-            if (model == null) return null;
+            if (model == null)
+            {
+                return null;
+            }
 
             return new TagDetailsResource
             {
@@ -31,6 +35,7 @@ namespace Sonarr.Api.V3.Tags
                 NotificationIds = model.NotificationIds,
                 RestrictionIds = model.RestrictionIds,
                 IndexerIds = model.IndexerIds,
+                AutoTagIds = model.AutoTagIds,
                 SeriesIds = model.SeriesIds
             };
         }

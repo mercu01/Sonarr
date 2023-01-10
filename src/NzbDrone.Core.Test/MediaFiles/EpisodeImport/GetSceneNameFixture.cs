@@ -4,6 +4,7 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.Parser.Model;
@@ -12,8 +13,6 @@ using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Test.Common;
-using NzbDrone.Core.Languages;
-using NzbDrone.Core.Profiles.Languages;
 
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 {
@@ -29,11 +28,6 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
         {
             var series = Builder<Series>.CreateNew()
                                         .With(e => e.QualityProfile = new QualityProfile { Items = Qualities.QualityFixture.GetDefaultQualities() })
-                                        .With(l => l.LanguageProfile = new LanguageProfile
-                                                                       {
-                                                                           Cutoff = Language.Spanish,
-                                                                           Languages = Languages.LanguageFixture.GetDefaultLanguages()
-                                                                       })
                                         .With(s => s.Path = @"C:\Test\TV\Series Title".AsOsAgnostic())
                                         .Build();
 
@@ -43,7 +37,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
             _localEpisode = new LocalEpisode
                             {
                                 Series = series,
-                                Episodes = new List<Episode> {episode},
+                                Episodes = new List<Episode> { episode },
                                 Path = Path.Combine(series.Path, "Series Title - S02E23 - Episode Title.mkv"),
                                 Quality = new QualityModel(Quality.Bluray720p),
                                 ReleaseGroup = "DRONE"
@@ -159,7 +153,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                                               {
                                                   ReleaseTitle = _seasonName,
                                                   FullSeason = true
-            };
+                                              };
 
             SceneNameCalculator.GetSceneName(_localEpisode).Should()
                                .BeNull();

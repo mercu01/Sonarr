@@ -1,18 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import ProviderFieldFormGroup from 'Components/Form/ProviderFieldFormGroup';
 import Button from 'Components/Link/Button';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
-import ProviderFieldFormGroup from 'Components/Form/ProviderFieldFormGroup';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
 import styles from './EditIndexerModalContent.css';
 
 function EditIndexerModalContent(props) {
@@ -45,6 +45,7 @@ function EditIndexerModalContent(props) {
     tags,
     fields,
     priority,
+    seasonSearchMaximumSingleEpisodeAge,
     protocol,
     downloadClientId
   } = item;
@@ -86,6 +87,7 @@ function EditIndexerModalContent(props) {
                 <FormInputGroup
                   type={inputTypes.CHECK}
                   name="enableRss"
+                  helpText={supportsRss.value ? 'Will be used when Sonarr periodically looks for releases via RSS Sync' : undefined}
                   helpTextWarning={supportsRss.value ? undefined : 'RSS is not supported with this indexer'}
                   isDisabled={!supportsRss.value}
                   {...enableRss}
@@ -149,6 +151,23 @@ function EditIndexerModalContent(props) {
                   min={1}
                   max={50}
                   {...priority}
+                  onChange={onInputChange}
+                />
+              </FormGroup>
+
+              <FormGroup
+                advancedSettings={advancedSettings}
+                isAdvanced={true}
+              >
+                <FormLabel>Maximum Single Episode Age</FormLabel>
+
+                <FormInputGroup
+                  type={inputTypes.NUMBER}
+                  name="seasonSearchMaximumSingleEpisodeAge"
+                  helpText="During a full season search only season packs will be allowed when the season's last episode is older than this setting. Standard series only. Use 0 to disable."
+                  min={0}
+                  unit="days"
+                  {...seasonSearchMaximumSingleEpisodeAge}
                   onChange={onInputChange}
                 />
               </FormGroup>

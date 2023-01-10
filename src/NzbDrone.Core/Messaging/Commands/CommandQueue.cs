@@ -74,6 +74,7 @@ namespace NzbDrone.Core.Messaging.Commands
                 Monitor.PulseAll(_mutex);
             }
         }
+
         public bool RemoveIfQueued(int id)
         {
             var rval = false;
@@ -154,7 +155,6 @@ namespace NzbDrone.Core.Messaging.Commands
                 {
                     rval = false;
                 }
-
                 else
                 {
                     var startedCommands = _items.Where(c => c.Status == CommandStatus.Started)
@@ -164,11 +164,22 @@ namespace NzbDrone.Core.Messaging.Commands
                                           {
                                               // If an executing command requires disk access don't return a command that
                                               // requires disk access. A lower priority or later queued task could be returned
-                                              // instead, but that will allow other tasks to execute whiule waiting for disk access.
+                                              // instead, but that will allow other tasks to execute while waiting for disk access.
                                               if (startedCommands.Any(x => x.Body.RequiresDiskAccess))
                                               {
                                                   return c.Status == CommandStatus.Queued &&
                                                          !c.Body.RequiresDiskAccess;
+                                              }
+
+                                              // If an executing command is long running then skip any exclusive commands until
+                                              // they complete. A lower priority or later queued task could be returned
+                                              // instead, but that will allow other tasks to execute while waiting for exclusive
+                                              // execution.
+
+                                              if (startedCommands.Any(x => x.Body.IsLongRunning))
+                                              {
+                                                  return c.Status == CommandStatus.Queued &&
+                                                         !c.Body.IsExclusive;
                                               }
 
                                               return c.Status == CommandStatus.Queued;

@@ -64,8 +64,8 @@ namespace NzbDrone.Core.Download
                     continue;
                 }
 
-                if (downloadProtocol == DownloadProtocol.Usenet && usenetFailed ||
-                    downloadProtocol == DownloadProtocol.Torrent && torrentFailed)
+                if ((downloadProtocol == DownloadProtocol.Usenet && usenetFailed) ||
+                    (downloadProtocol == DownloadProtocol.Torrent && torrentFailed))
                 {
                     PreparePending(pendingAddQueue, grabbed, pending, report, PendingReleaseReason.DownloadClientUnavailable);
                     continue;
@@ -115,7 +115,7 @@ namespace NzbDrone.Core.Download
 
         internal List<DownloadDecision> GetQualifiedReports(IEnumerable<DownloadDecision> decisions)
         {
-            //Process both approved and temporarily rejected
+            // Process both approved and temporarily rejected
             return decisions.Where(c => (c.Approved || c.TemporarilyRejected) && c.RemoteEpisode.Episodes.Any()).ToList();
         }
 

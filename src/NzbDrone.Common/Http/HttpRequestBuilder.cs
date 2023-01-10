@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using NzbDrone.Common.Extensions;
 
@@ -25,17 +26,16 @@ namespace NzbDrone.Common.Http
         public bool ConnectionKeepAlive { get; set; }
         public TimeSpan RateLimit { get; set; }
         public bool LogResponseContent { get; set; }
-        public NetworkCredential NetworkCredential { get; set; }
+        public ICredentials NetworkCredential { get; set; }
         public Dictionary<string, string> Cookies { get; private set; }
         public List<HttpFormData> FormData { get; private set; }
-
         public Action<HttpRequest> PostProcess { get; set; }
 
         public HttpRequestBuilder(string baseUrl)
         {
             BaseUrl = new HttpUri(baseUrl);
             ResourceUrl = string.Empty;
-            Method = HttpMethod.GET;
+            Method = HttpMethod.Get;
             QueryParams = new List<KeyValuePair<string, string>>();
             SuffixQueryParams = new List<KeyValuePair<string, string>>();
             Segments = new Dictionary<string, string>();
@@ -48,7 +48,6 @@ namespace NzbDrone.Common.Http
         public HttpRequestBuilder(bool useHttps, string host, int port, string urlBase = null)
             : this(BuildBaseUrl(useHttps, host, port, urlBase))
         {
-
         }
 
         public static string BuildBaseUrl(bool useHttps, string host, int port, string urlBase = null)
@@ -109,13 +108,7 @@ namespace NzbDrone.Common.Http
             request.ConnectionKeepAlive = ConnectionKeepAlive;
             request.RateLimit = RateLimit;
             request.LogResponseContent = LogResponseContent;
-
-            if (NetworkCredential != null)
-            {
-                var authInfo = NetworkCredential.UserName + ":" + NetworkCredential.Password;
-                authInfo = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1").GetBytes(authInfo));
-                request.Headers.Set("Authorization", "Basic " + authInfo);
-            }
+            request.Credentials = NetworkCredential;
 
             foreach (var header in Headers)
             {
@@ -151,7 +144,10 @@ namespace NzbDrone.Common.Http
 
         protected virtual void ApplyFormData(HttpRequest request)
         {
-            if (FormData.Empty()) return;
+            if (FormData.Empty())
+            {
+                return;
+            }
 
             if (request.ContentData != null)
             {
@@ -176,11 +172,22 @@ namespace NzbDrone.Common.Http
                         writer.Write(partBoundary);
 
                         writer.Write("Content-Disposition: form-data");
-                        if (formData.Name.IsNotNullOrWhiteSpace()) writer.Write("; name=\"{0}\"", formData.Name);
-                        if (formData.FileName.IsNotNullOrWhiteSpace()) writer.Write("; filename=\"{0}\"", formData.FileName);
+                        if (formData.Name.IsNotNullOrWhiteSpace())
+                        {
+                            writer.Write("; name=\"{0}\"", formData.Name);
+                        }
+
+                        if (formData.FileName.IsNotNullOrWhiteSpace())
+                        {
+                            writer.Write("; filename=\"{0}\"", formData.FileName);
+                        }
+
                         writer.Write("\r\n");
 
-                        if (formData.ContentType.IsNotNullOrWhiteSpace()) writer.Write("Content-Type: {0}\r\n", formData.ContentType);
+                        if (formData.ContentType.IsNotNullOrWhiteSpace())
+                        {
+                            writer.Write("Content-Type: {0}\r\n", formData.ContentType);
+                        }
 
                         writer.Write("\r\n");
                         writer.Flush();
@@ -259,7 +266,7 @@ namespace NzbDrone.Common.Http
 
         public virtual HttpRequestBuilder Post()
         {
-            Method = HttpMethod.POST;
+            Method = HttpMethod.Post;
 
             return this;
         }
@@ -350,7 +357,7 @@ namespace NzbDrone.Common.Http
 
         public virtual HttpRequestBuilder AddFormParameter(string key, object value)
         {
-            if (Method != HttpMethod.POST)
+            if (Method != HttpMethod.Post)
             {
                 throw new NotSupportedException("HttpRequest Method must be POST to add FormParameter.");
             }
@@ -366,7 +373,7 @@ namespace NzbDrone.Common.Http
 
         public virtual HttpRequestBuilder AddFormUpload(string name, string fileName, byte[] data, string contentType = "application/octet-stream")
         {
-            if (Method != HttpMethod.POST)
+            if (Method != HttpMethod.Post)
             {
                 throw new NotSupportedException("HttpRequest Method must be POST to add FormUpload.");
             }
@@ -382,5 +389,4 @@ namespace NzbDrone.Common.Http
             return this;
         }
     }
-
 }

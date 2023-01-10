@@ -8,6 +8,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MediaFiles.Events;
@@ -18,8 +19,6 @@ using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Test.Common;
-using NzbDrone.Core.Languages;
-using NzbDrone.Core.Profiles.Languages;
 
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 {
@@ -41,18 +40,11 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 
             var series = Builder<Series>.CreateNew()
                                         .With(e => e.QualityProfile = new QualityProfile { Items = Qualities.QualityFixture.GetDefaultQualities() })
-                                        .With(l => l.LanguageProfile = new LanguageProfile 
-                                        { 
-                                            Cutoff = Language.Spanish,
-                                            Languages = Languages.LanguageFixture.GetDefaultLanguages()
-                                        })
                                         .With(s => s.Path = @"C:\Test\TV\30 Rock".AsOsAgnostic())
                                         .Build();
 
             var episodes = Builder<Episode>.CreateListOfSize(5)
                                            .Build();
-
-
 
             _rejectedDecisions.Add(new ImportDecision(new LocalEpisode(), new Rejection("Rejected!")));
             _rejectedDecisions.Add(new ImportDecision(new LocalEpisode(), new Rejection("Rejected!")));
@@ -60,8 +52,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 
             foreach (var episode in episodes)
             {
-                _approvedDecisions.Add(new ImportDecision
-                                           (
+                _approvedDecisions.Add(new ImportDecision(
                                            new LocalEpisode
                                                {
                                                    Series = series,
@@ -177,8 +168,8 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
             var fileDecision = _approvedDecisions.First();
             fileDecision.LocalEpisode.Size = 1.Gigabytes();
 
-            var sampleDecision = new ImportDecision
-                (new LocalEpisode
+            var sampleDecision = new ImportDecision(
+                new LocalEpisode
                  {
                      Series = fileDecision.LocalEpisode.Series,
                      Episodes = new List<Episode> { fileDecision.LocalEpisode.Episodes.First() },
@@ -186,7 +177,6 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                      Quality = new QualityModel(Quality.Bluray720p),
                      Size = 80.Megabytes()
                  });
-
 
             var all = new List<ImportDecision>();
             all.Add(fileDecision);
@@ -302,7 +292,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
         [Test]
         public void should_get_relative_path_when_there_is_no_grandparent_mono()
         {
-            MonoOnly();
+            PosixOnly();
 
             var name = "Series.Title.S01E01.720p.HDTV.x264-Sonarr";
             var outputPath = "/";
@@ -369,7 +359,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
             var outputPath = Path.Combine(@"C:\Test\Unsorted\TV\".AsOsAgnostic(), name);
             var localEpisode = _approvedDecisions.First().LocalEpisode;
 
-            _downloadClientItem.OutputPath = new OsPath();
+            _downloadClientItem.OutputPath = default(OsPath);
             localEpisode.FolderEpisodeInfo = new ParsedEpisodeInfo { ReleaseTitle = name };
             localEpisode.Path = Path.Combine(outputPath, "subfolder", name + ".mkv");
 

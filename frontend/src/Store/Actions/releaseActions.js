@@ -1,11 +1,12 @@
 import { createAction } from 'redux-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { filterBuilderTypes, filterBuilderValueTypes, filterTypes, sortDirections } from 'Helpers/Props';
+import { filterBuilderTypes, filterBuilderValueTypes, filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
-import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
-import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
+import sortByName from 'Utilities/Array/sortByName';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
+import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
+import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
 
 //
 // Variables
@@ -30,11 +31,20 @@ export const defaultState = {
     age: function(item, direction) {
       return item.ageMinutes;
     },
+
     peers: function(item, direction) {
       const seeders = item.seeders || 0;
       const leechers = item.leechers || 0;
 
       return seeders * 1000000 + leechers;
+    },
+
+    languages: function(item, direction) {
+      if (item.languages.length > 1) {
+        return 10000;
+      }
+
+      return item.languages[0].id;
     },
 
     rejections: function(item, direction) {
@@ -93,6 +103,14 @@ export const defaultState = {
 
       // Default to false
       return false;
+    },
+
+    languages: function(item, filterValue, type) {
+      const predicate = filterTypePredicates[type];
+
+      const languages = item.languages.map((language) => language.name);
+
+      return predicate(languages, filterValue);
     },
 
     rejectionCount: function(item, value, type) {
@@ -178,7 +196,8 @@ export const defaultState = {
     {
       name: 'size',
       label: 'Size',
-      type: filterBuilderTypes.NUMBER
+      type: filterBuilderTypes.NUMBER,
+      valueType: filterBuilderValueTypes.BYTES
     },
     {
       name: 'seeders',
@@ -195,6 +214,30 @@ export const defaultState = {
       label: 'Quality',
       type: filterBuilderTypes.EXACT,
       valueType: filterBuilderValueTypes.QUALITY
+    },
+    {
+      name: 'languages',
+      label: 'Languages',
+      type: filterBuilderTypes.ARRAY,
+      optionsSelector: function(items) {
+        const genreList = items.reduce((acc, release) => {
+          release.languages.forEach((language) => {
+            acc.push({
+              id: language.name,
+              name: language.name
+            });
+          });
+
+          return acc;
+        }, []);
+
+        return genreList.sort(sortByName);
+      }
+    },
+    {
+      name: 'customFormatScore',
+      label: 'Custom Format Score',
+      type: filterBuilderTypes.NUMBER
     },
     {
       name: 'rejectionCount',
@@ -278,6 +321,7 @@ export const actionHandlers = handleThunks({
     const promise = createAjaxRequest({
       url: '/release',
       method: 'POST',
+      dataType: 'json',
       contentType: 'application/json',
       data: JSON.stringify(payload)
     }).request;

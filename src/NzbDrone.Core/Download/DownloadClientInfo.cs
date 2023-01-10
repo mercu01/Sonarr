@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using NzbDrone.Common.Disk;
 
 namespace NzbDrone.Core.Download
@@ -7,10 +7,11 @@ namespace NzbDrone.Core.Download
     {
         public DownloadClientInfo()
         {
-            OutputRootFolders = new List<OsPath>(); 
+            OutputRootFolders = new List<OsPath>();
         }
 
         public bool IsLocalhost { get; set; }
+        public string SortingMode { get; set; }
         public List<OsPath> OutputRootFolders { get; set; }
     }
 }

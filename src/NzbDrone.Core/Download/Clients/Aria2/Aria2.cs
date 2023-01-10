@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using CookComputing.XmlRpc;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -74,11 +73,12 @@ namespace NzbDrone.Core.Download.Clients.Aria2
         {
             var torrents = _proxy.GetTorrents(Settings);
 
-            foreach(var torrent in torrents)
+            foreach (var torrent in torrents)
             {
                 var firstFile = torrent.Files?.FirstOrDefault();
 
-                if (firstFile?.Path?.Contains("[METADATA]") == true) //skip metadata download
+                // skip metadata download
+                if (firstFile?.Path?.Contains("[METADATA]") == true)
                 {
                     continue;
                 }
@@ -89,12 +89,7 @@ namespace NzbDrone.Core.Download.Clients.Aria2
                 var downloadSpeed = long.Parse(torrent.DownloadSpeed);
 
                 var status = DownloadItemStatus.Failed;
-                var title = "";
-
-                if(torrent.Bittorrent?.ContainsKey("info") == true && ((XmlRpcStruct)torrent.Bittorrent["info"]).ContainsKey("name"))
-                {
-                    title = ((XmlRpcStruct)torrent.Bittorrent["info"])["name"].ToString();
-                }
+                var title = torrent.Bittorrent?.Name ?? "";
 
                 switch (torrent.Status)
                 {
@@ -141,13 +136,13 @@ namespace NzbDrone.Core.Download.Clients.Aria2
                     Message = torrent.ErrorMessage,
                     OutputPath = outputPath,
                     RemainingSize = totalLength - completedLength,
-                    RemainingTime = downloadSpeed == 0 ? (TimeSpan?)null : new TimeSpan(0,0, (int)((totalLength - completedLength) / downloadSpeed)),
+                    RemainingTime = downloadSpeed == 0 ? (TimeSpan?)null : new TimeSpan(0, 0, (int)((totalLength - completedLength) / downloadSpeed)),
                     Removed = torrent.Status == "removed",
                     SeedRatio = totalLength > 0 ? (double)uploadedLength / totalLength : 0,
                     Status = status,
                     Title = title,
                     TotalSize = totalLength,
-                };              
+                };
             }
         }
 
@@ -157,7 +152,7 @@ namespace NzbDrone.Core.Download.Clients.Aria2
             var hash = item.DownloadId.ToLower();
             var aria2Item = _proxy.GetTorrents(Settings).FirstOrDefault(t => t.InfoHash?.ToLower() == hash);
 
-            if(aria2Item == null)
+            if (aria2Item == null)
             {
                 _logger.Error($"Aria2 could not find infoHash '{hash}' for deletion.");
                 return;

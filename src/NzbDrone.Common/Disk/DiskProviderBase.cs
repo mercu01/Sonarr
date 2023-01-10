@@ -117,6 +117,7 @@ namespace NzbDrone.Common.Disk
                     {
                         return File.Exists(path) && path == path.GetActualCasing();
                     }
+
                 default:
                     {
                         return File.Exists(path);
@@ -265,6 +266,11 @@ namespace NzbDrone.Common.Disk
 
         protected virtual void MoveFileInternal(string source, string destination)
         {
+            if (File.Exists(destination))
+            {
+                throw new FileAlreadyExistsException("File already exists", destination);
+            }
+
             File.Move(source, destination);
         }
 
@@ -362,7 +368,7 @@ namespace NzbDrone.Common.Disk
 
                 if (attributes.HasFlag(FileAttributes.ReadOnly))
                 {
-                    var newAttributes = attributes & ~(FileAttributes.ReadOnly);
+                    var newAttributes = attributes & ~FileAttributes.ReadOnly;
                     File.SetAttributes(path, newAttributes);
                 }
             }

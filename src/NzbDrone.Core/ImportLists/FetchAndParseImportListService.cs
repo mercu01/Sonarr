@@ -1,11 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using NLog;
-using NzbDrone.Core.Parser.Model;
 using NzbDrone.Common.TPL;
-using System;
-using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.ImportLists
 {
@@ -18,11 +17,13 @@ namespace NzbDrone.Core.ImportLists
     public class FetchAndParseImportListService : IFetchAndParseImportList
     {
         private readonly IImportListFactory _importListFactory;
+        private readonly IImportListStatusService _importListStatusService;
         private readonly Logger _logger;
 
-        public FetchAndParseImportListService(IImportListFactory importListFactory, Logger logger)
+        public FetchAndParseImportListService(IImportListFactory importListFactory, IImportListStatusService importListStatusService, Logger logger)
         {
             _importListFactory = importListFactory;
+            _importListStatusService = importListStatusService;
             _logger = logger;
         }
 
@@ -46,6 +47,13 @@ namespace NzbDrone.Core.ImportLists
             foreach (var importList in importLists)
             {
                 var importListLocal = importList;
+                var importListStatus = _importListStatusService.GetLastSyncListInfo(importListLocal.Definition.Id);
+
+                if (importListStatus.HasValue && DateTime.UtcNow < (importListStatus + importListLocal.MinRefreshInterval))
+                {
+                    _logger.Trace("Skipping refresh of Import List {0} due to minimum refresh inverval", importListLocal.Definition.Name);
+                    continue;
+                }
 
                 var task = taskFactory.StartNew(() =>
                      {
@@ -59,6 +67,8 @@ namespace NzbDrone.Core.ImportLists
 
                                  result.AddRange(importListReports);
                              }
+
+                             _importListStatusService.UpdateListSyncStatus(importList.Definition.Id);
                          }
                          catch (Exception e)
                          {
@@ -71,7 +81,7 @@ namespace NzbDrone.Core.ImportLists
 
             Task.WaitAll(taskList.ToArray());
 
-            result = result.DistinctBy(r => new {r.TvdbId, r.Title}).ToList();
+            result = result.DistinctBy(r => new { r.TvdbId, r.ImdbId, r.Title }).ToList();
 
             _logger.Debug("Found {0} reports", result.Count);
 
@@ -107,6 +117,8 @@ namespace NzbDrone.Core.ImportLists
 
                         result.AddRange(importListReports);
                     }
+
+                    _importListStatusService.UpdateListSyncStatus(importList.Definition.Id);
                 }
                 catch (Exception e)
                 {
@@ -116,10 +128,9 @@ namespace NzbDrone.Core.ImportLists
 
             taskList.Add(task);
 
-
             Task.WaitAll(taskList.ToArray());
 
-            result = result.DistinctBy(r => new { r.TvdbId, r.Title }).ToList();
+            result = result.DistinctBy(r => new { r.TvdbId, r.ImdbId, r.Title }).ToList();
 
             return result;
         }

@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import getSelectedIds from 'Utilities/Table/getSelectedIds';
-import selectAll from 'Utilities/Table/selectAll';
-import toggleSelected from 'Utilities/Table/toggleSelected';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
-import ImportSeriesTableConnector from './ImportSeriesTableConnector';
+import getSelectedIds from 'Utilities/Table/getSelectedIds';
+import selectAll from 'Utilities/Table/selectAll';
+import toggleSelected from 'Utilities/Table/toggleSelected';
 import ImportSeriesFooterConnector from './ImportSeriesFooterConnector';
+import ImportSeriesTableConnector from './ImportSeriesTableConnector';
 
 class ImportSeries extends Component {
 
@@ -30,25 +30,25 @@ class ImportSeries extends Component {
 
   setScrollerRef = (ref) => {
     this.setState({ scroller: ref });
-  }
+  };
 
   //
   // Listeners
 
   getSelectedIds = () => {
     return getSelectedIds(this.state.selectedState, { parseIds: false });
-  }
+  };
 
   onSelectAllChange = ({ value }) => {
     // Only select non-dupes
     this.setState(selectAll(this.state.selectedState, value));
-  }
+  };
 
   onSelectedChange = ({ id, value, shiftKey = false }) => {
     this.setState((state) => {
       return toggleSelected(state, this.props.items, id, value, shiftKey);
     });
-  }
+  };
 
   onRemoveSelectedStateItem = (id) => {
     this.setState((state) => {
@@ -60,19 +60,19 @@ class ImportSeries extends Component {
         selectedState
       };
     });
-  }
+  };
 
   onInputChange = ({ name, value }) => {
     this.props.onInputChange(this.getSelectedIds(), name, value);
-  }
+  };
 
   onImportPress = () => {
     this.props.onImportPress(this.getSelectedIds());
-  }
+  };
 
   onScroll = ({ scrollTop }) => {
     this.setState({ scrollTop });
-  }
+  };
 
   //
   // Render
@@ -84,8 +84,7 @@ class ImportSeries extends Component {
       rootFoldersFetching,
       rootFoldersPopulated,
       rootFoldersError,
-      unmappedFolders,
-      showLanguageProfile
+      unmappedFolders
     } = this.props;
 
     const {
@@ -135,7 +134,6 @@ class ImportSeries extends Component {
                 allUnselected={allUnselected}
                 selectedState={selectedState}
                 scroller={scroller}
-                showLanguageProfile={showLanguageProfile}
                 onSelectAllChange={this.onSelectAllChange}
                 onSelectedChange={this.onSelectedChange}
                 onRemoveSelectedStateItem={this.onRemoveSelectedStateItem}
@@ -150,7 +148,6 @@ class ImportSeries extends Component {
           !!unmappedFolders.length ?
             <ImportSeriesFooterConnector
               selectedIds={this.getSelectedIds()}
-              showLanguageProfile={showLanguageProfile}
               onInputChange={this.onInputChange}
               onImportPress={this.onImportPress}
             /> :
@@ -169,7 +166,6 @@ ImportSeries.propTypes = {
   rootFoldersError: PropTypes.object,
   unmappedFolders: PropTypes.arrayOf(PropTypes.object),
   items: PropTypes.arrayOf(PropTypes.object),
-  showLanguageProfile: PropTypes.bool.isRequired,
   onInputChange: PropTypes.func.isRequired,
   onImportPress: PropTypes.func.isRequired
 };

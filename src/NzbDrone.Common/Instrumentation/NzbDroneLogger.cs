@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using LogentriesNLog;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -14,13 +13,14 @@ namespace NzbDrone.Common.Instrumentation
 {
     public static class NzbDroneLogger
     {
+        private const string FILE_LOG_LAYOUT = @"${date:format=yyyy-MM-dd HH\:mm\:ss.f}|${level}|${logger}|${message}${onexception:inner=${newline}${newline}[v${assembly-version}] ${exception:format=ToString}${newline}}";
+
         private static bool _isConfigured;
 
         static NzbDroneLogger()
         {
             LogManager.Configuration = new LoggingConfiguration();
         }
-
 
         public static void Register(IStartupContext startupContext, bool updateApp, bool inConsole)
         {
@@ -45,7 +45,6 @@ namespace NzbDrone.Common.Instrumentation
             if (updateApp)
             {
                 RegisterUpdateFile(appFolderInfo);
-                RegisterLogEntries();
             }
             else
             {
@@ -62,19 +61,6 @@ namespace NzbDrone.Common.Instrumentation
             LogManager.ReconfigExistingLoggers();
         }
 
-        private static void RegisterLogEntries()
-        {
-            var target = new LogentriesTarget();
-            target.Name = "logentriesTarget";
-            target.Token = "d3a83ee9-74fb-4045-ad25-a84c1d4d7c81";
-            target.LogHostname = true;
-            target.Debug = false;
-
-            var loggingRule = new LoggingRule("*", LogLevel.Info, target);
-            LogManager.Configuration.AddTarget("logentries", target);
-            LogManager.Configuration.LoggingRules.Add(loggingRule);
-        }
-
         private static void RegisterSentry(bool updateClient)
         {
             string dsn;
@@ -84,7 +70,6 @@ namespace NzbDrone.Common.Instrumentation
                 dsn = RuntimeInfo.IsProduction
                     ? "https://80777986b95f44a1a90d1eb2f3af1e36@sentry.sonarr.tv/11"
                     : "https://6168f0946aba4e60ac23e469ac08eac5@sentry.sonarr.tv/9";
-
             }
             else
             {
@@ -145,8 +130,6 @@ namespace NzbDrone.Common.Instrumentation
             LogManager.Configuration.AddTarget("console", coloredConsoleTarget);
             LogManager.Configuration.LoggingRules.Add(loggingRule);
         }
-
-        private const string FILE_LOG_LAYOUT = @"${date:format=yyyy-MM-dd HH\:mm\:ss.f}|${level}|${logger}|${message}${onexception:inner=${newline}${newline}[v${assembly-version}] ${exception:format=ToString}${newline}}";
 
         private static void RegisterAppFile(IAppFolderInfo appFolderInfo)
         {
@@ -223,6 +206,5 @@ namespace NzbDrone.Common.Instrumentation
         {
             return GetLogger(obj.GetType());
         }
-
     }
 }

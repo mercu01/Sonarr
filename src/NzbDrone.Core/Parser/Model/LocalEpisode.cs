@@ -1,10 +1,10 @@
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.MediaFiles.MediaInfo;
-using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.Parser.Model
 {
@@ -13,6 +13,7 @@ namespace NzbDrone.Core.Parser.Model
         public LocalEpisode()
         {
             Episodes = new List<Episode>();
+            Languages = new List<Language>();
         }
 
         public string Path { get; set; }
@@ -23,17 +24,16 @@ namespace NzbDrone.Core.Parser.Model
         public Series Series { get; set; }
         public List<Episode> Episodes { get; set; }
         public QualityModel Quality { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
         public MediaInfoModel MediaInfo { get; set; }
         public bool ExistingFile { get; set; }
         public bool SceneSource { get; set; }
         public string ReleaseGroup { get; set; }
         public string SceneName { get; set; }
-        public int PreferredWordScore { get; set; }
         public bool OtherVideoFiles { get; set; }
 
-        public int SeasonNumber 
-        { 
+        public int SeasonNumber
+        {
             get
             {
                 var seasons = Episodes.Select(c => c.SeasonNumber).Distinct().ToList();
@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Parser.Model
                 }
 
                 return seasons.Single();
-            } 
+            }
         }
 
         public bool IsSpecial => SeasonNumber == 0;

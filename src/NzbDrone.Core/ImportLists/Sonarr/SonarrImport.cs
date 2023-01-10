@@ -6,8 +6,8 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Validation;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.ImportLists.Sonarr
 {
@@ -17,6 +17,7 @@ namespace NzbDrone.Core.ImportLists.Sonarr
         public override string Name => "Sonarr";
 
         public override ImportListType ListType => ImportListType.Program;
+        public override TimeSpan MinRefreshInterval => TimeSpan.FromMinutes(5);
 
         public SonarrImport(ISonarrV3Proxy sonarrV3Proxy,
                             IImportListStatusService importListStatusService,
@@ -39,6 +40,7 @@ namespace NzbDrone.Core.ImportLists.Sonarr
                 foreach (var item in remoteSeries)
                 {
                     if ((!Settings.ProfileIds.Any() || Settings.ProfileIds.Contains(item.QualityProfileId)) &&
+                        (!Settings.LanguageProfileIds.Any() || Settings.LanguageProfileIds.Contains(item.LanguageProfileId)) &&
                         (!Settings.TagIds.Any() || Settings.TagIds.Any(tagId => item.Tags.Any(itemTagId => itemTagId == tagId))))
                     {
                         series.Add(new ImportListItemInfo
@@ -74,16 +76,33 @@ namespace NzbDrone.Core.ImportLists.Sonarr
             {
                 Settings.Validate().Filter("ApiKey").ThrowOnError();
 
-                var profiles = _sonarrV3Proxy.GetProfiles(Settings);
+                var profiles = _sonarrV3Proxy.GetQualityProfiles(Settings);
 
                 return new
                 {
                     options = profiles.OrderBy(d => d.Name, StringComparer.InvariantCultureIgnoreCase)
-                                            .Select(d => new
-                                            {
-                                                value = d.Id,
-                                                name = d.Name
-                                            })
+                                      .Select(d => new
+                                      {
+                                          value = d.Id,
+                                          name = d.Name
+                                      })
+                };
+            }
+
+            if (action == "getLanguageProfiles")
+            {
+                Settings.Validate().Filter("ApiKey").ThrowOnError();
+
+                var langProfiles = _sonarrV3Proxy.GetLanguageProfiles(Settings);
+
+                return new
+                {
+                    options = langProfiles.OrderBy(d => d.Name, StringComparer.InvariantCultureIgnoreCase)
+                                          .Select(d => new
+                                          {
+                                              value = d.Id,
+                                              name = d.Name
+                                          })
                 };
             }
 

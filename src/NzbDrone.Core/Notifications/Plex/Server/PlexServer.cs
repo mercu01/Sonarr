@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Notifications.Plex.Server
         private readonly IPlexTvService _plexTvService;
         private readonly Logger _logger;
 
-        class PlexUpdateQueue
+        private class PlexUpdateQueue
         {
             public Dictionary<int, Series> Pending { get; } = new Dictionary<int, Series>();
             public bool Refreshing { get; set; }
@@ -64,6 +64,8 @@ namespace NzbDrone.Core.Notifications.Plex.Server
 
         private void UpdateIfEnabled(Series series)
         {
+            _plexTvService.Ping(Settings.AuthToken);
+
             if (Settings.UpdateLibrary)
             {
                 _logger.Debug("Scheduling library update for series {0} {1}", series.Id, series.Title);
@@ -77,7 +79,8 @@ namespace NzbDrone.Core.Notifications.Plex.Server
 
         public override void ProcessQueue()
         {
-            PlexUpdateQueue queue = _pendingSeriesCache.Find(Settings.Host);
+            var queue = _pendingSeriesCache.Find(Settings.Host);
+
             if (queue == null)
             {
                 return;
@@ -89,8 +92,10 @@ namespace NzbDrone.Core.Notifications.Plex.Server
                 {
                     return;
                 }
+
                 queue.Refreshing = true;
             }
+
             try
             {
                 while (true)
@@ -128,6 +133,8 @@ namespace NzbDrone.Core.Notifications.Plex.Server
 
         public override ValidationResult Test()
         {
+            _plexTvService.Ping(Settings.AuthToken);
+
             var failures = new List<ValidationFailure>();
 
             failures.AddIfNotNull(_plexServerService.Test(Settings));

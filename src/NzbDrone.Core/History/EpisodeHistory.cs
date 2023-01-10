@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.History
 {
@@ -26,7 +26,7 @@ namespace NzbDrone.Core.History
         public Series Series { get; set; }
         public EpisodeHistoryEventType EventType { get; set; }
         public Dictionary<string, string> Data { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
         public string DownloadId { get; set; }
     }
 

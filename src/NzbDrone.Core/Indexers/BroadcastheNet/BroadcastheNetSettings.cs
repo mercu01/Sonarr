@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Validation;
 
@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Indexers.BroadcastheNet
             RuleFor(c => c.BaseUrl).ValidRootUrl();
             RuleFor(c => c.ApiKey).NotEmpty();
 
-            RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator(1.0, 24*60, 5*24*60));
+            RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator(1.0, 24 * 60, 5 * 24 * 60));
         }
     }
 
@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Indexers.BroadcastheNet
         public int MinimumSeeders { get; set; }
 
         [FieldDefinition(3)]
-        public SeedCriteriaSettings SeedCriteria { get; } = new SeedCriteriaSettings();
+        public SeedCriteriaSettings SeedCriteria { get; set; } = new SeedCriteriaSettings();
 
         public NzbDroneValidationResult Validate()
         {

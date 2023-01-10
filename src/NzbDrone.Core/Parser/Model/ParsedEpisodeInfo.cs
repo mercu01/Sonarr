@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Parser.Model
 {
@@ -16,7 +18,7 @@ namespace NzbDrone.Core.Parser.Model
         public int[] AbsoluteEpisodeNumbers { get; set; }
         public decimal[] SpecialAbsoluteEpisodeNumbers { get; set; }
         public string AirDate { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
         public bool FullSeason { get; set; }
         public bool IsPartialSeason { get; set; }
         public bool IsMultiSeason { get; set; }
@@ -33,6 +35,7 @@ namespace NzbDrone.Core.Parser.Model
             EpisodeNumbers = new int[0];
             AbsoluteEpisodeNumbers = new int[0];
             SpecialAbsoluteEpisodeNumbers = new decimal[0];
+            Languages = new List<Language>();
         }
 
         public bool IsDaily
@@ -42,9 +45,9 @@ namespace NzbDrone.Core.Parser.Model
                 return !string.IsNullOrWhiteSpace(AirDate);
             }
 
-            //This prevents manually downloading a release from blowing up in mono
-            //TODO: Is there a better way?
-            private set { }
+            private set
+            {
+            }
         }
 
         public bool IsAbsoluteNumbering
@@ -54,37 +57,36 @@ namespace NzbDrone.Core.Parser.Model
                 return AbsoluteEpisodeNumbers.Any();
             }
 
-            //This prevents manually downloading a release from blowing up in mono
-            //TODO: Is there a better way?
-            private set { }
+            private set
+            {
+            }
         }
 
         public bool IsPossibleSpecialEpisode
         {
             get
             {
-                // if we don't have any episode numbers we are likely a special episode and need to do a search by episode title
-                return (AirDate.IsNullOrWhiteSpace() &&
+                return ((AirDate.IsNullOrWhiteSpace() &&
                        SeriesTitle.IsNullOrWhiteSpace() &&
-                       (EpisodeNumbers.Length == 0 || SeasonNumber == 0) || !SeriesTitle.IsNullOrWhiteSpace() && Special) ||
-                       EpisodeNumbers.Length == 1 && EpisodeNumbers[0] == 0;
+                       (EpisodeNumbers.Length == 0 || SeasonNumber == 0)) || (!SeriesTitle.IsNullOrWhiteSpace() && Special)) ||
+                       (EpisodeNumbers.Length == 1 && EpisodeNumbers[0] == 0);
             }
 
-            //This prevents manually downloading a release from blowing up in mono
-            //TODO: Is there a better way?
-            private set {}
+            private set
+            {
+            }
         }
+
         public bool IsPossibleSceneSeasonSpecial
         {
             get
             {
-                // SxxE00 episodes
                 return SeasonNumber != 0 && EpisodeNumbers.Length == 1 && EpisodeNumbers[0] == 0;
             }
 
-            //This prevents manually downloading a release from blowing up in mono
-            //TODO: Is there a better way?
-            private set { }
+            private set
+            {
+            }
         }
 
         public override string ToString()
@@ -110,9 +112,13 @@ namespace NzbDrone.Core.Parser.Model
             else if (Special)
             {
                 if (SeasonNumber != 0)
+                {
                     episodeString = string.Format("[Unknown Season {0:00} Special]", SeasonNumber);
+                }
                 else
+                {
                     episodeString = "[Unknown Special]";
+                }
             }
 
             return string.Format("{0} - {1} {2}", SeriesTitle, episodeString, Quality);

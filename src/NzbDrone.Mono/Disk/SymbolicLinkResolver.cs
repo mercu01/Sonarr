@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Drawing;
-using System.Net;
-using System.Text;
 using Mono.Unix;
 using Mono.Unix.Native;
 using NLog;
@@ -24,7 +21,10 @@ namespace NzbDrone.Mono.Disk
 
         public string GetCompleteRealPath(string path)
         {
-            if (path == null) return null;
+            if (path == null)
+            {
+                return null;
+            }
 
             try
             {
@@ -55,7 +55,7 @@ namespace NzbDrone.Mono.Disk
             var target = 0;
             for (var i = 0; i < dirs.Length; ++i)
             {
-                if (dirs[i] == "." || dirs[i] == string.Empty)
+                if (dirs[i] == "." || string.IsNullOrEmpty(dirs[i]))
                 {
                     continue;
                 }
@@ -76,6 +76,7 @@ namespace NzbDrone.Mono.Disk
                     dirs[target++] = dirs[i];
                 }
             }
+
             components = dirs;
             lastIndex = target;
         }
@@ -114,6 +115,7 @@ namespace NzbDrone.Mono.Disk
                     {
                         realPath = string.Concat(realPath, UnixPath.DirectorySeparatorChar, string.Join(UnixPath.DirectorySeparatorChar.ToString(), dirs, i + 1, lastIndex - i - 1));
                     }
+
                     path = realPath;
                     return pathValid;
                 }

@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
-import Button from 'Components/Link/Button';
-import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import Button from 'Components/Link/Button';
+import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
 import styles from './EditReleaseProfileModalContent.css';
 
 const tagInputDelimiters = ['Tab', 'Enter'];
@@ -33,8 +33,6 @@ function EditReleaseProfileModalContent(props) {
     enabled,
     required,
     ignored,
-    preferred,
-    includePreferredWhenRenaming,
     tags,
     indexerId
   } = item;
@@ -106,44 +104,13 @@ function EditReleaseProfileModalContent(props) {
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>Preferred</FormLabel>
-
-            <FormInputGroup
-              type={inputTypes.KEY_VALUE_LIST}
-              name="preferred"
-              helpTexts={[
-                'The release will be preferred based on the each term\'s score (case insensitive)',
-                'A positive score will be more preferred',
-                'A negative score will be less preferred'
-              ]}
-              {...preferred}
-              keyPlaceholder="Term"
-              valuePlaceholder="Score"
-              onChange={onInputChange}
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <FormLabel>Include Preferred when Renaming</FormLabel>
-
-            <FormInputGroup
-              type={inputTypes.CHECK}
-              name="includePreferredWhenRenaming"
-              helpText={indexerId.value === 0 ? 'Include in {Preferred Words} renaming format' : 'Only supported when Indexer is set to (All)'}
-              {...includePreferredWhenRenaming}
-              onChange={onInputChange}
-              isDisabled={indexerId.value !== 0}
-            />
-          </FormGroup>
-
-          <FormGroup>
             <FormLabel>Indexer</FormLabel>
 
             <FormInputGroup
               type={inputTypes.INDEXER_SELECT}
               name="indexerId"
               helpText="Specify what indexer the profile applies to"
-              helpTextWarning="Using a specific indexer with preferred words can lead to duplicate releases being grabbed"
+              helpTextWarning="Using a specific indexer with release profiles can lead to duplicate releases being grabbed"
               {...indexerId}
               includeAny={true}
               onChange={onInputChange}

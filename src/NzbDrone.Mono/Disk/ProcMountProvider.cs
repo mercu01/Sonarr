@@ -16,16 +16,18 @@ namespace NzbDrone.Mono.Disk
 
     public class ProcMountProvider : IProcMountProvider
     {
-        private static string[] _fixedTypes = new [] { "ext3", "ext2", "ext4", "vfat", "fuseblk", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs" };
-        private static string[] _networkDriveTypes = new [] { "cifs", "nfs", "nfs4", "nfsd", "sshfs" };
-        private static readonly Regex OctalRegex = new Regex(@"\\\d{3}", RegexOptions.Compiled);
-
         private const string PROC_MOUNTS_FILENAME = @"/proc/mounts";
         private const string PROC_FILESYSTEMS_FILENAME = @"/proc/filesystems";
 
+        private static readonly Regex OctalRegex = new Regex(@"\\\d{3}", RegexOptions.Compiled);
+        private readonly Logger _logger;
+
+        private static string[] _fixedTypes = new[] { "ext3", "ext2", "ext4", "vfat", "fuseblk", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs" };
+        private static string[] _networkDriveTypes = new[] { "cifs", "nfs", "nfs4", "nfsd", "sshfs" };
+
         private static Dictionary<string, bool> _fileSystems;
 
-        private readonly Logger _logger;
+        private bool _hasLoggedProcMountFailure = false;
 
         public ProcMountProvider(Logger logger)
         {
@@ -45,7 +47,11 @@ namespace NzbDrone.Mono.Disk
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Failed to retrieve mounts from {0}", PROC_MOUNTS_FILENAME);
+                if (!_hasLoggedProcMountFailure)
+                {
+                    _logger.Debug(ex, "Failed to retrieve mounts from {0}", PROC_MOUNTS_FILENAME);
+                    _hasLoggedProcMountFailure = true;
+                }
             }
 
             return new List<IMount>();

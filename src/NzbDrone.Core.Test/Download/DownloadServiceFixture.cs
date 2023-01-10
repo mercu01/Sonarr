@@ -117,7 +117,8 @@ namespace NzbDrone.Core.Test.Download
         {
             var mock = WithUsenetClient();
             mock.Setup(s => s.Download(It.IsAny<RemoteEpisode>()))
-                .Callback<RemoteEpisode>(v => {
+                .Callback<RemoteEpisode>(v =>
+                {
                     throw new ReleaseDownloadException(v.Release, "Error", new WebException());
                 });
 
@@ -136,7 +137,8 @@ namespace NzbDrone.Core.Test.Download
 
             var mock = WithUsenetClient();
             mock.Setup(s => s.Download(It.IsAny<RemoteEpisode>()))
-                .Callback<RemoteEpisode>(v => {
+                .Callback<RemoteEpisode>(v =>
+                {
                     throw new ReleaseDownloadException(v.Release, "Error", new TooManyRequestsException(request, response));
                 });
 
@@ -164,7 +166,7 @@ namespace NzbDrone.Core.Test.Download
 
             Mocker.GetMock<IIndexerStatusService>()
                 .Verify(v => v.RecordFailure(It.IsAny<int>(),
-                    It.IsInRange<TimeSpan>(TimeSpan.FromMinutes(4.9), TimeSpan.FromMinutes(5.1), Range.Inclusive)), Times.Once());
+                    It.IsInRange<TimeSpan>(TimeSpan.FromMinutes(4.9), TimeSpan.FromMinutes(5.1), Moq.Range.Inclusive)), Times.Once());
         }
 
         [Test]
@@ -185,7 +187,8 @@ namespace NzbDrone.Core.Test.Download
         {
             var mock = WithUsenetClient();
             mock.Setup(s => s.Download(It.IsAny<RemoteEpisode>()))
-                .Callback<RemoteEpisode>(v => {
+                .Callback<RemoteEpisode>(v =>
+                {
                     throw new ReleaseUnavailableException(v.Release, "Error", new WebException());
                 });
 

@@ -23,6 +23,7 @@ namespace NzbDrone.Core.Indexers
         public abstract string Name { get; }
         public abstract DownloadProtocol Protocol { get; }
         public int Priority { get; set; }
+        public int SeasonSearchMaximumSingleEpisodeAge { get; set; }
 
         public abstract bool SupportsRss { get; }
         public abstract bool SupportsSearch { get; }
@@ -59,7 +60,10 @@ namespace NzbDrone.Core.Indexers
 
         public virtual ProviderDefinition Definition { get; set; }
 
-        public virtual object RequestAction(string action, IDictionary<string, string> query) { return null; }
+        public virtual object RequestAction(string action, IDictionary<string, string> query)
+        {
+            return null;
+        }
 
         protected TSettings Settings => (TSettings)Definition.Settings;
 
@@ -81,6 +85,7 @@ namespace NzbDrone.Core.Indexers
                 c.Indexer = Definition.Name;
                 c.DownloadProtocol = Protocol;
                 c.IndexerPriority = ((IndexerDefinition)Definition).Priority;
+                c.SeasonSearchMaximumSingleEpisodeAge = ((IndexerDefinition)Definition).SeasonSearchMaximumSingleEpisodeAge;
             });
 
             return result;

@@ -37,7 +37,7 @@ namespace Sonarr.Api.V3.Episodes
 
         public List<MediaCover> Images { get; set; }
 
-        //Hiding this so people don't think its usable (only used to set the initial state)
+        // Hiding this so people don't think its usable (only used to set the initial state)
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public bool Grabbed { get; set; }
     }
@@ -46,7 +46,10 @@ namespace Sonarr.Api.V3.Episodes
     {
         public static EpisodeResource ToResource(this Episode model)
         {
-            if (model == null) return null;
+            if (model == null)
+            {
+                return null;
+            }
 
             return new EpisodeResource
             {
@@ -61,7 +64,8 @@ namespace Sonarr.Api.V3.Episodes
                 AirDate = model.AirDate,
                 AirDateUtc = model.AirDateUtc,
                 Overview = model.Overview,
-                //EpisodeFile
+
+                // EpisodeFile
 
                 HasFile = model.HasFile,
                 Monitored = model.Monitored,
@@ -71,13 +75,17 @@ namespace Sonarr.Api.V3.Episodes
                 SceneSeasonNumber = model.SceneSeasonNumber,
                 UnverifiedSceneNumbering = model.UnverifiedSceneNumbering,
                 SeriesTitle = model.SeriesTitle,
-                //Series = model.Series.MapToResource(),
+
+                // Series = model.Series.MapToResource(),
             };
         }
 
         public static List<EpisodeResource> ToResource(this IEnumerable<Episode> models)
         {
-            if (models == null) return null;
+            if (models == null)
+            {
+                return null;
+            }
 
             return models.Select(ToResource).ToList();
         }

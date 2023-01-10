@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { icons, kinds } from 'Helpers/Props';
-import LegendItem from './LegendItem';
 import LegendIconItem from './LegendIconItem';
+import LegendItem from './LegendItem';
 import styles from './Legend.css';
 
 function Legend(props) {
@@ -47,7 +47,7 @@ function Legend(props) {
         name="Cutoff Not Met"
         icon={icons.EPISODE_FILE}
         kind={fullColorEvents ? kinds.DEFAULT : kinds.WARNING}
-        tooltip="Quality or language cutoff has not been met"
+        tooltip="Quality cutoff has not been met"
       />
     );
   }

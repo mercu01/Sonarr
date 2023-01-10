@@ -5,6 +5,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download.Aggregation;
@@ -24,18 +25,21 @@ namespace NzbDrone.Core.DecisionEngine
     {
         private readonly IEnumerable<IDecisionEngineSpecification> _specifications;
         private readonly IParsingService _parsingService;
+        private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IRemoteEpisodeAggregationService _aggregationService;
         private readonly ISceneMappingService _sceneMappingService;
         private readonly Logger _logger;
 
         public DownloadDecisionMaker(IEnumerable<IDecisionEngineSpecification> specifications,
                                      IParsingService parsingService,
+                                     ICustomFormatCalculationService formatService,
                                      IRemoteEpisodeAggregationService aggregationService,
                                      ISceneMappingService sceneMappingService,
                                      Logger logger)
         {
             _specifications = specifications;
             _parsingService = parsingService;
+            _formatCalculator = formatService;
             _aggregationService = aggregationService;
             _sceneMappingService = sceneMappingService;
             _logger = logger;
@@ -57,7 +61,6 @@ namespace NzbDrone.Core.DecisionEngine
             {
                 _logger.ProgressInfo("Processing {0} releases", reports.Count);
             }
-
             else
             {
                 _logger.ProgressInfo("No results found");
@@ -109,6 +112,10 @@ namespace NzbDrone.Core.DecisionEngine
                         else
                         {
                             _aggregationService.Augment(remoteEpisode);
+
+                            remoteEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(remoteEpisode, remoteEpisode.Release.Size);
+                            remoteEpisode.CustomFormatScore = remoteEpisode?.Series?.QualityProfile?.Value.CalculateCustomFormatScore(remoteEpisode.CustomFormats) ?? 0;
+
                             remoteEpisode.DownloadAllowed = remoteEpisode.Episodes.Any();
                             decision = GetDecisionForReport(remoteEpisode, searchCriteria);
                         }
@@ -120,7 +127,7 @@ namespace NzbDrone.Core.DecisionEngine
                         {
                             parsedEpisodeInfo = new ParsedEpisodeInfo
                             {
-                                Language = LanguageParser.ParseLanguage(report.Title),
+                                Languages = LanguageParser.ParseLanguages(report.Title),
                                 Quality = QualityParser.ParseQuality(report.Title)
                             };
                         }
@@ -130,7 +137,7 @@ namespace NzbDrone.Core.DecisionEngine
                             var remoteEpisode = new RemoteEpisode
                             {
                                 Release = report,
-                                ParsedEpisodeInfo = parsedEpisodeInfo
+                                ParsedEpisodeInfo = parsedEpisodeInfo,
                             };
 
                             decision = new DownloadDecision(remoteEpisode, new Rejection("Unable to parse release"));
@@ -153,7 +160,6 @@ namespace NzbDrone.Core.DecisionEngine
                     {
                         _logger.Debug("Release rejected for the following reasons: {0}", string.Join(", ", decision.Rejections));
                     }
-
                     else
                     {
                         _logger.Debug("Release accepted");
@@ -174,7 +180,10 @@ namespace NzbDrone.Core.DecisionEngine
                                         .Where(c => c != null)
                                         .ToArray();
 
-                if (reasons.Any()) break;
+                if (reasons.Any())
+                {
+                    break;
+                }
             }
 
             return new DownloadDecision(remoteEpisode, reasons.ToArray());

@@ -1,8 +1,8 @@
+using System.Collections.Generic;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
-using System.Collections.Generic;
 
 namespace NzbDrone.Core.Notifications.Pushover
 {
@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Notifications.Pushover
             Devices = new string[] { };
         }
 
-        //TODO: Get Pushover to change our app name (or create a new app) when we have a new logo
+        // TODO: Get Pushover to change our app name (or create a new app) when we have a new logo
         [FieldDefinition(0, Label = "API Key", Privacy = PrivacyLevel.ApiKey, HelpLink = "https://pushover.net/apps/clone/sonarr")]
         public string ApiKey { get; set; }
 
@@ -36,7 +36,7 @@ namespace NzbDrone.Core.Notifications.Pushover
         [FieldDefinition(2, Label = "Devices", HelpText = "List of device names (leave blank to send to all devices)", Type = FieldType.Tag)]
         public IEnumerable<string> Devices { get; set; }
 
-        [FieldDefinition(3, Label = "Priority", Type = FieldType.Select, SelectOptions = typeof(PushoverPriority) )]
+        [FieldDefinition(3, Label = "Priority", Type = FieldType.Select, SelectOptions = typeof(PushoverPriority))]
         public int Priority { get; set; }
 
         [FieldDefinition(4, Label = "Retry", Type = FieldType.Textbox, HelpText = "Interval to retry Emergency alerts, minimum 30 seconds")]

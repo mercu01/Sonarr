@@ -1,13 +1,12 @@
 using System;
+using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
-using System.Text;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class CrapParserFixture : CoreTest
     {
@@ -56,7 +55,9 @@ namespace NzbDrone.Core.Test.ParserTests
                 hash = BitConverter.ToString(hashData).Replace("-", "");
 
                 if (Parser.Parser.ParseTitle(hash) == null)
+                {
                     success++;
+                }
             }
 
             success.Should().Be(repetitions);
@@ -82,7 +83,9 @@ namespace NzbDrone.Core.Test.ParserTests
                 }
 
                 if (Parser.Parser.ParseTitle(hash.ToString()) == null)
+                {
                     success++;
+                }
             }
 
             success.Should().Be(repetitions);
@@ -96,6 +99,12 @@ namespace NzbDrone.Core.Test.ParserTests
 
         [TestCase("Series Title (2018) Complete 360p HDTV AAC H.264-NEXT")]
         public void should_not_parse_invalid_release_name(string fileName)
+        {
+            Parser.Parser.ParseTitle(fileName).Should().BeNull();
+        }
+
+        [TestCase("Specials/Series - Episode Title (part 1)")]
+        public void should_not_parse_special_with_part_number(string fileName)
         {
             Parser.Parser.ParseTitle(fileName).Should().BeNull();
         }

@@ -394,7 +394,7 @@ namespace NzbDrone.Common.Test.DiskTests
             var destination = new DirectoryInfo(GetTempFilePath());
             Subject.TransferFolder(source.FullName, destination.FullName, TransferMode.Copy);
 
-            //Delete Random File
+            // Delete Random File
             destination.GetFiles("*.*", SearchOption.AllDirectories).First().Delete();
 
             Subject.TransferFolder(source.FullName, destination.FullName, TransferMode.Copy);
@@ -439,7 +439,7 @@ namespace NzbDrone.Common.Test.DiskTests
         [Test]
         public void CopyFolder_should_not_copy_casesensitive_folder()
         {
-            MonoOnly();
+            PosixOnly();
 
             WithRealDiskProvider();
 
@@ -540,9 +540,10 @@ namespace NzbDrone.Common.Test.DiskTests
         }
 
         [Test]
+        [Platform(Exclude = "MacOsX")]
         public void MoveFolder_should_rename_casesensitive_folder()
         {
-            MonoOnly();
+            PosixOnly();
 
             WithRealDiskProvider();
 
@@ -750,7 +751,9 @@ namespace NzbDrone.Common.Test.DiskTests
         {
             var dir = Path.GetDirectoryName(path);
             if (exists && dir.IsNotNullOrWhiteSpace())
+            {
                 WithExistingFolder(dir);
+            }
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.FolderExists(path))
@@ -761,7 +764,9 @@ namespace NzbDrone.Common.Test.DiskTests
         {
             var dir = Path.GetDirectoryName(path);
             if (exists && dir.IsNotNullOrWhiteSpace())
+            {
                 WithExistingFolder(dir);
+            }
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.FileExists(path))
@@ -815,7 +820,6 @@ namespace NzbDrone.Common.Test.DiskTests
                     WithExistingFile(v, false);
                 });
 
-
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.FolderExists(It.IsAny<string>()))
                 .Returns(false);
@@ -833,6 +837,7 @@ namespace NzbDrone.Common.Test.DiskTests
                {
                    WithExistingFolder(s, false);
                    WithExistingFolder(d);
+
                    // Note: Should also deal with the files.
                });
 
@@ -841,6 +846,7 @@ namespace NzbDrone.Common.Test.DiskTests
                .Callback<string, bool>((f, r) =>
                {
                    WithExistingFolder(f, false);
+
                    // Note: Should also deal with the files.
                });
 
@@ -906,8 +912,13 @@ namespace NzbDrone.Common.Test.DiskTests
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.MoveFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
-                .Callback<string, string, bool>((s,d,o) => {
-                    if (File.Exists(d) && o) File.Delete(d);
+                .Callback<string, string, bool>((s, d, o) =>
+                {
+                    if (File.Exists(d) && o)
+                    {
+                        File.Delete(d);
+                    }
+
                     File.Move(s, d);
                 });
 

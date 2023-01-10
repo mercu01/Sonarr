@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds, sizes } from 'Helpers/Props';
 import Label from 'Components/Label';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
+import { kinds, sizes } from 'Helpers/Props';
 import QualityProfileNameConnector from 'Settings/Profiles/Quality/QualityProfileNameConnector';
 import EpisodeAiringConnector from './EpisodeAiringConnector';
 import EpisodeFileRow from './EpisodeFileRow';
@@ -24,14 +24,20 @@ const columns = [
     isVisible: true
   },
   {
-    name: 'language',
-    label: 'Language',
+    name: 'languages',
+    label: 'Languages',
     isSortable: false,
     isVisible: true
   },
   {
     name: 'quality',
     label: 'Quality',
+    isSortable: false,
+    isVisible: true
+  },
+  {
+    name: 'customFormats',
+    label: 'Formats',
     isSortable: false,
     isVisible: true
   },
@@ -61,16 +67,16 @@ class EpisodeSummary extends Component {
 
   onRemoveEpisodeFilePress = () => {
     this.setState({ isRemoveEpisodeFileModalOpen: true });
-  }
+  };
 
   onConfirmRemoveEpisodeFile = () => {
     this.props.onDeleteEpisodeFile();
     this.setState({ isRemoveEpisodeFileModalOpen: false });
-  }
+  };
 
   onRemoveEpisodeFileModalClose = () => {
     this.setState({ isRemoveEpisodeFileModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -84,9 +90,9 @@ class EpisodeSummary extends Component {
       mediaInfo,
       path,
       size,
-      language,
+      languages,
       quality,
-      languageCutoffNotMet,
+      customFormats,
       qualityCutoffNotMet,
       onDeleteEpisodeFile
     } = this.props;
@@ -132,10 +138,10 @@ class EpisodeSummary extends Component {
                 <EpisodeFileRow
                   path={path}
                   size={size}
-                  language={language}
-                  languageCutoffNotMet={languageCutoffNotMet}
+                  languages={languages}
                   quality={quality}
                   qualityCutoffNotMet={qualityCutoffNotMet}
+                  customFormats={customFormats}
                   mediaInfo={mediaInfo}
                   columns={columns}
                   onDeleteEpisodeFile={onDeleteEpisodeFile}
@@ -168,10 +174,10 @@ EpisodeSummary.propTypes = {
   mediaInfo: PropTypes.object,
   path: PropTypes.string,
   size: PropTypes.number,
-  language: PropTypes.object,
-  languageCutoffNotMet: PropTypes.bool,
+  languages: PropTypes.arrayOf(PropTypes.object),
   quality: PropTypes.object,
   qualityCutoffNotMet: PropTypes.bool,
+  customFormats: PropTypes.arrayOf(PropTypes.object),
   onDeleteEpisodeFile: PropTypes.func.isRequired
 };
 

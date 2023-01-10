@@ -1,3 +1,4 @@
+using System;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Tv;
 
@@ -8,7 +9,6 @@ namespace NzbDrone.Core.ImportLists
         public bool EnableAutomaticAdd { get; set; }
         public MonitorTypes ShouldMonitor { get; set; }
         public int QualityProfileId { get; set; }
-        public int LanguageProfileId { get; set; }
         public SeriesTypes SeriesType { get; set; }
         public bool SeasonFolder { get; set; }
         public string RootFolderPath { get; set; }
@@ -17,5 +17,6 @@ namespace NzbDrone.Core.ImportLists
 
         public ImportListStatus Status { get; set; }
         public ImportListType ListType { get; set; }
+        public TimeSpan MinRefreshInterval { get; set; }
     }
 }

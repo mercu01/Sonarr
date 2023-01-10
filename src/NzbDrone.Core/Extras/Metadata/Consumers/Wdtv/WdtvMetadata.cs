@@ -51,14 +51,16 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
 
             _logger.Debug("Unknown episode file metadata: {0}", metadataFile.RelativePath);
             return Path.Combine(series.Path, metadataFile.RelativePath);
-
         }
 
         public override MetadataFile FindMetadataFile(Series series, string path)
         {
             var filename = Path.GetFileName(path);
 
-            if (filename == null) return null;
+            if (filename == null)
+            {
+                return null;
+            }
 
             var metadata = new MetadataFile
                            {
@@ -67,7 +69,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                                RelativePath = series.Path.GetRelativePath(path)
                            };
 
-            //Series and season images are both named folder.jpg, only season ones sit in season folders
+            // Series and season images are both named folder.jpg, only season ones sit in season folders
             if (Path.GetFileName(filename).Equals("folder.jpg", StringComparison.InvariantCultureIgnoreCase))
             {
                 var parentdir = Directory.GetParent(path);
@@ -80,7 +82,6 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                     {
                         metadata.SeasonNumber = 0;
                     }
-
                     else
                     {
                         metadata.SeasonNumber = Convert.ToInt32(seasonMatch.Groups["season"].Value);
@@ -107,7 +108,6 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                         metadata.Type = MetadataType.EpisodeImage;
                         return metadata;
                 }
-                
             }
 
             return null;
@@ -115,7 +115,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
 
         public override MetadataFileResult SeriesMetadata(Series series)
         {
-            //Series metadata is not supported
+            // Series metadata is not supported
             return null;
         }
 
@@ -152,10 +152,9 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                     details.Add(new XElement("actor", string.Join(" / ", series.Actors.ConvertAll(c => c.Name + " - " + c.Character))));
                     details.Add(new XElement("overview", episode.Overview));
 
-
-                    //Todo: get guest stars, writer and director
-                    //details.Add(new XElement("credits", tvdbEpisode.Writer.FirstOrDefault()));
-                    //details.Add(new XElement("director", tvdbEpisode.Directors.FirstOrDefault()));
+                    // Todo: get guest stars, writer and director
+                    // details.Add(new XElement("credits", tvdbEpisode.Writer.FirstOrDefault()));
+                    // details.Add(new XElement("director", tvdbEpisode.Directors.FirstOrDefault()));
 
                     doc.Add(details);
                     doc.Save(xw);
@@ -177,7 +176,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                 return new List<ImageFileResult>();
             }
 
-            //Because we only support one image, attempt to get the Poster type, then if that fails grab the first
+            // Because we only support one image, attempt to get the Poster type, then if that fails grab the first
             var image = series.Images.SingleOrDefault(c => c.CoverType == MediaCoverTypes.Poster) ?? series.Images.FirstOrDefault();
             if (image == null)
             {
@@ -200,10 +199,10 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
             {
                 return new List<ImageFileResult>();
             }
-            
+
             var seasonFolders = GetSeasonFolders(series);
 
-            //Work out the path to this season - if we don't have a matching path then skip this season.
+            // Work out the path to this season - if we don't have a matching path then skip this season.
             string seasonFolder;
             if (!seasonFolders.TryGetValue(season.SeasonNumber, out seasonFolder))
             {
@@ -211,7 +210,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                 return new List<ImageFileResult>();
             }
 
-            //WDTV only supports one season image, so first of all try for poster otherwise just use whatever is first in the collection
+            // WDTV only supports one season image, so first of all try for poster otherwise just use whatever is first in the collection
             var image = season.Images.SingleOrDefault(c => c.CoverType == MediaCoverTypes.Poster) ?? season.Images.FirstOrDefault();
             if (image == null)
             {
@@ -221,7 +220,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
 
             var path = Path.Combine(seasonFolder, "folder.jpg");
 
-            return new List<ImageFileResult>{ new ImageFileResult(path, image.Url) };
+            return new List<ImageFileResult> { new ImageFileResult(path, image.Url) };
         }
 
         public override List<ImageFileResult> EpisodeImages(Series series, EpisodeFile episodeFile)
@@ -239,7 +238,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                 return new List<ImageFileResult>();
             }
 
-            return new List<ImageFileResult>{ new ImageFileResult(GetEpisodeImageFilename(episodeFile.RelativePath), screenshot.Url) };
+            return new List<ImageFileResult> { new ImageFileResult(GetEpisodeImageFilename(episodeFile.RelativePath), screenshot.Url) };
         }
 
         private string GetEpisodeMetadataFilename(string episodeFilePath)
@@ -282,7 +281,6 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Wdtv
                         }
                     }
                 }
-
                 else
                 {
                     _logger.Debug("Rejecting folder {0} for series {1}.", Path.GetDirectoryName(folder), series.Title);

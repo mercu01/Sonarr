@@ -1,13 +1,13 @@
 import _ from 'lodash';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
+import { clearPendingChanges, set, update } from 'Store/Actions/baseActions';
+import createFetchHandler from 'Store/Actions/Creators/createFetchHandler';
+import createSaveHandler from 'Store/Actions/Creators/createSaveHandler';
+import { createThunk } from 'Store/thunks';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import getSectionState from 'Utilities/State/getSectionState';
 import updateSectionState from 'Utilities/State/updateSectionState';
-import { createThunk } from 'Store/thunks';
-import createFetchHandler from 'Store/Actions/Creators/createFetchHandler';
-import createSaveHandler from 'Store/Actions/Creators/createSaveHandler';
-import { clearPendingChanges, set, update } from 'Store/Actions/baseActions';
 
 //
 // Variables
@@ -78,7 +78,9 @@ export default {
       const promise = createAjaxRequest({
         method: 'PUT',
         url: '/qualityDefinition/update',
-        data: JSON.stringify(upatedDefinitions)
+        data: JSON.stringify(upatedDefinitions),
+        contentType: 'application/json',
+        dataType: 'json'
       }).request;
 
       promise.done((data) => {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
@@ -7,18 +7,21 @@ using MailKit.Security;
 using MimeKit;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Http.Dispatchers;
+using NzbDrone.Core.Security;
 
 namespace NzbDrone.Core.Notifications.Email
 {
     public class Email : NotificationBase<EmailSettings>
     {
+        private readonly ICertificateValidationService _certificateValidationService;
         private readonly Logger _logger;
 
         public override string Name => "Email";
 
-
-        public Email(Logger logger)
+        public Email(ICertificateValidationService certificateValidationService, Logger logger)
         {
+            _certificateValidationService = certificateValidationService;
             _logger = logger;
         }
 
@@ -63,6 +66,7 @@ namespace NzbDrone.Core.Notifications.Email
 
             SendEmail(Settings, APPLICATION_UPDATE_TITLE_BRANDED, body);
         }
+
         public override ValidationResult Test()
         {
             var failures = new List<ValidationFailure>();
@@ -93,7 +97,6 @@ namespace NzbDrone.Core.Notifications.Email
             {
                 Send(email, settings);
                 _logger.Debug("Email sent. Subject: {0}", subject);
-
             }
             catch (Exception ex)
             {
@@ -125,6 +128,8 @@ namespace NzbDrone.Core.Notifications.Email
                     }
                 }
 
+                client.ServerCertificateValidationCallback = _certificateValidationService.ShouldByPassValidationError;
+
                 _logger.Debug("Connecting to mail server");
 
                 client.Connect(settings.Server, settings.Port, serverOption);
@@ -137,7 +142,6 @@ namespace NzbDrone.Core.Notifications.Email
                 }
 
                 _logger.Debug("Sending to mail server");
-
 
                 client.Send(email);
 

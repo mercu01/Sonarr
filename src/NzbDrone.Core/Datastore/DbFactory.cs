@@ -1,14 +1,11 @@
 using System;
 using System.Data.SQLite;
-using Marr.Data;
-using Marr.Data.Reflection;
 using NLog;
-using NzbDrone.Common.Composition;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Exceptions;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Datastore.Migration.Framework;
-
 
 namespace NzbDrone.Core.Datastore
 {
@@ -30,7 +27,6 @@ namespace NzbDrone.Core.Datastore
         {
             InitializeEnvironment();
 
-            MapRepository.Instance.ReflectionStrategy = new SimpleReflectionStrategy();
             TableMapping.Map();
         }
 
@@ -41,17 +37,6 @@ namespace NzbDrone.Core.Datastore
             Environment.SetEnvironmentVariable("No_SQLiteXmlConfigFile", "true");
             Environment.SetEnvironmentVariable("No_PreLoadSQLite", "true");
             Environment.SetEnvironmentVariable("No_SQLiteFunctions", "true");
-        }
-
-        public static void RegisterDatabase(IContainer container)
-        {
-            var mainDb = new MainDatabase(container.Resolve<IDbFactory>().Create());
-
-            container.Register<IMainDatabase>(mainDb);
-
-            var logDb = new LogDatabase(container.Resolve<IDbFactory>().Create(MigrationType.Log));
-
-            container.Register<ILogDatabase>(logDb);
         }
 
         public DbFactory(IMigrationController migrationController,
@@ -83,6 +68,7 @@ namespace NzbDrone.Core.Datastore
 
                         break;
                     }
+
                 case MigrationType.Log:
                     {
                         connectionString = _connectionStringFactory.LogDbConnectionString;
@@ -90,6 +76,7 @@ namespace NzbDrone.Core.Datastore
 
                         break;
                     }
+
                 default:
                     {
                         throw new ArgumentException("Invalid MigrationType");
@@ -97,14 +84,13 @@ namespace NzbDrone.Core.Datastore
             }
 
             var db = new Database(migrationContext.MigrationType.ToString(), () =>
-                {
-                    var dataMapper = new DataMapper(SQLiteFactory.Instance, connectionString)
-                    {
-                        SqlMode = SqlModes.Text,
-                    };
+            {
+                var conn = SQLiteFactory.Instance.CreateConnection();
+                conn.ConnectionString = connectionString;
+                conn.Open();
 
-                    return dataMapper;
-                });
+                return conn;
+            });
 
             return db;
         }
@@ -126,6 +112,10 @@ namespace NzbDrone.Core.Datastore
                 }
 
                 throw new CorruptDatabaseException("Database file: {0} is corrupt, restore from backup if available. See: https://wiki.servarr.com/sonarr/faq#i-am-getting-an-error-database-disk-image-is-malformed", e, fileName);
+            }
+            catch (Exception e)
+            {
+                throw new SonarrStartupException(e, "Error creating main database");
             }
         }
 
@@ -154,6 +144,10 @@ namespace NzbDrone.Core.Datastore
                 }
 
                 _migrationController.Migrate(connectionString, migrationContext);
+            }
+            catch (Exception e)
+            {
+                throw new SonarrStartupException(e, "Error creating log database");
             }
         }
     }

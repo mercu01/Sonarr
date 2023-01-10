@@ -22,9 +22,10 @@ namespace NzbDrone.Core.Tv
         Series FindByTitle(string title, int year);
         Series FindByTitleInexact(string title);
         Series FindByPath(string path);
-        void DeleteSeries(int seriesId, bool deleteFiles, bool addImportListExclusion);
+        void DeleteSeries(List<int> seriesIds, bool deleteFiles, bool addImportListExclusion);
         List<Series> GetAllSeries();
-        List<string> GetAllSeriesPaths();
+        List<int> AllSeriesTvdbIds();
+        Dictionary<int, string> GetAllSeriesPaths();
         List<Series> AllForTag(int tagId);
         Series UpdateSeries(Series series, bool updateEpisodesToMatchSeason = true, bool publishUpdatedEvent = true);
         List<Series> UpdateSeries(List<Series> series, bool useExistingRelativeFolder);
@@ -104,11 +105,13 @@ namespace NzbDrone.Core.Tv
                 // no series matched
                 return null;
             }
+
             if (list.Count == 1)
             {
                 // return the first series if there is only one
                 return list.Single();
             }
+
             // build ordered list of series by position in the search string
             var query =
                 list.Select(series => new
@@ -117,7 +120,7 @@ namespace NzbDrone.Core.Tv
                     length = series.CleanTitle.Length,
                     series = series
                 })
-                    .Where(s => (s.position>=0))
+                    .Where(s => (s.position >= 0))
                     .ToList()
                     .OrderBy(s => s.position)
                     .ThenByDescending(s => s.length)
@@ -146,10 +149,10 @@ namespace NzbDrone.Core.Tv
             return _seriesRepository.FindByTitle(title.CleanSeriesTitle(), year);
         }
 
-        public void DeleteSeries(int seriesId, bool deleteFiles, bool addImportListExclusion)
+        public void DeleteSeries(List<int> seriesIds, bool deleteFiles, bool addImportListExclusion)
         {
-            var series = _seriesRepository.Get(seriesId);
-            _seriesRepository.Delete(seriesId);
+            var series = _seriesRepository.Get(seriesIds).ToList();
+            _seriesRepository.DeleteMany(seriesIds);
             _eventAggregator.PublishEvent(new SeriesDeletedEvent(series, deleteFiles, addImportListExclusion));
         }
 
@@ -158,7 +161,12 @@ namespace NzbDrone.Core.Tv
             return _seriesRepository.All().ToList();
         }
 
-        public List<string> GetAllSeriesPaths()
+        public List<int> AllSeriesTvdbIds()
+        {
+            return _seriesRepository.AllSeriesTvdbIds().ToList();
+        }
+
+        public Dictionary<int, string> GetAllSeriesPaths()
         {
             return _seriesRepository.AllSeriesPaths();
         }

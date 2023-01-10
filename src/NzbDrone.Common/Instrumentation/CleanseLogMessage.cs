@@ -18,10 +18,10 @@ namespace NzbDrone.Common.Instrumentation
                 new Regex(@"iptorrents\.com/[/a-z0-9?&;]*?(?:[?&;](u|tp)=(?<secret>[^&=;]+?))+(?= |;|&|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
                 new Regex(@"/fetch/[a-z0-9]{32}/(?<secret>[a-z0-9]{32})", RegexOptions.Compiled),
                 new Regex(@"getnzb.*?(?<=\?|&)(r)=(?<secret>[^&=]+?)(?= |&|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-                
+
                 // Trackers Announce Keys; Designed for Qbit Json; should work for all in theory
                 new Regex(@"announce(\.php)?(/|%2f|%3fpasskey%3d)(?<secret>[a-z0-9]{16,})|(?<secret>[a-z0-9]{16,})(/|%2f)announce"),
-                
+
                 // Path
                 new Regex(@"C:\\Users\\(?<secret>[^\""]+?)(\\|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
                 new Regex(@"/home/(?<secret>[^/""]+?)(/|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
@@ -50,7 +50,10 @@ namespace NzbDrone.Common.Instrumentation
 
                 // Webhooks
                 // Notifiarr
-                new Regex(@"api/v[0-9]/notification/sonarr/(?<secret>[\w-]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase)
+                new Regex(@"api/v[0-9]/notification/sonarr/(?<secret>[\w-]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+
+                // Discord
+                new Regex(@"discord.com/api/webhooks/((?<secret>[\w-]+)/)?(?<secret>[\w-]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase)
             };
 
         private static readonly Regex CleanseRemoteIPRegex = new Regex(@"(?:Auth-\w+(?<!Failure|Unauthorized) ip|from) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})", RegexOptions.Compiled);

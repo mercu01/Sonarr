@@ -1,12 +1,12 @@
-﻿using FluentAssertions;
-using NUnit.Framework;
-using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Test.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FluentAssertions;
+using NUnit.Framework;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
@@ -26,6 +26,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[星空字幕组] 剃须。然后捡到女高中生。 / Anime Series Title [05][1080p][简日内嵌]", "Anime Series Title", "星空字幕组", 5)]
         [TestCase("【DHR动研字幕组】[多田君不恋爱_Anime Series Title][13完][繁体][720P][MP4]", "Anime Series Title", "DHR动研字幕组", 13)]
         [TestCase("【动漫国字幕组】★01月新番[Anime Series Title～！][01][1080P][简体][MP4]", "Anime Series Title～！", "动漫国字幕组", 1)]
+        [TestCase("[风车字幕组][名侦探柯南][857][米花町反复变化之谜（前篇）][简体][MP4][1080P]", "名侦探柯南", "风车字幕组", 857)]
+        [TestCase("[风车字幕组][名侦探柯南][857集][米花町反复变化之谜（前篇）][简体][MP4][1080P]", "名侦探柯南", "风车字幕组", 857)]
+        [TestCase("【喵萌奶茶屋】★10月新番★[后宫之乌/后宫の乌/Series Title][07][1080p][简日双语][招募翻译校对]", "Series Title", "喵萌奶茶屋", 7)]
         public void should_parse_chinese_anime_releases(string postTitle, string title, string subgroup, int absoluteEpisodeNumber)
         {
             postTitle = XmlCleaner.ReplaceUnicode(postTitle);
@@ -38,12 +41,33 @@ namespace NzbDrone.Core.Test.ParserTests
             result.FullSeason.Should().BeFalse();
         }
 
+        [TestCase("[Lilith-Raws] 在地下城尋求邂逅是否搞錯了什麼 / Anime-Series Title S04 - 12 [Baha][WEB-DL][1080p][AVC AAC][CHT][MP4]", "Anime-Series Title", "Lilith-Raws", 4, 12)]
+        [TestCase("[Lilith-Raws] 魔王學院的不適任者 / Anime-Series Title S02 - 01 [Baha][WEB-DL][1080p][AVC AAC][CHT][MP4]", "Anime-Series Title", "Lilith-Raws", 2, 1)]
+        [TestCase("[Lilith-Raws] 不要欺負我，長瀞同學 / Anime-Series Title S02 - 01 [Baha][WEB-DL][1080p][AVC AAC][CHT][MP4]", "Anime-Series Title", "Lilith-Raws", 2, 1)]
+        [TestCase("[SweetSub&LoliHouse] 来自深渊 烈日黄金乡 / Anime-Series Title S2 - 07 [WebRip 1080p HEVC-10bit AAC][简繁日内封字幕]", "Anime-Series Title", "SweetSub&LoliHouse", 2, 7)]
+        [TestCase("[LoliHouse] Love Live! 虹咲学园学园偶像同好会 第二季 / Anime-Series Title S2 - 10 [WebRip 1080p HEVC-10bit AAC][简繁内封字幕]", "Anime-Series Title", "LoliHouse", 2, 10)]
+        [TestCase("[澄空学园&雪飘工作室&LoliHouse] 辉夜大小姐想让我告白 第三季 / Anime-Series Title S3 - 06 [WebRip 1080p HEVC-10bit AAC][简繁内封字幕]", "Anime-Series Title", "澄空学园&雪飘工作室&LoliHouse", 3, 6)]
+        public void should_parse_chinese_anime_season_episode_releases(string postTitle, string title, string subgroup, int seasonNumber, int episodeNumber)
+        {
+            postTitle = XmlCleaner.ReplaceUnicode(postTitle);
+
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.ReleaseGroup.Should().Be(subgroup);
+            result.SeasonNumber.Should().Be(seasonNumber);
+            result.EpisodeNumbers.Single().Should().Be(episodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.FullSeason.Should().BeFalse();
+        }
+
         [TestCase("[喵萌奶茶屋&LoliHouse]玛娜利亚魔法学院/巴哈姆特之怒Anime Series Title - 03 [WebRip 1080p HEVC-10bit AAC][简繁内封字幕]", "巴哈姆特之怒Anime Series Title", "喵萌奶茶屋&LoliHouse", 3)]
         [TestCase("[悠哈璃羽字幕社&拉斯观测组&LoliHouse] 刀剑神域: Alicization / Anime Series: Title - 17 [WebRip 1080p HEVC-10bit AAC][简繁内封字幕]", "Anime Series: Title", "悠哈璃羽字幕社&拉斯观测组&LoliHouse", 17)]
         [TestCase("[ZERO字幕組]嫁給非人類·Anime-Series Title[11][BIG5][1080p]", "Anime-Series Title", "ZERO字幕組", 11)]
         [TestCase("[Lilith-Raws] 艾梅洛閣下 II 世事件簿 -魔眼蒐集列車 Grace note- / Anime-Series Title - 04 [BiliBili][WEB-DL][1080p][AVC AAC][CHT][MKV]", "Anime-Series Title", "Lilith-Raws", 4)]
         [TestCase("[NC-Raws] 影宅 / Anime-Series Title - 07 [B-Global][WEB-DL][1080p][AVC AAC][CHS_CHT_ENG_TH_SRT][MKV]", "Anime-Series Title", "NC-Raws", 7)]
         [TestCase("[NC-Raws] ANIME-SERIES TITLE－影宅－ / Anime-Series Title - 07 [Baha][WEB-DL][1080p][AVC AAC][CHT][MP4]", "Anime-Series Title", "NC-Raws", 7)]
+        [TestCase("[OPFans楓雪動漫][ANIME SERIES 海賊王][第1008話][典藏版][1080P][MKV][簡繁]", "ANIME SERIES", "OPFans", 1008)]
+        [TestCase("[Skymoon-Raws][Anime Series 海賊王][1008][ViuTV][WEB-RIP][CHT][SRTx2][1080p][MKV]", "Anime Series", "Skymoon-Raws", 1008)]
         public void should_parse_unbracketed_chinese_anime_releases(string postTitle, string title, string subgroup, int absoluteEpisodeNumber)
         {
             postTitle = XmlCleaner.ReplaceUnicode(postTitle);
@@ -58,7 +82,8 @@ namespace NzbDrone.Core.Test.ParserTests
 
         [TestCase("[YMDR][慕留人 -火影忍者新時代-][Anime Series Title-][2017][88-91][1080p][AVC][JAP][BIG5][MP4-AAC][繁中]", "Anime Series Title", "YMDR", new[] { 88, 89, 90, 91 })]
         [TestCase("[诸神字幕组][战栗杀机][ANIME SERIES TITLE][01-24完][简日双语字幕][720P][MP4]", "ANIME SERIES TITLE", "诸神字幕组", new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 })]
-        //[TestCase("【漫貓&愛戀字幕組】[五等分的新娘/五等分的花嫁/五等分の花嫁][Anime Series Title][01_03][BIG5][720P][HEVC]", "Anime Series Title", "漫貓&愛戀字幕組", new[] { 1, 2, 3 })]
+
+        // [TestCase("【漫貓&愛戀字幕組】[五等分的新娘/五等分的花嫁/五等分の花嫁][Anime Series Title][01_03][BIG5][720P][HEVC]", "Anime Series Title", "漫貓&愛戀字幕組", new[] { 1, 2, 3 })]
         public void should_parse_chinese_multiepisode_releases(string postTitle, string title, string subgroup, int[] absoluteEpisodeNumbers)
         {
             postTitle = XmlCleaner.ReplaceUnicode(postTitle);
@@ -69,6 +94,24 @@ namespace NzbDrone.Core.Test.ParserTests
             result.AbsoluteEpisodeNumbers.Should().BeEquivalentTo(absoluteEpisodeNumbers);
             result.SeriesTitle.Should().Be(title);
             result.FullSeason.Should().BeFalse();
+            result.FullSeason.Should().BeFalse();
+        }
+
+        [TestCase("[GM-Team][国漫][斗罗大陆][Anime Title][Douro Mainland][2019][215][AVC][GB][1080P]", "Anime Title", 215)]
+        [TestCase("[GM-Team][国漫][斗罗大陆][Anime Title][Douro Mainland][2019][215 END][AVC][GB][1080P]", "Anime Title", 215)]
+        [TestCase("[GM-Team][国漫][斗罗大陆][Anime Title][2019][215 Fin][AVC][GB][1080P]", "Anime Title", 215)]
+        [TestCase("[GM-Team][国漫][Anime Title][Douro Mainland][2019][234][AVC][GB][1080P]", "Anime Title", 234)]
+        [TestCase("[GM-Team][国漫][Anime Title][2019][234][AVC][GB][1080P]", "Anime Title", 234)]
+        [TestCase("[GM-Team][国漫][Anime Title][2019][234 END][AVC][GB][1080P]", "Anime Title", 234)]
+        [TestCase("[GM-Team][国漫][Anime Title][2019][234 Fin][AVC][GB][1080P]", "Anime Title", 234)]
+        public void should_parse_gm_team_releases_and_files(string postTitle, string title, int absoluteEpisodeNumber)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.AbsoluteEpisodeNumbers.Single().Should().Be(absoluteEpisodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.FullSeason.Should().BeFalse();
+            result.ReleaseGroup.Should().Be("GM-Team");
         }
 
         [TestCase("[Subz] My Series - １５８ [h264 10-bit][1080p]", "My Series", 158)]

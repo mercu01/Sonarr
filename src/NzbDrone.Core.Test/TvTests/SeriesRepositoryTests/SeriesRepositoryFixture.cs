@@ -1,13 +1,12 @@
-﻿using FizzWare.NBuilder;
+using System.Linq;
+using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using System.Linq;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.Profiles.Languages;
 
 namespace NzbDrone.Core.Test.TvTests.SeriesRepositoryTests
 {
@@ -26,33 +25,21 @@ namespace NzbDrone.Core.Test.TvTests.SeriesRepositoryTests
                     Name = "TestProfile"
                 };
 
-            var langProfile = new LanguageProfile
-                {
-                    Name = "TestProfile",
-                    Languages = Languages.LanguageFixture.GetDefaultLanguages(Language.English),
-                    Cutoff = Language.English
-                };
-
-
             Mocker.Resolve<QualityProfileRepository>().Insert(profile);
-            Mocker.Resolve<LanguageProfileRepository>().Insert(langProfile);
 
             var series = Builder<Series>.CreateNew().BuildNew();
             series.QualityProfileId = profile.Id;
-            series.LanguageProfileId = langProfile.Id;
 
             Subject.Insert(series);
 
-
             StoredModel.QualityProfile.Should().NotBeNull();
-            StoredModel.LanguageProfile.Should().NotBeNull();
-
-
         }
 
         private void GivenSeries()
         {
             var series = Builder<Series>.CreateListOfSize(2)
+                .All()
+                .With(a => a.Id = 0)
                 .TheFirst(1)
                 .With(x => x.CleanTitle = "crown")
                 .TheNext(1)
@@ -71,7 +58,6 @@ namespace NzbDrone.Core.Test.TvTests.SeriesRepositoryTests
             var found = Subject.FindByTitleInexact(cleanTitle);
             found.Should().BeEmpty();
         }
-
 
         [TestCase("crowna")]
         [TestCase("acrown")]
@@ -95,7 +81,7 @@ namespace NzbDrone.Core.Test.TvTests.SeriesRepositoryTests
 
             var found = Subject.FindByTitleInexact(cleanTitle);
             found.Should().HaveCount(2);
-            found.Select(x => x.CleanTitle).Should().BeEquivalentTo(new [] {"crown", "crownextralong"});
+            found.Select(x => x.CleanTitle).Should().BeEquivalentTo(new[] { "crown", "crownextralong" });
         }
     }
 }

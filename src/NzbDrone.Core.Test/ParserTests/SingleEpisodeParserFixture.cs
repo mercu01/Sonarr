@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -5,7 +6,6 @@ using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class SingleEpisodeParserFixture : CoreTest
     {
@@ -96,20 +96,23 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("1x03 - 274 [1080p BluRay].mkv", "", 1, 3)]
         [TestCase("1x03 - The 112th Congress [1080p BluRay].mkv", "", 1, 3)]
         [TestCase("Series.2012.S02E14.720p.HDTV.X264-DIMENSION [PublicHD].mkv", "Series 2012", 2, 14)]
-        //[TestCase("Sex And The City S6E15 - Catch-38 [RavyDavy].avi", "Sex And The City", 6, 15)] // -38 is getting treated as abs number
+
+        // [TestCase("Sex And The City S6E15 - Catch-38 [RavyDavy].avi", "Sex And The City", 6, 15)] // -38 is getting treated as abs number
         [TestCase("Series.2009.S06E03.720p.HDTV.X264-DIMENSION [PublicHD].mkv", "Series 2009", 6, 3)]
         [TestCase("20-1.2014.S02E01.720p.HDTV.x264-CROOKS", "20-1 2014", 2, 1)]
         [TestCase("Series - S01E09 - Debate 109", "Series", 1, 9)]
         [TestCase("Series - S02E02 - My Maserati Does 185", "Series", 2, 2)]
         [TestCase("6x13 - The Series Show 100th Episode Special", "", 6, 13)]
-        //[TestCase("Series - S01E01 - Genesis 101 [HDTV-720p]", "Series", 1, 1)]
-        //[TestCase("The Series S02E01 HDTV x264-KILLERS [eztv]", "The Series", 2, 1)]
+
+        // [TestCase("Series - S01E01 - Genesis 101 [HDTV-720p]", "Series", 1, 1)]
+        // [TestCase("The Series S02E01 HDTV x264-KILLERS [eztv]", "The Series", 2, 1)]
         [TestCase("The Series And the Show - S41 E10478 - 2014-08-15", "The Series And the Show", 41, 10478)]
         [TestCase("The Series And the Show - S42 E10591 - 2015-01-27", "The Series And the Show", 42, 10591)]
         [TestCase("Series Title [1x05] Episode Title", "Series Title", 1, 5)]
         [TestCase("Series Title [S01E05] Episode Title", "Series Title", 1, 5)]
         [TestCase("Series Title Season 01 Episode 05 720p", "Series Title", 1, 5)]
-        //[TestCase("Off the Series - 101 - Developers (460p.x264.vorbis-2.0) [449].mkv", "Off the Series", 1, 1)]
+
+        // [TestCase("Off the Series - 101 - Developers (460p.x264.vorbis-2.0) [449].mkv", "Off the Series", 1, 1)]
         [TestCase("The Series And the Show - S42 E10713 - 2015-07-20.mp4", "The Series And the Show", 42, 10713)]
         [TestCase("Series.103.hdtv-lol[ettv].mp4", "Series", 1, 3)]
         [TestCase("Series - 01x02 - The Rooster Prince - [itz_theo]", "Series", 1, 2)]
@@ -149,8 +152,34 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Anime Title - S2010E994 [0994] [2010-02-28] - Episode Title [x264 720p][AAC 2ch][HS][Shion+GakiDave]", "Anime Title", 2010, 994)]
         [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.201][AC3 5.1 Castellano][www.pctnew.com]", "Series Title", 2, 1)]
         [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.1901][AC3 5.1 Castellano][www.pctnew.com]", "Series Title", 19, 1)]
-        //[TestCase("", "", 0, 0)]
+        [TestCase("Series Title 1x1", "Series Title", 1, 1)]
+        [TestCase("1x1", "", 1, 1)]
+        [TestCase("Series Title [2022] [S25E13] [PL] [720p] [WEB-DL-CZRG] [x264] ", "Series Title [2022]", 25, 13)]
+        [TestCase("Series T Se.3 afl.3", "Series T", 3, 3)]
+        [TestCase("[Anime Chap] Anime Title! S01E09 [WEB 1080p] {OP & ED Lyrics} - Episode 9 (The Eminence in Shadow)", "Anime Title!", 1, 9)]
+        [TestCase("[Anime Chap] Anime Title! S01E12 [WEB 1080p] {OP & ED Lyrics} - Episode 12 (The Eminence in Shadow)", "Anime Title!", 1, 12)]
+
+        // [TestCase("", "", 0, 0)]
         public void should_parse_single_episode(string postTitle, string title, int seasonNumber, int episodeNumber)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.EpisodeNumbers.Should().HaveCount(1);
+            result.SeasonNumber.Should().Be(seasonNumber);
+            result.EpisodeNumbers.First().Should().Be(episodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.AbsoluteEpisodeNumbers.Should().BeEmpty();
+            result.FullSeason.Should().BeFalse();
+        }
+
+        [TestCase("221208 ABC123 Series Title Season 39 ep11.mp4", "ABC123 Series Title", 39, 11)]
+        [TestCase("221208 ABC123 Series Title ep34[1080p60 H264].mp4", "ABC123 Series Title", 1, 34)]
+        [TestCase("221205 ABC123 17研究所！ #17.ts", "ABC123 17研究所！", 1, 17)]
+        [TestCase("221201 Series Title! ABC123 ep219[720p.h264].mp4", "Series Title! ABC123", 1, 219)]
+        [TestCase("221206 Series Title! ep08(Tanaka Miku).ts", "Series Title!", 1, 8)]
+        [TestCase("210810 ABC123 Series Title ep05.mp4", "ABC123 Series Title", 1, 5)]
+        [TestCase("221204 乃木坂工事中 ep389.mp4", "乃木坂工事中", 1, 389)]
+        public void should_parse_japanese_variety_show_format(string postTitle, string title, int seasonNumber, int episodeNumber)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
             result.Should().NotBeNull();

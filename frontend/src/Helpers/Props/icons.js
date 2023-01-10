@@ -12,15 +12,13 @@ import {
   faFileArchive as farFileArchive,
   faFileVideo as farFileVideo,
   faFolder as farFolder,
-  faObjectGroup as farObjectGroup,
   faHdd as farHdd,
   faKeyboard as farKeyboard,
+  faObjectGroup as farObjectGroup,
   faObjectUngroup as farObjectUngroup
 } from '@fortawesome/free-regular-svg-icons';
-
 //
 // Solid
-
 import {
   faArrowCircleLeft as fasArrowCircleLeft,
   faArrowCircleRight as fasArrowCircleRight,
@@ -30,18 +28,18 @@ import {
   faBolt as fasBolt,
   faBookmark as fasBookmark,
   faBookReader as fasBookReader,
-  faBug as fasBug,
   faBroadcastTower as fasBroadcastTower,
+  faBug as fasBug,
   faCalendarAlt as fasCalendarAlt,
   faCaretDown as fasCaretDown,
   faCheck as fasCheck,
+  faCheckCircle as fasCheckCircle,
   faChevronCircleDown as fasChevronCircleDown,
   faChevronCircleRight as fasChevronCircleRight,
   faChevronCircleUp as fasChevronCircleUp,
-  faCheckCircle as fasCheckCircle,
   faCircle as fasCircle,
-  faCloudDownloadAlt as fasCloudDownloadAlt,
   faCloud as fasCloud,
+  faCloudDownloadAlt as fasCloudDownloadAlt,
   faCog as fasCog,
   faCogs as fasCogs,
   faCopy as fasCopy,
@@ -54,6 +52,7 @@ import {
   faEye as fasEye,
   faFastBackward as fasFastBackward,
   faFastForward as fasFastForward,
+  faFileExport as fasFileExport,
   faFileInvoice as farFileInvoice,
   faFilter as fasFilter,
   faFolderOpen as fasFolderOpen,
@@ -74,25 +73,25 @@ import {
   faQuestionCircle as fasQuestionCircle,
   faRedoAlt as fasRedoAlt,
   faRetweet as fasRetweet,
-  faRss as fasRss,
   faRocket as fasRocket,
+  faRss as fasRss,
   faSave as fasSave,
   faSearch as fasSearch,
   faSignOutAlt as fasSignOutAlt,
   faSitemap as fasSitemap,
-  faSpinner as fasSpinner,
   faSort as fasSort,
   faSortDown as fasSortDown,
   faSortUp as fasSortUp,
+  faSpinner as fasSpinner,
   faStop as fasStop,
   faSync as fasSync,
-  faTags as fasTags,
   faTable as fasTable,
+  faTags as fasTags,
   faTh as fasTh,
   faThList as fasThList,
-  faTrashAlt as fasTrashAlt,
   faTimes as fasTimes,
   faTimesCircle as fasTimesCircle,
+  faTrashAlt as fasTrashAlt,
   faUser as fasUser,
   faUserPlus as fasUserPlus,
   faVial as fasVial,
@@ -135,6 +134,7 @@ export const EDIT = fasWrench;
 export const EPISODE_FILE = farFileVideo;
 export const EXPAND = fasChevronCircleDown;
 export const EXPAND_INDETERMINATE = fasChevronCircleRight;
+export const EXPORT = fasFileExport;
 export const EXTERNAL_LINK = fasExternalLinkAlt;
 export const FATAL = fasTimesCircle;
 export const FILE = farFile;

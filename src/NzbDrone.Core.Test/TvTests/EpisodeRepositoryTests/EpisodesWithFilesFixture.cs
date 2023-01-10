@@ -1,12 +1,13 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
 {
@@ -23,6 +24,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
             _episodeFiles = Builder<EpisodeFile>.CreateListOfSize(5)
                                                 .All()
                                                 .With(c => c.Quality = new QualityModel())
+                                                .With(c => c.Languages = new List<Language> { Language.English })
                                                 .BuildListOfNew();
 
             Db.InsertMany(_episodeFiles);
@@ -42,12 +44,11 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
             Db.InsertMany(_episodes);
         }
 
-
         [Test]
         public void should_only_get_files_that_have_episode_files()
         {
             var result = Subject.EpisodesWithFiles(SERIES_ID);
-            
+
             result.Should().OnlyContain(e => e.EpisodeFileId > 0);
             result.Should().HaveCount(_episodeFiles.Count);
         }
@@ -58,6 +59,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
             var episodeFile = Builder<EpisodeFile>.CreateNew()
                                                   .With(f => f.RelativePath = "another path")
                                                   .With(c => c.Quality = new QualityModel())
+                                                  .With(c => c.Languages = new List<Language> { Language.English })
                                                   .BuildNew();
 
             Db.Insert(episodeFile);

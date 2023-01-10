@@ -31,12 +31,13 @@ namespace Sonarr.Api.V3.Config
                 SeriesFolderFormat = model.SeriesFolderFormat,
                 SeasonFolderFormat = model.SeasonFolderFormat,
                 SpecialsFolderFormat = model.SpecialsFolderFormat
-                //IncludeSeriesTitle
-                //IncludeEpisodeTitle
-                //IncludeQuality
-                //ReplaceSpaces
-                //Separator
-                //NumberStyle
+
+                // IncludeSeriesTitle
+                // IncludeEpisodeTitle
+                // IncludeQuality
+                // ReplaceSpaces
+                // Separator
+                // NumberStyle
             };
         }
 

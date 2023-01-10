@@ -16,7 +16,7 @@ namespace NzbDrone.Common.Extensions
         private const string DB_RESTORE = "sonarr.restore";
         private const string LOG_DB = "logs.db";
         private const string NLOG_CONFIG_FILE = "nlog.config";
-        private const string UPDATE_CLIENT_EXE = "Sonarr.Update.exe";
+        private const string UPDATE_CLIENT_EXE_NAME = "Sonarr.Update";
 
         private static readonly string UPDATE_SANDBOX_FOLDER_NAME = "sonarr_update" + Path.DirectorySeparatorChar;
         private static readonly string UPDATE_PACKAGE_FOLDER_NAME = "Sonarr" + Path.DirectorySeparatorChar;
@@ -34,7 +34,8 @@ namespace NzbDrone.Common.Extensions
 
             var info = new FileInfo(path.Trim());
 
-            if (OsInfo.IsWindows && info.FullName.StartsWith(@"\\")) //UNC
+            // UNC
+            if (OsInfo.IsWindows && info.FullName.StartsWith(@"\\"))
             {
                 return info.FullName.TrimEnd('/', '\\', ' ');
             }
@@ -54,7 +55,11 @@ namespace NzbDrone.Common.Extensions
                 comparison = DiskProviderBase.PathStringComparison;
             }
 
-            if (firstPath.Equals(secondPath, comparison.Value)) return true;
+            if (firstPath.Equals(secondPath, comparison.Value))
+            {
+                return true;
+            }
+
             return string.Equals(firstPath.CleanFilePath(), secondPath.CleanFilePath(), comparison.Value);
         }
 
@@ -108,6 +113,7 @@ namespace NzbDrone.Common.Extensions
             {
                 parentPath = parentPath.TrimEnd(Path.DirectorySeparatorChar);
             }
+
             if (childPath != "/" && !parentPath.EndsWith(":\\"))
             {
                 childPath = childPath.TrimEnd(Path.DirectorySeparatorChar);
@@ -161,7 +167,7 @@ namespace NzbDrone.Common.Extensions
             var parentDirInfo = dirInfo.Parent;
             if (parentDirInfo == null)
             {
-                //Drive letter
+                // Drive letter
                 return dirInfo.Name.ToUpper();
             }
 
@@ -260,9 +266,24 @@ namespace NzbDrone.Common.Extensions
             return substring.Substring(0, lastSeparatorIndex);
         }
 
+        public static string ProcessNameToExe(this string processName)
+        {
+            if (OsInfo.IsWindows)
+            {
+                processName += ".exe";
+            }
+
+            return processName;
+        }
+
         public static string GetAppDataPath(this IAppFolderInfo appFolderInfo)
         {
             return appFolderInfo.AppDataFolder;
+        }
+
+        public static string GetDataProtectionPath(this IAppFolderInfo appFolderInfo)
+        {
+            return Path.Combine(GetAppDataPath(appFolderInfo), "asp");
         }
 
         public static string GetLogFolder(this IAppFolderInfo appFolderInfo)
@@ -322,7 +343,7 @@ namespace NzbDrone.Common.Extensions
 
         public static string GetUpdateClientExePath(this IAppFolderInfo appFolderInfo)
         {
-            return Path.Combine(GetUpdateSandboxFolder(appFolderInfo), UPDATE_CLIENT_EXE);
+            return Path.Combine(GetUpdateSandboxFolder(appFolderInfo), UPDATE_CLIENT_EXE_NAME).ProcessNameToExe();
         }
 
         public static string GetDatabase(this IAppFolderInfo appFolderInfo)

@@ -1,11 +1,11 @@
 import moment from 'moment';
 import { createAction } from 'redux-actions';
 import { sortDirections } from 'Helpers/Props';
-import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
-import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
-import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
 import createHandleActions from './Creators/createHandleActions';
-import { filters, filterPredicates, filterBuilderProps, sortPredicates } from './seriesActions';
+import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
+import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
+import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
+import { filterBuilderProps, filterPredicates, filters, sortPredicates } from './seriesActions';
 
 //
 // Variables
@@ -84,12 +84,6 @@ export const defaultState = {
       isVisible: true
     },
     {
-      name: 'languageProfileId',
-      label: 'Language Profile',
-      isSortable: true,
-      isVisible: false
-    },
-    {
       name: 'nextAiring',
       label: 'Next Airing',
       isSortable: true,
@@ -98,6 +92,12 @@ export const defaultState = {
     {
       name: 'previousAiring',
       label: 'Previous Airing',
+      isSortable: true,
+      isVisible: false
+    },
+    {
+      name: 'originalLanguage',
+      label: 'Original Language',
       isSortable: true,
       isVisible: false
     },
@@ -253,6 +253,12 @@ export const defaultState = {
       const { statistics = {} } = item;
 
       return statistics.seasonCount;
+    },
+
+    originalLanguage: function(item) {
+      const { originalLanguage = {} } = item;
+
+      return originalLanguage.name;
     },
 
     ratings: function(item) {

@@ -31,6 +31,7 @@ namespace NzbDrone.Core.Tv
         void SetEpisodeMonitored(int episodeId, bool monitored);
         void SetMonitored(IEnumerable<int> ids, bool monitored);
         void UpdateEpisodes(List<Episode> episodes);
+        void UpdateLastSearchTime(List<Episode> episodes);
         List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored);
         void InsertMany(List<Episode> episodes);
         void UpdateMany(List<Episode> episodes);
@@ -128,7 +129,7 @@ namespace NzbDrone.Core.Tv
                     }
                 });
 
-                var matches = possibleMatches
+            var matches = possibleMatches
                                 .Where(e => e.Episode.Title.Length > 0 && e.Position >= 0)
                                 .OrderBy(e => e.Position)
                                 .ThenByDescending(e => e.Length)
@@ -187,6 +188,11 @@ namespace NzbDrone.Core.Tv
             _episodeRepository.UpdateMany(episodes);
         }
 
+        public void UpdateLastSearchTime(List<Episode> episodes)
+        {
+            _episodeRepository.SetFields(episodes, e => e.LastSearchTime);
+        }
+
         public List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored)
         {
             var episodes = _episodeRepository.EpisodesBetweenDates(start.ToUniversalTime(), end.ToUniversalTime(), includeUnmonitored);
@@ -211,7 +217,7 @@ namespace NzbDrone.Core.Tv
 
         public void HandleAsync(SeriesDeletedEvent message)
         {
-            var episodes = GetEpisodeBySeries(message.Series.Id);
+            var episodes = _episodeRepository.GetEpisodesBySeriesIds(message.Series.Select(s => s.Id).ToList());
             _episodeRepository.DeleteMany(episodes);
         }
 
@@ -223,7 +229,6 @@ namespace NzbDrone.Core.Tv
 
                 var unmonitorForReason = message.Reason != DeleteMediaFileReason.Upgrade &&
                                          message.Reason != DeleteMediaFileReason.ManualOverride;
-
 
                 _episodeRepository.ClearFileId(episode, unmonitorForReason && _configService.AutoUnmonitorPreviouslyDownloadedEpisodes);
             }
@@ -242,9 +247,15 @@ namespace NzbDrone.Core.Tv
         {
             var episodes = _episodeRepository.Find(seriesId, date);
 
-            if (!episodes.Any()) return null;
+            if (!episodes.Any())
+            {
+                return null;
+            }
 
-            if (episodes.Count == 1) return episodes.First();
+            if (episodes.Count == 1)
+            {
+                return episodes.First();
+            }
 
             _logger.Debug("Multiple episodes with the same air date were found, will exclude specials");
 
@@ -264,7 +275,7 @@ namespace NzbDrone.Core.Tv
                 return sortedEpisodes[part.Value - 1];
             }
 
-            throw new InvalidOperationException("Multiple episodes with the same air date found");
+            throw new InvalidOperationException($"Multiple episodes with the same air date found. Date: {date}");
         }
     }
 }

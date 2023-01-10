@@ -4,9 +4,8 @@ import HTML5toTouch from 'react-dnd-multi-backend/dist/esm/HTML5toTouch';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
-import QualityProfilesConnector from './Quality/QualityProfilesConnector';
-import LanguageProfilesConnector from './Language/LanguageProfilesConnector';
 import DelayProfilesConnector from './Delay/DelayProfilesConnector';
+import QualityProfilesConnector from './Quality/QualityProfilesConnector';
 import ReleaseProfilesConnector from './Release/ReleaseProfilesConnector';
 
 // Only a single DragDrop Context can exist so it's done here to allow editing
@@ -25,7 +24,6 @@ class Profiles extends Component {
         <PageContentBody>
           <DndProvider options={HTML5toTouch}>
             <QualityProfilesConnector />
-            <LanguageProfilesConnector />
             <DelayProfilesConnector />
             <ReleaseProfilesConnector />
           </DndProvider>

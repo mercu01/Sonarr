@@ -8,9 +8,9 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.RemotePathMappings;
 
 namespace NzbDrone.Core.Download.Clients.Pneumatic
 {
@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
 
             title = FileNameBuilder.CleanFileName(title);
 
-            //Save to the Pneumatic directory (The user will need to ensure its accessible by XBMC)
+            // Save to the Pneumatic directory (The user will need to ensure its accessible by XBMC)
             var nzbFile = Path.Combine(Settings.NzbFolder, title + ".nzb");
 
             _logger.Debug("Downloading NZB from: {0} to: {1}", url, nzbFile);
@@ -53,7 +53,6 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
             _logger.Debug("NZB Download succeeded, saved to: {0}", nzbFile);
 
             var strmFile = WriteStrmFile(title, nzbFile);
-
 
             return GetDownloadClientId(strmFile);
         }
