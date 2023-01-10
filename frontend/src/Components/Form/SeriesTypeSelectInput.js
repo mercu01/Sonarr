@@ -6,7 +6,7 @@ import SelectInput from './SelectInput';
 const seriesTypeOptions = [
   { key: seriesTypes.STANDARD, value: 'Standard' },
   { key: seriesTypes.DAILY, value: 'Daily' },
-  { key: seriesTypes.ANIME, value: 'Anime' }
+  { key: seriesTypes.ANIME, value: 'AtomoHD' }
 ];
 
 function SeriesTypeSelectInput(props) {

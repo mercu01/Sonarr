@@ -1,3 +1,80 @@
+# Modified version of sonarr for atomoHD, atomixHQ, etc.
+#### What does this?
+Will generate the following search format in jackett:
+
+"{Series.Title} Cap.{SeasonNumber:0}{EpisodeNumber:00}"
+
+#### How to use?
+Serie type: "atomoHD"
+<img src="Sample1.jpg" alt="Sample serie type">
+
+#### Can't find the series?
+
+Search monitored and make sure that sonarr has the correct title in Spanish:
+<img src="Sample2.jpg" alt="Sample log search term">
+
+The title field is enabled, you can manually add search terms:
+<img src="Sample3.jpg" alt="Sample change title">
+
+
+#### Is there something else?
+
+Two tasks added, to automate the search for new episodes
+- Missing Episode Search (Wanted -> Missing) every 6 hours
+- Cutoff Unmet Episode Search	(Wanted -> Cuttoff Unmet, monitored only) every 6 hours
+
+#### How to use
+
+1. Download patch: "patch_build_mono.zip" or build branch. [Download](patch_build_mono.zip)
+
+2. Override writes the following files to your sonarr installation:
+- File: Sonarr.Core.dll
+- File: Sonarr.Api.V3.dll
+- File: Sonarr.Common.dll
+- Folder: /UI
+
+#### Docker compose
+```yaml
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    networks:
+      - default
+    depends_on:
+      - qbittorrent
+      - jackett
+    volumes:
+      - /path/to/conf:/config
+      - /path/to/tv:/tv
+      - /path/to/downloads:/downloads
+      - type: bind
+        source: patch/UI
+        target: /app/sonarr/bin/UI
+      - type: bind
+        source: patch/Sonarr.Core.dll
+        target: /app/sonarr/bin/Sonarr.Core.dll
+      - type: bind
+        source: patch/Sonarr.Api.V3.dll
+        target: /app/sonarr/bin/Sonarr.Api.V3.dll
+      - type: bind
+        source: patch/Sonarr.Common.dll
+        target: /app/sonarr/bin/Sonarr.Common.dll
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    environment:
+      - UMASK_SET=022 #optional
+      - PUID=1000
+      - PGID=1000
+```
+#### Tips 
+
+- Jackett indexer: BTDigg (need config flaresolverr in jacket)/ BT4G 
+- Sonarr setting - Profile - Language: English, Spanish, Unknown
+- Sonarr setting - Profile - Quality profiles: WEB 1080p
+- Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - Spanish - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
+-----------------------------------
+
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
 
 Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new episodes of your favorite shows and will grab, sort and rename them. It can also be configured to automatically upgrade the quality of files already downloaded when a better quality format becomes available.

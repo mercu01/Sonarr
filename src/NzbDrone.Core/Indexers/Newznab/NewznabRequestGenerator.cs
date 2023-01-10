@@ -317,10 +317,14 @@ namespace NzbDrone.Core.Indexers.Newznab
                 var queryTitles = (TextSearchEngine == "raw" ? searchCriteria.SceneTitles : searchCriteria.CleanSceneTitles);
                 foreach (var queryTitle in queryTitles)
                 {
-                    pageableRequests.Add(GetPagedRequests(MaxPages, Settings.AnimeCategories, "search",
-                        string.Format("&q={0}+{1:00}",
+                    pageableRequests.Add(GetPagedRequests(MaxPages,
+                        Settings.AnimeCategories,
+                        "search",
+                        string.Format("&q={0}+Cap.{1:0}{2:00}",
                         NewsnabifyTitle(queryTitle),
-                        searchCriteria.AbsoluteEpisodeNumber)));
+                        searchCriteria.SeasonNumber,
+                        searchCriteria.EpisodeNumber)));
+
 
                     if (Settings.AnimeStandardFormatSearch && searchCriteria.SeasonNumber > 0 && searchCriteria.EpisodeNumber > 0)
                     {
