@@ -24,16 +24,72 @@ Two tasks added, to automate the search for new episodes
 - Cutoff Unmet Episode Search	(Wanted -> Cuttoff Unmet, monitored only) every 6 hours
 
 #### How to use
+1. I use portainer to create a new stack:
 
-1. Download patch: "patch_build_mono.zip" or build branch. [Download](patch_build_mono.zip)
+Stack name: test-sonnar-clear
 
-2. Override writes the following files to your sonarr installation:
-- File: Sonarr.Core.dll
-- File: Sonarr.Api.V3.dll
-- File: Sonarr.Common.dll
-- Folder: /UI
+Stack content:
+```yaml
+version: "2.1"
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr-clear
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /sonarr-clear/config:/config
+      - /sonarr-clear/tvseries:/tv #optional
+      - /sonarr-clear/downloadclient-downloads:/downloads #optional
+    ports:
+      - 8989:8989 
+    restart: unless-stopped
+```   
+2. Open url sonar, ex: http://0.0.0.0:8989/, ok work.
 
-#### Docker compose
+3. Download patch: "patch_build_mono.zip" or build branch. [Download](patch_build_mono.zip)
+```yaml
+wget https://github.com/mercu01/Sonarr/raw/main-atomoHD/patch_build_mono.zip
+``` 
+4. Unzip the patch in "/sonarr-clear/patch/"
+```yaml
+sudo unzip ./patch_build_mono.zip -d /sonarr-clear/patch/
+``` 
+5. Change the Stack content created before:
+```yaml
+version: "2.1"
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr-clear
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /sonarr-clear/config:/config
+      - /sonarr-clear/tvseries:/tv #optional
+      - /sonarr-clear/downloadclient-downloads:/downloads #optional
+      - type: bind
+        source: /sonarr-clear/patch/UI
+        target: /app/sonarr/bin/UI
+      - type: bind
+        source: /sonarr-clear/patch/Sonarr.Core.dll
+        target: /app/sonarr/bin/Sonarr.Core.dll
+      - type: bind
+        source: /sonarr-clear/patch/Sonarr.Api.V3.dll
+        target: /app/sonarr/bin/Sonarr.Api.V3.dll
+      - type: bind
+        source: /sonarr-clear/patch/Sonarr.Common.dll
+        target: /app/sonarr/bin/Sonarr.Common.dll
+    ports:
+      - 8989:8989 
+    restart: unless-stopped
+``` 
+
+#### Other example docker compose:
 ```yaml
   sonarr:
     image: linuxserver/sonarr
@@ -72,7 +128,7 @@ Two tasks added, to automate the search for new episodes
 - Jackett indexer: BTDigg (need config flaresolverr in jacket)/ BT4G 
 - Sonarr setting - Profile - Language: English, Spanish, Unknown
 - Sonarr setting - Profile - Quality profiles: WEB 1080p
-- Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - Spanish - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
+- Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - {season:0}x{episode:00} - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
 -----------------------------------
 
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
