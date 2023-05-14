@@ -125,7 +125,11 @@ services:
 ```
 #### Tips 
 
-- Jackett indexer: BTDigg (need config flaresolverr in jacket)/ BT4G 
+- Jackett best indexers: 
+  - BTDigg (need config flaresolverr in jacket)
+  - Solid torrents
+  - Bitsearch
+  - Torrentz2nz
 - Sonarr setting - Profile - Language: English, Spanish, Unknown
 - Sonarr setting - Profile - Quality profiles: WEB 1080p
 - Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - {season:0}x{episode:00} - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
