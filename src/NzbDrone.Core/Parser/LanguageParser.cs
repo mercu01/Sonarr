@@ -1,10 +1,10 @@
-﻿using System;
+﻿using NLog;
+using NzbDrone.Common.Instrumentation;
+using NzbDrone.Core.Languages;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using NLog;
-using NzbDrone.Common.Instrumentation;
-using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.Parser
 {
@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Parser
             if (lowerTitle.Contains("french"))
                 return Language.French;
 
-            if (lowerTitle.Contains("spanish"))
+            if (lowerTitle.Contains("spanish") || lowerTitle.Contains("castellano") || lowerTitle.Contains("cap.") || lowerTitle.Contains("temporada"))
                 return Language.Spanish;
 
             if (lowerTitle.Contains("danish"))
@@ -163,7 +163,7 @@ namespace NzbDrone.Core.Parser
 
             if (caseSensitiveMatch.Groups["czech"].Captures.Cast<Capture>().Any())
                 return Language.Czech;
-            
+
             if (caseSensitiveMatch.Groups["polish"].Captures.Cast<Capture>().Any())
                 return Language.Polish;
 

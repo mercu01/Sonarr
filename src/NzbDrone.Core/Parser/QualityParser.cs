@@ -1,12 +1,12 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Qualities;
+using System;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace NzbDrone.Core.Parser
 {
@@ -234,7 +234,11 @@ namespace NzbDrone.Core.Parser
                         result.Quality = Quality.HDTV1080p;
                         return result;
                     }
-
+                    if (name.Contains("[HDTV 720p]"))
+                    {
+                        result.Quality = Quality.Bluray720p;
+                        return result;
+                    }
                     if (resolution == Resolution.R720p)
                     {
                         result.Quality = Quality.HDTV720p;
