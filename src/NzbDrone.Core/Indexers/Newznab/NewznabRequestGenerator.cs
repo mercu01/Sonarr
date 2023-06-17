@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using NLog;
+﻿using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace NzbDrone.Core.Indexers.Newznab
 {
@@ -229,9 +229,13 @@ namespace NzbDrone.Core.Indexers.Newznab
 
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
-                AddTitlePageableRequests(pageableRequests, Settings.Categories, searchCriteria,
-                    string.Format("&season={0}",
+                foreach (var mode in searchCriteria.ModesSearchSpanish)
+                {
+                    AddTitlePageableRequests(pageableRequests, Settings.Categories, searchCriteria,
+                    string.Format("%20" + mode, "fakeparam",
                         NewznabifySeasonNumber(searchCriteria.SeasonNumber)));
+                }
+
             }
 
             return pageableRequests;
@@ -315,25 +319,30 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (SupportsSearch)
             {
                 var queryTitles = (TextSearchEngine == "raw" ? searchCriteria.SceneTitles : searchCriteria.CleanSceneTitles);
-                foreach (var queryTitle in queryTitles)
+                foreach (var mode in searchCriteria.ModesSearchSpanish)
                 {
-                    pageableRequests.Add(GetPagedRequests(MaxPages,
-                        Settings.AnimeCategories,
-                        "search",
-                        string.Format("&q={0}+Cap.{1:0}{2:00}",
-                        NewsnabifyTitle(queryTitle),
-                        searchCriteria.SeasonNumber,
-                        searchCriteria.EpisodeNumber)));
-
-
-                    if (Settings.AnimeStandardFormatSearch && searchCriteria.SeasonNumber > 0 && searchCriteria.EpisodeNumber > 0)
+                    foreach (var queryTitle in queryTitles)
                     {
-                        pageableRequests.Add(GetPagedRequests(MaxPages, Settings.AnimeCategories, "tvsearch",
-                        string.Format("&q={0}&season={1}&ep={2}",
-                        NewsnabifyTitle(queryTitle),
-                        searchCriteria.SeasonNumber,
-                        searchCriteria.EpisodeNumber)));
+                        pageableRequests.Add(GetPagedRequests(MaxPages,
+                            Settings.AnimeCategories,
+                            "search",
+                            string.Format("&q={0}+" + mode,
+                            NewsnabifyTitle(queryTitle),
+                            searchCriteria.SeasonNumber,
+                            searchCriteria.EpisodeNumber)));
+
+
+                        if (Settings.AnimeStandardFormatSearch && searchCriteria.SeasonNumber > 0 && searchCriteria.EpisodeNumber > 0)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages, Settings.AnimeCategories, "tvsearch",
+                            string.Format("&q={0}&season={1}&ep={2}",
+                            NewsnabifyTitle(queryTitle),
+                            searchCriteria.SeasonNumber,
+                            searchCriteria.EpisodeNumber)));
+                        }
                     }
+
+
                 }
             }
 
