@@ -29,6 +29,12 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title - Series 1 (1970) DivX", "Series Title", 1)]
         [TestCase("SeriesTitle.S03.540p.AMZN.WEB-DL.DD+2.0.x264-RTN", "SeriesTitle", 3)]
         [TestCase("Series.Title.S01.576p.BluRay.DD5.1.x264-HiSD", "Series Title", 1)]
+        [TestCase("Series.Title.S01.576p.BluRay.DD5.1.x264-HiSD", "Series Title", 1)]
+        [TestCase("Black Mirror T 6 [WEB-DL 1080p]", "Black Mirror", 6)]
+        [TestCase("Black Mirror T08 [WEB-DL 1080p]", "Black Mirror", 8)]
+        [TestCase("Black Mirror T 08 [WEB-DL 1080p]", "Black Mirror", 8)]
+        [TestCase("Black Mirror T11 [WEB-DL 1080p]", "Black Mirror", 11)]
+        [TestCase("Black Mirror T 11 [WEB-DL 1080p]", "Black Mirror", 11)]
         public void should_parse_full_season_release(string postTitle, string title, int season)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
