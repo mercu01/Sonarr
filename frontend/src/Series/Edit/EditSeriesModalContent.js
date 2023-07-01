@@ -92,15 +92,16 @@ class EditSeriesModalContent extends Component {
                 type={inputTypes.TEXT}
                 value= {otherProps.title}
                 name="title"
-                helpText="Please, when you have it working, share it with the community, add Sonarr Scene Naming Exceptions:"
+                helpText="You can add translations(Scene Naming Exceptions) in this entry, if your translation did not exist in sonarr, send it to the sonar community with the google form!"
                 {...title}
                 onChange={onInputChange}
               />
-              <div> 
-                <span>
-                  <a href="https://docs.google.com/forms/d/e/1FAIpQLSdn_l_RvNCAPdL-ahVV0Z9hHw1swcxMLrEPY3pJE9qa7IR3tw/viewform?fbzx=1481989643151029965" target="_blank">Add Naming Exception</a>
-                </span>
-              </div>
+             
+            </FormGroup>
+            <FormGroup>
+              <FormLabel>Sonarr Scene Naming Exceptions + link to add google forms</FormLabel>
+              {otherProps.alternateTitlesLinks.map((object, i) => <div key={object.key}><span>{object.name} </span><a href={object.url} target="_blank">[link google form]</a></div>)}
+             
               <div> 
                 <span>
                   <a href="https://docs.google.com/spreadsheets/d/1PiIvzijwcdALKQWfGE3j4lwnOqmDkhB48fyQTArJpI4/edit#gid=675284162" target="_blank">Excel Naming Exception</a>
