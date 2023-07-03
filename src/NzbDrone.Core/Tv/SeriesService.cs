@@ -1,12 +1,11 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using NLog;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv.Events;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace NzbDrone.Core.Tv
 {
@@ -38,18 +37,21 @@ namespace NzbDrone.Core.Tv
         private readonly IEventAggregator _eventAggregator;
         private readonly IEpisodeService _episodeService;
         private readonly IBuildSeriesPaths _seriesPathBuilder;
+        private readonly IDiskProvider _diskProvider;
         private readonly Logger _logger;
 
         public SeriesService(ISeriesRepository seriesRepository,
                              IEventAggregator eventAggregator,
                              IEpisodeService episodeService,
                              IBuildSeriesPaths seriesPathBuilder,
+                             IDiskProvider diskProvider,
                              Logger logger)
         {
             _seriesRepository = seriesRepository;
             _eventAggregator = eventAggregator;
             _episodeService = episodeService;
             _seriesPathBuilder = seriesPathBuilder;
+            _diskProvider = diskProvider;
             _logger = logger;
         }
 
@@ -66,6 +68,10 @@ namespace NzbDrone.Core.Tv
         public Series AddSeries(Series newSeries)
         {
             _seriesRepository.Insert(newSeries);
+            if (newSeries.SeasonFolder && !_diskProvider.FolderExists(newSeries.Path))
+            {
+                _diskProvider.CreateFolder(newSeries.Path);
+            }
             _eventAggregator.PublishEvent(new SeriesAddedEvent(GetSeries(newSeries.Id)));
 
             return newSeries;
@@ -117,7 +123,7 @@ namespace NzbDrone.Core.Tv
                     length = series.CleanTitle.Length,
                     series = series
                 })
-                    .Where(s => (s.position>=0))
+                    .Where(s => (s.position >= 0))
                     .ToList()
                     .OrderBy(s => s.position)
                     .ThenByDescending(s => s.length)
