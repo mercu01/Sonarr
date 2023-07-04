@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Tv
         public Series AddSeries(Series newSeries)
         {
             _seriesRepository.Insert(newSeries);
-            if (newSeries.SeasonFolder && !_diskProvider.FolderExists(newSeries.Path))
+            if (!_diskProvider.FolderExists(newSeries.Path))
             {
                 _diskProvider.CreateFolder(newSeries.Path);
             }
