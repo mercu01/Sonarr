@@ -22,7 +22,7 @@ Will generate the following search format in jackett in **season mode**:
 | Mandalorean S02 | {Series.Title} S{SeasonNumber:00} | N | Standard format
 
 #### How to use?
-Serie type: "atomoHD"
+Serie type:
 ![image](https://github.com/mercu01/Sonarr/assets/9451876/f74a9283-cfaf-49c0-8942-373b45ad39f3)
 
 
