@@ -1,12 +1,30 @@
-# Modified version of sonarr for atomoHD, atomixHQ, etc.
+# Modified version of sonarr for wolfmax4k, atomoHD, atomixHQ, sinsitio, eldesvandelverdugo, etc.
 #### What does this?
-Will generate the following search format in jackett:
 
-"{Series.Title} Cap.{SeasonNumber:0}{EpisodeNumber:00}"
+It's an optimistic way to find episodes.
+In Spain, the standard format S01E01 is not usually followed.
+Will generate the following search format in jackett in **episodes mode**:
+
+| Example | Format | Force spanish language | Sites
+| ------------- | ------------- | ------------- | ------------- |
+| Mandalorean Cap.201 | {Series.Title} Cap.{SeasonNumber:0}{EpisodeNumber:00} | N |https://wolfmax4k.com/ https://atomohd.skin/ https://pediatorrent.com/
+| Mandalorean 2x1 | {Series.Title} {SeasonNumber:0}x{EpisodeNumber:0} |  Y | https://www.sinsitio.site/
+| Mandalorean 2x01 | {Series.Title} {SeasonNumber:0}x{EpisodeNumber:00}  | Y | Telegram Groups
+| Mandalorean S02E01 | {Series.Title} S{SeasonNumber:00}E{EpisodeNumber:00}  | N | Standard format
+
+Will generate the following search format in jackett in **season mode**:
+
+| Example | Format | Force spanish language | Sites
+| ------------- | ------------- | ------------- | ------------- |
+| Mandalorean T2 | {Series.Title} T{SeasonNumber:0} | N |
+| Mandalorean T 2 | {Series.Title} T {SeasonNumber:0}   | N |
+| Mandalorean T02 | {Series.Title} T{SeasonNumber:00}   | N |
+| Mandalorean S02 | {Series.Title} S{SeasonNumber:00} | N | Standard format
 
 #### How to use?
 Serie type: "atomoHD"
-<img src="Sample1.jpg" alt="Sample serie type">
+![image](https://github.com/mercu01/Sonarr/assets/9451876/f74a9283-cfaf-49c0-8942-373b45ad39f3)
+
 
 #### Can't find the series?
 
@@ -15,6 +33,13 @@ Search monitored and make sure that sonarr has the correct title in Spanish:
 
 The title field is enabled, you can manually add search terms:
 <img src="Sample3.jpg" alt="Sample change title">
+
+You can send the translation to sonarr, so that other users have it:
+![image](https://github.com/mercu01/Sonarr/assets/9451876/665a0ef3-698b-461b-ac0e-e9ba371224a0)
+![image](https://github.com/mercu01/Sonarr/assets/9451876/9b162d4e-99eb-4df8-8142-921dac37d05f)
+
+
+
 
 
 #### Is there something else?
@@ -126,19 +151,19 @@ services:
 #### Tips 
 
 - Jackett best indexers: 
-  - BTDigg (need config flaresolverr in jacket)
+  - **BTDigg** (need config flaresolverr in jacket)
   - Solid torrents
   - Bitsearch
   - Torrentz2nz
-- Sonarr setting - Profile - Language: English, Spanish, Unknown
+- Sonarr setting - Profile - Language: **Spanish**
 - Sonarr setting - Profile - Quality profiles: WEB 1080p
-- Sonarr setting - Media Management - Anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - {season:0}x{episode:00} - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
+- Sonarr setting - Media Management - Standard and anime Episode Format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} - {Quality Full} - {season:0}x{episode:00} - audio {MediaInfo AudioLanguages} - sub {MediaInfo SubtitleLanguages}"
 
 #### Extra Tips
 
 ##### Qbittorrent:
 
-Many times, 'atomoHD' torrents are in RAR format.
+Many times, the torrents are in RAR format.
 
 There is a trick to automate these torrents:
 
