@@ -8,13 +8,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using NLog;
-using NzbDrone.Common.Extensions;
-using NzbDrone.Common.Instrumentation;
-using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Tv;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace NzbDrone.Core.Parser
 {
@@ -270,7 +265,7 @@ namespace NzbDrone.Core.Parser
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Season only releases
-                new Regex(@"^(?<title>.+?)[-_. ]+?(?:S|Season|Saison|Series)[-_. ]?(?<season>\d{1,2}(?![-_. ]?\d+))(?:[-_. ]|$)+(?<extras>EXTRAS|SUBPACK)?(?!\\)",
+                new Regex(@"^(?!.*Cap\.)\s*(?<title>.+?)[-_. ]+?(?:S|Season|Saison|Series|T|Temporada)[-_. ]?(?<season>\d{1,2}(?![-_. ]?\d+))(?:[-_. ]|$)+(?<extras>EXTRAS|SUBPACK)?(?!\\)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //4 digit season only releases
@@ -323,8 +318,14 @@ namespace NzbDrone.Core.Parser
                 new Regex(@"^(?:(?<season>(?<!\d+)(?:\d{1,2})(?!\d+))(?:-(?<episode>\d{2,3}(?!\d+))))",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
-                // Spanish tracker releases
+                // Spanish tracker releases with temporada X
+                // ex: Series Title - Temporada 2 [HDTV 720p][Cap.201][AC3 5.1 Castellano][www.pctnew.com]
                 new Regex(@"^(?<title>.+?)(?:[-_. ]+?Temporada.+?\[Cap[-_.])(?<season>(?<!\d+)\d{1,2})(?<episode>(?<!e|x)(?:[1-9][0-9]|[0][1-9]))(?:\])",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled),
+
+                // Spanish tracker releases without temporada 1
+                // ex: Series Title [HDTV 720p][Cap.201]
+                new Regex(@"^(?<title>.+?)(?:[-_. ]+?\[.+)(?<season>(?<!\d+)\d{1,2})(?<episode>(?<!e|x)(?:[1-9][0-9]|[0][1-9]))(?:\])",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Anime Range - Title Absolute Episode Number (ep01-12)

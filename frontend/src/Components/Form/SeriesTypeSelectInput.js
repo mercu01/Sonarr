@@ -4,9 +4,9 @@ import * as seriesTypes from 'Utilities/Series/seriesTypes';
 import SelectInput from './SelectInput';
 
 const seriesTypeOptions = [
-  { key: seriesTypes.STANDARD, value: 'Standard' },
+  { key: seriesTypes.STANDARD, value: 'Standard and spanish "Cap.XXX"' },
   { key: seriesTypes.DAILY, value: 'Daily' },
-  { key: seriesTypes.ANIME, value: 'AtomoHD' }
+  { key: seriesTypes.ANIME, value: 'Anime' }
 ];
 
 function SeriesTypeSelectInput(props) {
