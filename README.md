@@ -149,7 +149,10 @@ services:
       - PGID=1000
 ```
 #### Tips 
-
+- Sonarr Indexers - Enable RSS:
+  - bt4g url term[Cap.] -> https://bt4gprx.com/search?q=Cap.&page=rss
+  - bt4g url term[wolfmax4k] -> https://bt4gprx.com/search?q=wolfmax4k&page=rss
+  - RSS wolfmax4k -> https://misrssencastellano.000webhostapp.com/rss/NewPCT_RSS.php
 - Jackett best indexers: 
   - **BTDigg** (need config flaresolverr in jacket)
   - Solid torrents
