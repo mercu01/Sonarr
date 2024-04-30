@@ -87,7 +87,7 @@ sudo unzip ./patch_build_mono.zip -d /sonarr-clear/patch/
 version: "2.1"
 services:
   sonarr:
-    image: mercu/sonarr-v3-stable:latest
+    image: linuxserver/sonarr:3.0.10
     container_name: sonarr-clear
     environment:
       - PUID=1000
@@ -117,7 +117,7 @@ services:
 #### Other example docker compose:
 ```yaml
   sonarr:
-    image: mercu/sonarr-v3-stable:latest
+    image: linuxserver/sonarr:3.0.10
     container_name: sonarr
     networks:
       - default
