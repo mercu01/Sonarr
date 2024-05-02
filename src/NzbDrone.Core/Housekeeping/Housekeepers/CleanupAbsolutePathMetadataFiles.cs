@@ -1,4 +1,5 @@
-﻿using NzbDrone.Core.Datastore;
+using Dapper;
+using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.Housekeeping.Housekeepers
 {
@@ -13,18 +14,33 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
 
         public void Clean()
         {
-            var mapper = _database.GetDataMapper();
-
-            mapper.ExecuteNonQuery(@"DELETE FROM MetadataFiles
-                                     WHERE Id IN (
-                                         SELECT Id FROM MetadataFiles
-                                         WHERE RelativePath
-                                         LIKE '_:\%'
-                                         OR RelativePath
-                                         LIKE '\%'
-                                         OR RelativePath
-                                         LIKE '/%'
-                                     )");
+            using var mapper = _database.OpenConnection();
+            if (_database.DatabaseType == DatabaseType.PostgreSQL)
+            {
+                mapper.Execute(@"DELETE FROM ""MetadataFiles""
+                                    WHERE ""Id"" = ANY (
+                                        SELECT ""Id"" FROM ""MetadataFiles""
+                                        WHERE ""RelativePath""
+                                        LIKE '_:\\%'
+                                        OR ""RelativePath""
+                                        LIKE '\\%'
+                                        OR ""RelativePath""
+                                        LIKE '/%'
+                                    )");
+            }
+            else
+            {
+                mapper.Execute(@"DELETE FROM ""MetadataFiles""
+                                    WHERE ""Id"" IN (
+                                        SELECT ""Id"" FROM ""MetadataFiles""
+                                        WHERE ""RelativePath""
+                                        LIKE '_:\%'
+                                        OR ""RelativePath""
+                                        LIKE '\%'
+                                        OR ""RelativePath""
+                                        LIKE '/%'
+                                    )");
+            }
         }
     }
 }

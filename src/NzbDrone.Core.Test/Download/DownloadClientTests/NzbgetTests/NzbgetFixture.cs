@@ -1,16 +1,17 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Nzbget;
-using NzbDrone.Test.Common;
-using NzbDrone.Core.RemotePathMappings;
-using NzbDrone.Common.Disk;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.RemotePathMappings;
+using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
 {
@@ -88,7 +89,6 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
                 {
                     DownloadRate = 7000000
                 });
-
 
             Mocker.GetMock<INzbgetProxy>()
                 .Setup(v => v.GetVersion(It.IsAny<NzbgetSettings>()))
@@ -341,13 +341,13 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
         }
 
         [Test]
-        public void Download_should_return_unique_id()
+        public async Task Download_should_return_unique_id()
         {
             GivenSuccessfulDownload();
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().NotBeNullOrEmpty();
         }
@@ -359,7 +359,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            Assert.Throws<DownloadClientRejectedReleaseException>(() => Subject.Download(remoteEpisode));
+            Assert.ThrowsAsync<DownloadClientRejectedReleaseException>(async () => await Subject.Download(remoteEpisode, CreateIndexer()));
         }
 
         [Test]

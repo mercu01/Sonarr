@@ -53,7 +53,7 @@ class TextTagInputConnector extends Component {
     });
 
     onChange({ name, value: newValue });
-  }
+  };
 
   onTagDelete = ({ index }) => {
     const {
@@ -69,7 +69,21 @@ class TextTagInputConnector extends Component {
       name,
       value: newValue
     });
-  }
+  };
+
+  onTagReplace = (tagToReplace, newTag) => {
+    const {
+      name,
+      valueArray,
+      onChange
+    } = this.props;
+
+    const newValue = [...valueArray];
+    newValue.splice(tagToReplace.index, 1);
+    newValue.push(newTag.name.trim());
+
+    onChange({ name, value: newValue });
+  };
 
   //
   // Render
@@ -77,9 +91,11 @@ class TextTagInputConnector extends Component {
   render() {
     return (
       <TagInput
+        delimiters={['Tab', 'Enter', ',']}
         tagList={[]}
         onTagAdd={this.onTagAdd}
         onTagDelete={this.onTagDelete}
+        onTagReplace={this.onTagReplace}
         {...this.props}
       />
     );

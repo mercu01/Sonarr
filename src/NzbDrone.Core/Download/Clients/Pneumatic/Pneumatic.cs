@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -8,9 +9,10 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.RemotePathMappings;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.RemotePathMappings;
 
 namespace NzbDrone.Core.Download.Clients.Pneumatic
 {
@@ -22,8 +24,9 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
                          IConfigService configService,
                          IDiskProvider diskProvider,
                          IRemotePathMappingService remotePathMappingService,
-                         Logger logger)
-            : base(configService, diskProvider, remotePathMappingService, logger)
+                         Logger logger,
+                         ILocalizationService localizationService)
+            : base(configService, diskProvider, remotePathMappingService, logger, localizationService)
         {
             _httpClient = httpClient;
         }
@@ -32,7 +35,7 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
 
         public override DownloadProtocol Protocol => DownloadProtocol.Usenet;
 
-        public override string Download(RemoteEpisode remoteEpisode)
+        public override async Task<string> Download(RemoteEpisode remoteEpisode, IIndexer indexer)
         {
             var url = remoteEpisode.Release.DownloadUrl;
             var title = remoteEpisode.Release.Title;
@@ -44,16 +47,15 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
 
             title = FileNameBuilder.CleanFileName(title);
 
-            //Save to the Pneumatic directory (The user will need to ensure its accessible by XBMC)
+            // Save to the Pneumatic directory (The user will need to ensure its accessible by XBMC)
             var nzbFile = Path.Combine(Settings.NzbFolder, title + ".nzb");
 
             _logger.Debug("Downloading NZB from: {0} to: {1}", url, nzbFile);
-            _httpClient.DownloadFile(url, nzbFile);
+            await _httpClient.DownloadFileAsync(url, nzbFile);
 
             _logger.Debug("NZB Download succeeded, saved to: {0}", nzbFile);
 
             var strmFile = WriteStrmFile(title, nzbFile);
-
 
             return GetDownloadClientId(strmFile);
         }
@@ -62,7 +64,7 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
-            foreach (var file in _diskProvider.GetFiles(Settings.StrmFolder, SearchOption.TopDirectoryOnly))
+            foreach (var file in _diskProvider.GetFiles(Settings.StrmFolder, false))
             {
                 if (Path.GetExtension(file) != ".strm")
                 {
@@ -73,7 +75,7 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
 
                 var historyItem = new DownloadClientItem
                 {
-                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this),
+                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false),
                     DownloadId = GetDownloadClientId(file),
                     Title = title,
 

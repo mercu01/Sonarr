@@ -1,15 +1,16 @@
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
+import { sortDirections } from 'Helpers/Props';
+import { createThunk, handleThunks } from 'Store/thunks';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
-import { createThunk, handleThunks } from 'Store/thunks';
-import { sortDirections } from 'Helpers/Props';
-import createClearReducer from './Creators/Reducers/createClearReducer';
-import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
+import translate from 'Utilities/String/translate';
+import { set, updateItem } from './baseActions';
 import createHandleActions from './Creators/createHandleActions';
 import createRemoveItemHandler from './Creators/createRemoveItemHandler';
 import createServerSideCollectionHandlers from './Creators/createServerSideCollectionHandlers';
-import { set, updateItem } from './baseActions';
+import createClearReducer from './Creators/Reducers/createClearReducer';
+import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
 
 //
 // Variables
@@ -32,41 +33,47 @@ export const defaultState = {
   columns: [
     {
       name: 'series.sortTitle',
-      label: 'Series Title',
+      label: () => translate('SeriesTitle'),
       isSortable: true,
       isVisible: true
     },
     {
       name: 'sourceTitle',
-      label: 'Source Title',
+      label: () => translate('SourceTitle'),
       isSortable: true,
       isVisible: true
     },
     {
-      name: 'language',
-      label: 'Language',
+      name: 'languages',
+      label: () => translate('Languages'),
       isVisible: false
     },
     {
       name: 'quality',
-      label: 'Quality',
+      label: () => translate('Quality'),
+      isVisible: true
+    },
+    {
+      name: 'customFormats',
+      label: () => translate('Formats'),
+      isSortable: false,
       isVisible: true
     },
     {
       name: 'date',
-      label: 'Date',
+      label: () => translate('Date'),
       isSortable: true,
       isVisible: true
     },
     {
       name: 'indexer',
-      label: 'Indexer',
+      label: () => translate('Indexer'),
       isSortable: true,
       isVisible: false
     },
     {
       name: 'actions',
-      columnLabel: 'Actions',
+      columnLabel: () => translate('Actions'),
       isVisible: true,
       isModifiable: false
     }
@@ -151,6 +158,7 @@ export const actionHandlers = handleThunks({
       url: '/blocklist/bulk',
       method: 'DELETE',
       dataType: 'json',
+      contentType: 'application/json',
       data: JSON.stringify({ ids })
     }).request;
 

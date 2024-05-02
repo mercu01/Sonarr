@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Options;
 using NzbDrone.Core.Authentication;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Test.Common;
@@ -43,6 +45,26 @@ namespace NzbDrone.Common.Test
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.WriteAllText(configFile, It.IsAny<string>()))
                 .Callback<string, string>((p, t) => _configFileContents = t);
+
+            Mocker.GetMock<IOptions<AuthOptions>>()
+                .Setup(v => v.Value)
+                .Returns(new AuthOptions());
+
+            Mocker.GetMock<IOptions<AppOptions>>()
+                .Setup(v => v.Value)
+                .Returns(new AppOptions());
+
+            Mocker.GetMock<IOptions<ServerOptions>>()
+                .Setup(v => v.Value)
+                .Returns(new ServerOptions());
+
+            Mocker.GetMock<IOptions<LogOptions>>()
+                .Setup(v => v.Value)
+                .Returns(new LogOptions());
+
+            Mocker.GetMock<IOptions<UpdateOptions>>()
+                .Setup(v => v.Value)
+                .Returns(new UpdateOptions());
         }
 
         [Test]
@@ -62,9 +84,7 @@ namespace NzbDrone.Common.Test
             const string key = "Port";
             const int value = 8989;
 
-
             var result = Subject.GetValueInt(key, value);
-
 
             result.Should().Be(value);
         }
@@ -75,9 +95,7 @@ namespace NzbDrone.Common.Test
             const string key = "LaunchBrowser";
             const bool value = true;
 
-
             var result = Subject.GetValueBoolean(key, value);
-
 
             result.Should().BeTrue();
         }
@@ -85,9 +103,7 @@ namespace NzbDrone.Common.Test
         [Test]
         public void GetLaunchBrowser_Success()
         {
-
             var result = Subject.LaunchBrowser;
-
 
             result.Should().Be(true);
         }
@@ -97,9 +113,7 @@ namespace NzbDrone.Common.Test
         {
             const int value = 8989;
 
-
             var result = Subject.Port;
-
 
             result.Should().Be(value);
         }
@@ -110,9 +124,7 @@ namespace NzbDrone.Common.Test
             const string key = "LaunchBrowser";
             const bool value = false;
 
-
             Subject.SetValue(key, value);
-
 
             var result = Subject.LaunchBrowser;
             result.Should().Be(value);
@@ -124,9 +136,7 @@ namespace NzbDrone.Common.Test
             const string key = "Port";
             const int value = 12345;
 
-
             Subject.SetValue(key, value);
-
 
             var result = Subject.Port;
             result.Should().Be(value);
@@ -138,9 +148,7 @@ namespace NzbDrone.Common.Test
             const string key = "Hello";
             const string value = "World";
 
-
             var result = Subject.GetValue(key, value);
-
 
             result.Should().Be(value);
         }
@@ -156,7 +164,7 @@ namespace NzbDrone.Common.Test
         [Test]
         public void SaveDictionary_should_save_proper_value()
         {
-            int port = 20555;
+            var port = 20555;
 
             var dic = Subject.GetConfigDictionary();
             dic["Port"] = 20555;
@@ -169,15 +177,14 @@ namespace NzbDrone.Common.Test
         [Test]
         public void SaveDictionary_should_only_save_specified_values()
         {
-            int port = 20555;
-            int origSslPort = 20551;
-            int sslPort = 20552;
+            var port = 20555;
+            var origSslPort = 20551;
+            var sslPort = 20552;
 
             var dic = Subject.GetConfigDictionary();
             dic["Port"] = port;
             dic["SslPort"] = origSslPort;
             Subject.SaveConfigDictionary(dic);
-
 
             dic = new Dictionary<string, object>();
             dic["SslPort"] = sslPort;

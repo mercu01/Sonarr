@@ -1,15 +1,14 @@
-﻿
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using FizzWare.NBuilder;
+using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using FizzWare.NBuilder;
-using System.Linq;
-using FluentAssertions;
 using NzbDrone.Core.Tv;
-using Moq;
-using System.Collections.Generic;
 
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
@@ -55,6 +54,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_true_if_all_episodes_have_aired()
         {
+            Subject.IsSatisfiedBy(_remoteEpisode, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_return_true_if_all_episodes_will_have_aired_in_the_next_24_hours()
+        {
+            _remoteEpisode.Episodes.Last().AirDateUtc = DateTime.UtcNow.AddHours(23);
+
             Subject.IsSatisfiedBy(_remoteEpisode, null).Accepted.Should().BeTrue();
         }
 

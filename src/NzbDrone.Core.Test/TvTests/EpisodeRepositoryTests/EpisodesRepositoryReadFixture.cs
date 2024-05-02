@@ -1,6 +1,8 @@
-﻿using FizzWare.NBuilder;
+using System.Collections.Generic;
+using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
@@ -11,16 +13,16 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
     [TestFixture]
     public class EpisodesRepositoryReadFixture : DbTest<EpisodeRepository, Episode>
     {
-        private Series series;
+        private Series _series;
 
         [SetUp]
         public void Setup()
         {
-            series = Builder<Series>.CreateNew()
+            _series = Builder<Series>.CreateNew()
                                         .With(s => s.Runtime = 30)
                                         .BuildNew();
 
-            Db.Insert(series);
+            Db.Insert(_series);
         }
 
         [Test]
@@ -28,13 +30,14 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         {
             var episodeFile = Builder<EpisodeFile>.CreateNew()
                 .With(h => h.Quality = new QualityModel())
+                .With(h => h.Languages = new List<Language> { Language.English })
                 .BuildNew();
 
             Db.Insert(episodeFile);
 
             var episode = Builder<Episode>.CreateListOfSize(2)
                                         .All()
-                                        .With(e => e.SeriesId = series.Id)
+                                        .With(e => e.SeriesId = _series.Id)
                                         .With(e => e.EpisodeFileId = episodeFile.Id)
                                         .BuildListOfNew();
 

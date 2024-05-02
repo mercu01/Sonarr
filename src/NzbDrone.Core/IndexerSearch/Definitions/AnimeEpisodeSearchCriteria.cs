@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Text;
-
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     public class AnimeEpisodeSearchCriteria : SearchCriteriaBase
     {
-        public readonly List<string> ModesSearchSpanish = new List<string>(){
+        public readonly List<string> ModesSearchSpanish = new List<string>()
+        {
             "Cap.{1:0}{2:00}",
             "{1:0}x{2:0}",
             "{1:0}x{2:00}"
@@ -17,7 +17,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            StringBuilder searchTerms = new StringBuilder();
+            var searchTerms = new StringBuilder();
 
             searchTerms.AppendFormat($"[{Series.Title}]. Search term: ").AppendLine();
             foreach (var mode in ModesSearchSpanish)
@@ -27,6 +27,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
                     searchTerms.AppendFormat($"[{translate} {mode}]", "fakeparam", SeasonNumber, EpisodeNumber).AppendLine();
                 }
             }
+
             return searchTerms.ToString();
         }
     }

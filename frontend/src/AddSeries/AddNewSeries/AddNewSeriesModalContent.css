@@ -4,7 +4,7 @@
 
 .year {
   margin-left: 5px;
-  color: $disabledColor;
+  color: var(--disabledColor);
 }
 
 .poster {
@@ -55,12 +55,6 @@
 .addButton {
   @add-mixin truncate;
   composes: button from '~Components/Link/SpinnerButton.css';
-}
-
-.hideLanguageProfile {
-  composes: group from '~Components/Form/FormGroup.css';
-
-  display: none;
 }
 
 @media only screen and (max-width: $breakpointSmall) {

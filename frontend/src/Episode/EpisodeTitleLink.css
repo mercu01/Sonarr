@@ -1,8 +1,13 @@
+.container {
+  display: flex;
+  align-items: center;
+}
+
 .link {
   composes: link from '~Components/Link/Link.css';
 
   &:hover {
-    color: $linkHoverColor;
+    color: var(--linkHoverColor);
     text-decoration: underline;
   }
 }

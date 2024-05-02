@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { createSelector } from 'reselect';
-import findSelectedFilters from 'Utilities/Filter/findSelectedFilters';
 import { filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
+import findSelectedFilters from 'Utilities/Filter/findSelectedFilters';
 
 function getSortClause(sortKey, sortDirection, sortPredicates) {
   if (sortPredicates && sortPredicates.hasOwnProperty(sortKey)) {
@@ -108,7 +108,7 @@ function sort(items, state) {
   return _.orderBy(items, clauses, orders);
 }
 
-function createCustomFiltersSelector(type, alternateType) {
+export function createCustomFiltersSelector(type, alternateType) {
   return createSelector(
     (state) => state.customFilters.items,
     (customFilters) => {

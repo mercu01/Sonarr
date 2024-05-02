@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.ThingiProvider.Events;
@@ -23,8 +26,10 @@ namespace NzbDrone.Core.HealthCheck.Checks
         private readonly Logger _logger;
 
         public DownloadClientRootFolderCheck(IProvideDownloadClient downloadClientProvider,
-                                      IRootFolderService rootFolderService,
-                                      Logger logger)
+                                             IRootFolderService rootFolderService,
+                                             Logger logger,
+                                             ILocalizationService localizationService)
+            : base(localizationService)
         {
             _downloadClientProvider = downloadClientProvider;
             _rootFolderService = rootFolderService;
@@ -33,7 +38,9 @@ namespace NzbDrone.Core.HealthCheck.Checks
 
         public override HealthCheck Check()
         {
-            var clients = _downloadClientProvider.GetDownloadClients();
+            // Only check clients not in failure status, those get another message
+            var clients = _downloadClientProvider.GetDownloadClients(true);
+
             var rootFolders = _rootFolderService.All();
 
             foreach (var client in clients)
@@ -41,23 +48,31 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 try
                 {
                     var status = client.GetStatus();
-                    var folders = status.OutputRootFolders;
+                    var folders = status.OutputRootFolders.Where(folder => rootFolders.Any(r => r.Path.PathEquals(folder.FullPath)));
 
                     foreach (var folder in folders)
                     {
-                        if (rootFolders.Any(r => r.Path.PathEquals(folder.FullPath)))
-                        {
-                            return new HealthCheck(GetType(), HealthCheckResult.Warning, string.Format("Download client {0} places downloads in the root folder {1}. You should not download to a root folder.", client.Definition.Name, folder.FullPath), "#downloads-in-root-folder");
-                        }
+                        return new HealthCheck(GetType(),
+                            HealthCheckResult.Warning,
+                            _localizationService.GetLocalizedString("DownloadClientRootFolderHealthCheckMessage", new Dictionary<string, object>
+                            {
+                                { "downloadClientName", client.Definition.Name },
+                                { "rootFolderPath", folder.FullPath }
+                            }),
+                            "#downloads-in-root-folder");
                     }
                 }
                 catch (DownloadClientException ex)
                 {
                     _logger.Debug(ex, "Unable to communicate with {0}", client.Definition.Name);
                 }
+                catch (HttpRequestException ex)
+                {
+                    _logger.Debug(ex, "Unable to communicate with {0}", client.Definition.Name);
+                }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Unknown error occured in DownloadClientRootFolderCheck HealthCheck");
+                    _logger.Error(ex, "Unknown error occurred in DownloadClientRootFolderCheck HealthCheck");
                 }
             }
 

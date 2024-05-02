@@ -3,6 +3,7 @@ using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Qualities;
@@ -44,11 +45,16 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             Mocker.GetMock<IQualityDefinitionService>()
                 .Setup(v => v.Get(Moq.It.IsAny<Quality>()))
                 .Returns<Quality>(v => Quality.DefaultQualityDefinitions.First(c => c.Quality == v));
+
+            Mocker.GetMock<ICustomFormatService>()
+                  .Setup(v => v.All())
+                  .Returns(new List<CustomFormat>());
         }
 
         [TestCase("The Mist", 2018, "The Mist 2018")]
         [TestCase("The Rat Pack (A&E)", 1999, "The Rat Pack AandE 1999")]
         [TestCase("The Climax: I (Almost) Got Away With It (2016)", 2016, "The Climax I Almost Got Away With It 2016")]
+        [TestCase("The Series Title's", 2016, "The Series Titles 2016")]
         public void should_get_expected_title_back(string title, int year, string expected)
         {
             _series.Title = title;

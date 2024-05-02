@@ -16,7 +16,7 @@ class EditSeriesModalConnector extends Component {
   onModalClose = () => {
     this.props.clearPendingChanges({ section: 'series' });
     this.props.onModalClose();
-  }
+  };
 
   //
   // Render
@@ -32,6 +32,7 @@ class EditSeriesModalConnector extends Component {
 }
 
 EditSeriesModalConnector.propTypes = {
+  ...EditSeriesModal.propTypes,
   onModalClose: PropTypes.func.isRequired,
   clearPendingChanges: PropTypes.func.isRequired
 };

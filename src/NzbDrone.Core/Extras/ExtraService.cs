@@ -5,7 +5,6 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Extras.Files;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
@@ -18,6 +17,7 @@ namespace NzbDrone.Core.Extras
 {
     public interface IExtraService
     {
+        void MoveFilesAfterRename(Series series, EpisodeFile episodeFile);
         void ImportEpisode(LocalEpisode localEpisode, EpisodeFile episodeFile, bool isReadOnly);
     }
 
@@ -61,9 +61,7 @@ namespace NzbDrone.Core.Extras
                 return;
             }
 
-            var folderSearchOption = localEpisode.FolderEpisodeInfo == null
-                ? SearchOption.TopDirectoryOnly
-                : SearchOption.AllDirectories;
+            var folderSearchOption = localEpisode.FolderEpisodeInfo != null;
 
             var wantedExtensions = _configService.ExtraFileExtensions.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                                                                      .Select(e => e.Trim(' ', '.')
@@ -84,7 +82,7 @@ namespace NzbDrone.Core.Extras
                     continue;
                 }
 
-                for (int i = 0; i < _extraFileManagers.Count; i++)
+                for (var i = 0; i < _extraFileManagers.Count; i++)
                 {
                     if (_extraFileManagers[i].CanImportFile(localEpisode, episodeFile, file, extension, isReadOnly))
                     {
@@ -94,7 +92,7 @@ namespace NzbDrone.Core.Extras
                 }
             }
 
-            for (int i = 0; i < _extraFileManagers.Count; i++)
+            for (var i = 0; i < _extraFileManagers.Count; i++)
             {
                 _extraFileManagers[i].ImportFiles(localEpisode, episodeFile, managedFiles[i], isReadOnly);
             }
@@ -142,6 +140,16 @@ namespace NzbDrone.Core.Extras
             }
         }
 
+        public void MoveFilesAfterRename(Series series, EpisodeFile episodeFile)
+        {
+            var episodeFiles = new List<EpisodeFile> { episodeFile };
+
+            foreach (var extraFileManager in _extraFileManagers)
+            {
+                extraFileManager.MoveFilesAfterRename(series, episodeFiles);
+            }
+        }
+
         public void Handle(SeriesRenamedEvent message)
         {
             var series = message.Series;
@@ -161,7 +169,7 @@ namespace NzbDrone.Core.Extras
             foreach (var episodeFile in episodeFiles)
             {
                 var localEpisodeFile = episodeFile;
-                episodeFile.Episodes = new LazyList<Episode>(episodes.Where(e => e.EpisodeFileId == localEpisodeFile.Id));
+                episodeFile.Episodes = new List<Episode>(episodes.Where(e => e.EpisodeFileId == localEpisodeFile.Id));
             }
 
             return episodeFiles;

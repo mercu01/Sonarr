@@ -1,16 +1,15 @@
-﻿using System;
+using System;
 using System.Threading;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Remote;
 using OpenQA.Selenium.Support.UI;
 
 namespace NzbDrone.Automation.Test.PageModel
 {
     public class PageBase
     {
-        private readonly RemoteWebDriver _driver;
+        private readonly IWebDriver _driver;
 
-        public PageBase(RemoteWebDriver driver)
+        public PageBase(IWebDriver driver)
         {
             _driver = driver;
             driver.Manage().Window.Maximize();
@@ -29,7 +28,7 @@ namespace NzbDrone.Automation.Test.PageModel
 
         public void WaitForNoSpinner(int timeout = 30)
         {
-            //give the spinner some time to show up.
+            // give the spinner some time to show up.
             Thread.Sleep(200);
 
             var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeout));
@@ -37,7 +36,7 @@ namespace NzbDrone.Automation.Test.PageModel
             {
                 try
                 {
-                    IWebElement element = d.FindElement(By.Id("followingBalls"));
+                    var element = d.FindElement(By.Id("followingBalls"));
                     return !element.Displayed;
                 }
                 catch (NoSuchElementException)

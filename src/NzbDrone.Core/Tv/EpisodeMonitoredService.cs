@@ -40,6 +40,12 @@ namespace NzbDrone.Core.Tv
                 return;
             }
 
+            // Skip episode level monitoring and use season information when series was added
+            if (monitoringOptions.Monitor == MonitorTypes.Skip)
+            {
+                return;
+            }
+
             var firstSeason = series.Seasons.Select(s => s.SeasonNumber).Where(s => s > 0).MinOrDefault();
             var lastSeason = series.Seasons.Select(s => s.SeasonNumber).MaxOrDefault();
             var episodes = _episodeService.GetEpisodeBySeries(series.Id);
@@ -83,20 +89,36 @@ namespace NzbDrone.Core.Tv
 
                     break;
 
+                case MonitorTypes.LastSeason:
+                #pragma warning disable CS0612
                 case MonitorTypes.LatestSeason:
-                    if (episodes.Where(e => e.SeasonNumber == lastSeason)
-                                .All(e => e.AirDateUtc.HasValue &&
-                                          e.AirDateUtc.Value.Before(DateTime.UtcNow) &&
-                                          !e.AirDateUtc.Value.InLastDays(90)))
-                    {
-                        _logger.Debug("[{0}] Unmonitoring all episodes because latest season aired more than 90 days ago", series.Title);
-                        ToggleEpisodesMonitoredState(episodes, e => false);
-                        break;
-                    }
-
+                #pragma warning restore CS0612
                     _logger.Debug("[{0}] Monitoring latest season episodes", series.Title);
 
                     ToggleEpisodesMonitoredState(episodes, e => e.SeasonNumber > 0 && e.SeasonNumber == lastSeason);
+
+                    break;
+
+                case MonitorTypes.Recent:
+                    _logger.Debug("[{0}] Monitoring recent and future episodes", series.Title);
+
+                    ToggleEpisodesMonitoredState(episodes, e => e.SeasonNumber > 0 &&
+                                                                (!e.AirDateUtc.HasValue || (
+                                                                        e.AirDateUtc.Value.Before(DateTime.UtcNow) &&
+                                                                        e.AirDateUtc.Value.InLastDays(90))
+                                                                    || e.AirDateUtc.Value.After(DateTime.UtcNow)));
+
+                    break;
+
+                case MonitorTypes.MonitorSpecials:
+                    _logger.Debug("[{0}] Monitoring special episodes", series.Title);
+                    ToggleEpisodesMonitoredState(episodes.Where(e => e.SeasonNumber == 0), true);
+
+                    break;
+
+                case MonitorTypes.UnmonitorSpecials:
+                    _logger.Debug("[{0}] Unmonitoring special episodes", series.Title);
+                    ToggleEpisodesMonitoredState(episodes.Where(e => e.SeasonNumber == 0), false);
 
                     break;
 
@@ -116,28 +138,29 @@ namespace NzbDrone.Core.Tv
             {
                 var seasonNumber = season.SeasonNumber;
 
-                // Monitor the season when:
+                // Monitor the last season when:
                 // - Not specials
                 // - The latest season
-                // - Not only supposed to monitor the first season
+                // - Set to monitor all episodes
+                // - Set to monitor future episodes and series is continuing or not yet aired
                 if (seasonNumber > 0 &&
                     seasonNumber == lastSeason &&
-                    monitoringOptions.Monitor != MonitorTypes.FirstSeason &&
-                    monitoringOptions.Monitor != MonitorTypes.Pilot &&
-                    monitoringOptions.Monitor != MonitorTypes.None)
+                    (monitoringOptions.Monitor == MonitorTypes.All ||
+                     (monitoringOptions.Monitor == MonitorTypes.Future && series.Status is SeriesStatusType.Continuing or SeriesStatusType.Upcoming)))
                 {
                     season.Monitored = true;
                 }
-                // Don't monitor season 1 if only the pilot episode is monitored
                 else if (seasonNumber == firstSeason && monitoringOptions.Monitor == MonitorTypes.Pilot)
                 {
+                    // Don't monitor season 1 if only the pilot episode is monitored
                     season.Monitored = false;
                 }
-                // Monitor the season if it has any monitor episodes
                 else if (monitoredSeasons.Contains(seasonNumber))
                 {
+                    // Monitor the season if it has any monitor episodes
                     season.Monitored = true;
                 }
+
                 // Don't monitor the season
                 else
                 {
@@ -220,7 +243,6 @@ namespace NzbDrone.Core.Tv
         {
             ToggleEpisodesMonitoredState(episodes.Where(predicate), true);
             ToggleEpisodesMonitoredState(episodes.Where(e => !predicate(e)), false);
-
         }
     }
 }

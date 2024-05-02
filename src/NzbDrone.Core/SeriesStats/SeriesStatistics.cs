@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
 
@@ -9,6 +9,7 @@ namespace NzbDrone.Core.SeriesStats
         public int SeriesId { get; set; }
         public string NextAiringString { get; set; }
         public string PreviousAiringString { get; set; }
+        public string LastAiredString { get; set; }
         public int EpisodeFileCount { get; set; }
         public int EpisodeCount { get; set; }
         public int TotalEpisodeCount { get; set; }
@@ -24,7 +25,10 @@ namespace NzbDrone.Core.SeriesStats
 
                 try
                 {
-                    if (!DateTime.TryParse(NextAiringString, out nextAiring)) return null;
+                    if (!DateTime.TryParse(NextAiringString, out nextAiring))
+                    {
+                        return null;
+                    }
                 }
                 catch (ArgumentOutOfRangeException)
                 {
@@ -44,7 +48,10 @@ namespace NzbDrone.Core.SeriesStats
 
                 try
                 {
-                    if (!DateTime.TryParse(PreviousAiringString, out previousAiring)) return null;
+                    if (!DateTime.TryParse(PreviousAiringString, out previousAiring))
+                    {
+                        return null;
+                    }
                 }
                 catch (ArgumentOutOfRangeException)
                 {
@@ -53,6 +60,29 @@ namespace NzbDrone.Core.SeriesStats
                 }
 
                 return previousAiring;
+            }
+        }
+
+        public DateTime? LastAired
+        {
+            get
+            {
+                DateTime lastAired;
+
+                try
+                {
+                    if (!DateTime.TryParse(LastAiredString, out lastAired))
+                    {
+                        return null;
+                    }
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // GHI 3518: Can throw on mono (6.x?) despite being a Try*
+                    return null;
+                }
+
+                return lastAired;
             }
         }
     }

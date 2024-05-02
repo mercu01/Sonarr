@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Tv;
+using Sonarr.Api.V3.CustomFormats;
 using Sonarr.Api.V3.Series;
 using Sonarr.Http.REST;
 
@@ -30,7 +32,7 @@ namespace Sonarr.Api.V3.Indexers
         public bool FullSeason { get; set; }
         public bool SceneSource { get; set; }
         public int SeasonNumber { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
         public int LanguageWeight { get; set; }
         public string AirDate { get; set; }
         public string SeriesTitle { get; set; }
@@ -39,6 +41,8 @@ namespace Sonarr.Api.V3.Indexers
         public int? MappedSeasonNumber { get; set; }
         public int[] MappedEpisodeNumbers { get; set; }
         public int[] MappedAbsoluteEpisodeNumbers { get; set; }
+        public int? MappedSeriesId { get; set; }
+        public IEnumerable<ReleaseEpisodeResource> MappedEpisodeInfo { get; set; }
         public bool Approved { get; set; }
         public bool TemporarilyRejected { get; set; }
         public bool Rejected { get; set; }
@@ -52,7 +56,8 @@ namespace Sonarr.Api.V3.Indexers
         public bool EpisodeRequested { get; set; }
         public bool DownloadAllowed { get; set; }
         public int ReleaseWeight { get; set; }
-        public int PreferredWordScore { get; set; }
+        public List<CustomFormatResource> CustomFormats { get; set; }
+        public int CustomFormatScore { get; set; }
         public AlternateTitleResource SceneMapping { get; set; }
 
         public string MagnetUrl { get; set; }
@@ -60,6 +65,7 @@ namespace Sonarr.Api.V3.Indexers
         public int? Seeders { get; set; }
         public int? Leechers { get; set; }
         public DownloadProtocol Protocol { get; set; }
+        public int IndexerFlags { get; set; }
 
         public bool IsDaily { get; set; }
         public bool IsAbsoluteNumbering { get; set; }
@@ -68,13 +74,23 @@ namespace Sonarr.Api.V3.Indexers
 
         // Sent when queuing an unknown release
 
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-//        [JsonIgnore]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int? SeriesId { get; set; }
 
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-//        [JsonIgnore]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int? EpisodeId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public List<int> EpisodeIds { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int? DownloadClientId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public string DownloadClient { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool? ShouldOverride { get; set; }
     }
 
     public static class ReleaseResourceMapper
@@ -85,13 +101,15 @@ namespace Sonarr.Api.V3.Indexers
             var parsedEpisodeInfo = model.RemoteEpisode.ParsedEpisodeInfo;
             var remoteEpisode = model.RemoteEpisode;
             var torrentInfo = (model.RemoteEpisode.Release as TorrentInfo) ?? new TorrentInfo();
+            var indexerFlags = torrentInfo.IndexerFlags;
 
             // TODO: Clean this mess up. don't mix data from multiple classes, use sub-resources instead? (Got a huge Deja Vu, didn't we talk about this already once?)
             return new ReleaseResource
             {
                 Guid = releaseInfo.Guid,
                 Quality = parsedEpisodeInfo.Quality,
-                //QualityWeight
+
+                // QualityWeight
                 Age = releaseInfo.Age,
                 AgeHours = releaseInfo.AgeHours,
                 AgeMinutes = releaseInfo.AgeMinutes,
@@ -103,14 +121,16 @@ namespace Sonarr.Api.V3.Indexers
                 Title = releaseInfo.Title,
                 FullSeason = parsedEpisodeInfo.FullSeason,
                 SeasonNumber = parsedEpisodeInfo.SeasonNumber,
-                Language = parsedEpisodeInfo.Language,
+                Languages = remoteEpisode.Languages,
                 AirDate = parsedEpisodeInfo.AirDate,
                 SeriesTitle = parsedEpisodeInfo.SeriesTitle,
                 EpisodeNumbers = parsedEpisodeInfo.EpisodeNumbers,
                 AbsoluteEpisodeNumbers = parsedEpisodeInfo.AbsoluteEpisodeNumbers,
+                MappedSeriesId = remoteEpisode.Series?.Id,
                 MappedSeasonNumber = remoteEpisode.Episodes.FirstOrDefault()?.SeasonNumber,
                 MappedEpisodeNumbers = remoteEpisode.Episodes.Select(v => v.EpisodeNumber).ToArray(),
                 MappedAbsoluteEpisodeNumbers = remoteEpisode.Episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber.Value).ToArray(),
+                MappedEpisodeInfo = remoteEpisode.Episodes.Select(v => new ReleaseEpisodeResource(v)),
                 Approved = model.Approved,
                 TemporarilyRejected = model.TemporarilyRejected,
                 Rejected = model.Rejected,
@@ -123,8 +143,10 @@ namespace Sonarr.Api.V3.Indexers
                 InfoUrl = releaseInfo.InfoUrl,
                 EpisodeRequested = remoteEpisode.EpisodeRequested,
                 DownloadAllowed = remoteEpisode.DownloadAllowed,
-                //ReleaseWeight
-                PreferredWordScore = remoteEpisode.PreferredWordScore,
+
+                // ReleaseWeight
+                CustomFormatScore = remoteEpisode.CustomFormatScore,
+                CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
                 SceneMapping = remoteEpisode.SceneMapping.ToResource(),
 
                 MagnetUrl = torrentInfo.MagnetUrl,
@@ -132,13 +154,13 @@ namespace Sonarr.Api.V3.Indexers
                 Seeders = torrentInfo.Seeders,
                 Leechers = (torrentInfo.Peers.HasValue && torrentInfo.Seeders.HasValue) ? (torrentInfo.Peers.Value - torrentInfo.Seeders.Value) : (int?)null,
                 Protocol = releaseInfo.DownloadProtocol,
+                IndexerFlags = (int)indexerFlags,
 
                 IsDaily = parsedEpisodeInfo.IsDaily,
                 IsAbsoluteNumbering = parsedEpisodeInfo.IsAbsoluteNumbering,
                 IsPossibleSpecialEpisode = parsedEpisodeInfo.IsPossibleSpecialEpisode,
                 Special = parsedEpisodeInfo.Special,
             };
-
         }
 
         public static ReleaseInfo ToModel(this ReleaseResource resource)
@@ -174,6 +196,28 @@ namespace Sonarr.Api.V3.Indexers
             model.PublishDate = resource.PublishDate.ToUniversalTime();
 
             return model;
+        }
+    }
+
+    public class ReleaseEpisodeResource
+    {
+        public int Id { get; set; }
+        public int SeasonNumber { get; set; }
+        public int EpisodeNumber { get; set; }
+        public int? AbsoluteEpisodeNumber { get; set; }
+        public string Title { get; set; }
+
+        public ReleaseEpisodeResource()
+        {
+        }
+
+        public ReleaseEpisodeResource(Episode episode)
+        {
+            Id = episode.Id;
+            SeasonNumber = episode.SeasonNumber;
+            EpisodeNumber = episode.EpisodeNumber;
+            AbsoluteEpisodeNumber = episode.AbsoluteEpisodeNumber;
+            Title = episode.Title;
         }
     }
 }

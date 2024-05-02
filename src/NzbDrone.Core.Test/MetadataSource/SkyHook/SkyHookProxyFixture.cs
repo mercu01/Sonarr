@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
@@ -64,7 +64,8 @@ namespace NzbDrone.Core.Test.MetadataSource.SkyHook
             series.Network.Should().NotBeNullOrWhiteSpace();
             series.Runtime.Should().BeGreaterThan(0);
             series.TitleSlug.Should().NotBeNullOrWhiteSpace();
-            //series.TvRageId.Should().BeGreaterThan(0);
+
+            // series.TvRageId.Should().BeGreaterThan(0);
             series.TvdbId.Should().BeGreaterThan(0);
         }
 
@@ -82,7 +83,7 @@ namespace NzbDrone.Core.Test.MetadataSource.SkyHook
             {
                 ValidateEpisode(episode);
 
-                //if atleast one episdoe has title it means parse it working.
+                // if atleast one episdoe has title it means parse it working.
                 episodes.Should().Contain(c => !string.IsNullOrWhiteSpace(c.Title));
             }
         }
@@ -91,7 +92,7 @@ namespace NzbDrone.Core.Test.MetadataSource.SkyHook
         {
             episode.Should().NotBeNull();
 
-            //TODO: Is there a better way to validate that episode number or season number is greater than zero?
+            // TODO: Is there a better way to validate that episode number or season number is greater than zero?
             (episode.EpisodeNumber + episode.SeasonNumber).Should().NotBe(0);
 
             episode.Should().NotBeNull();
@@ -101,7 +102,7 @@ namespace NzbDrone.Core.Test.MetadataSource.SkyHook
                 episode.AirDateUtc.Value.Kind.Should().Be(DateTimeKind.Utc);
             }
 
-            episode.Images.Any(i => i.CoverType == MediaCoverTypes.Screenshot && i.Url.Contains("-940."))
+            episode.Images.Any(i => i.CoverType == MediaCoverTypes.Screenshot && i.RemoteUrl.Contains("-940."))
                    .Should()
                    .BeFalse();
         }

@@ -9,13 +9,15 @@
 .underlay {
   @add-mixin cover;
 
-  background-color: $white;
+  background-color: var(--addSeriesBackgroundColor);
   transition: background 500ms;
 
   &:hover {
-    background-color: #eaf2ff;
+    background-color: var(--pageBackground);
+    box-shadow: 0 0 12px var(--black);
     color: inherit;
     text-decoration: none;
+    transition: all 200ms ease-in;
   }
 }
 
@@ -33,7 +35,9 @@
 }
 
 .content {
+  display: flex;
   flex: 0 1 100%;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -54,7 +58,7 @@
 
 .year {
   margin-left: 10px;
-  color: $disabledColor;
+  color: var(--disabledColor);
 }
 
 .icons {
@@ -70,7 +74,7 @@
 
   margin-top: -4px;
   margin-left: auto;
-  color: $textColor;
+  color: var(--textColor);
 }
 
 .tvdbLinkIcon {
@@ -91,5 +95,9 @@
   .titleRow {
     justify-content: space-between;
     overflow: hidden;
+  }
+
+  .overview {
+    margin-bottom: 20px;
   }
 }

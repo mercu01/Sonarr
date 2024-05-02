@@ -2,17 +2,27 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using DryIoc;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Reflection;
+using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Annotations;
+using NzbDrone.Core.Localization;
 
 namespace Sonarr.Http.ClientSchema
 {
     public static class SchemaBuilder
     {
+        private const string PRIVATE_VALUE = "********";
         private static Dictionary<Type, FieldMapping[]> _mappings = new Dictionary<Type, FieldMapping[]>();
+        private static ILocalizationService _localizationService;
+
+        public static void Initialize(IContainer container)
+        {
+            _localizationService = container.Resolve<ILocalizationService>();
+        }
 
         public static List<Field> ToSchema(object model)
         {
@@ -27,13 +37,19 @@ namespace Sonarr.Http.ClientSchema
                 var field = mapping.Field.Clone();
                 field.Value = mapping.GetterFunc(model);
 
+                if (field.Value != null && !field.Value.Equals(string.Empty) &&
+                    (field.Privacy == PrivacyLevel.ApiKey || field.Privacy == PrivacyLevel.Password))
+                {
+                    field.Value = PRIVATE_VALUE;
+                }
+
                 result.Add(field);
             }
 
             return result.OrderBy(r => r.Order).ToList();
         }
 
-        public static object ReadFromSchema(List<Field> fields, Type targetType)
+        public static object ReadFromSchema(List<Field> fields, Type targetType, object model)
         {
             Ensure.That(targetType, () => targetType).IsNotNull();
 
@@ -48,19 +64,24 @@ namespace Sonarr.Http.ClientSchema
 
                 if (field != null)
                 {
-                    mapping.SetterFunc(target, field.Value);
+                    // Use the Privacy property from the mapping's field as Privacy may not be set in the API request (nor is it required)
+                    if ((mapping.Field.Privacy == PrivacyLevel.ApiKey || mapping.Field.Privacy == PrivacyLevel.Password) &&
+                        (field.Value?.ToString()?.Equals(PRIVATE_VALUE) ?? false) &&
+                        model != null)
+                    {
+                        var existingValue = mapping.GetterFunc(model);
+
+                        mapping.SetterFunc(target, existingValue);
+                    }
+                    else
+                    {
+                        mapping.SetterFunc(target, field.Value);
+                    }
                 }
             }
 
             return target;
-
         }
-
-        public static T ReadFromSchema<T>(List<Field> fields)
-        {
-            return (T)ReadFromSchema(fields, typeof(T));
-        }
-
 
         // Ideally this function should begin a System.Linq.Expression expression tree since it's faster.
         // But it's probably not needed till performance issues pop up.
@@ -68,19 +89,19 @@ namespace Sonarr.Http.ClientSchema
         {
             lock (_mappings)
             {
-                FieldMapping[] result;
-                if (!_mappings.TryGetValue(type, out result))
+                if (!_mappings.TryGetValue(type, out var result))
                 {
                     result = GetFieldMapping(type, "", v => v);
 
                     // Renumber al the field Orders since nested settings will have dupe Orders.
-                    for (int i = 0; i < result.Length; i++)
+                    for (var i = 0; i < result.Length; i++)
                     {
                         result[i].Field.Order = i;
                     }
 
                     _mappings[type] = result;
                 }
+
                 return result;
             }
         }
@@ -94,20 +115,37 @@ namespace Sonarr.Http.ClientSchema
                 if (propertyInfo.PropertyType.IsSimpleType())
                 {
                     var fieldAttribute = property.Item2;
+
+                    var label = fieldAttribute.Label.IsNotNullOrWhiteSpace()
+                        ? _localizationService.GetLocalizedString(fieldAttribute.Label,
+                            GetTokens(type, fieldAttribute.Label, TokenField.Label))
+                        : fieldAttribute.Label;
+                    var helpText = fieldAttribute.HelpText.IsNotNullOrWhiteSpace()
+                        ? _localizationService.GetLocalizedString(fieldAttribute.HelpText,
+                            GetTokens(type, fieldAttribute.Label, TokenField.HelpText))
+                        : fieldAttribute.HelpText;
+                    var helpTextWarning = fieldAttribute.HelpTextWarning.IsNotNullOrWhiteSpace()
+                        ? _localizationService.GetLocalizedString(fieldAttribute.HelpTextWarning,
+                            GetTokens(type, fieldAttribute.Label, TokenField.HelpTextWarning))
+                        : fieldAttribute.HelpTextWarning;
+
                     var field = new Field
                     {
                         Name = prefix + GetCamelCaseName(propertyInfo.Name),
-                        Label = fieldAttribute.Label,
+                        Label = label,
                         Unit = fieldAttribute.Unit,
-                        HelpText = fieldAttribute.HelpText,
+                        HelpText = helpText,
+                        HelpTextWarning = helpTextWarning,
                         HelpLink = fieldAttribute.HelpLink,
                         Order = fieldAttribute.Order,
                         Advanced = fieldAttribute.Advanced,
                         Type = fieldAttribute.Type.ToString().FirstCharToLower(),
-                        Section = fieldAttribute.Section
+                        Section = fieldAttribute.Section,
+                        Privacy = fieldAttribute.Privacy,
+                        Placeholder = fieldAttribute.Placeholder
                     };
 
-                    if (fieldAttribute.Type == FieldType.Select || fieldAttribute.Type == FieldType.TagSelect)
+                    if (fieldAttribute.Type is FieldType.Select or FieldType.TagSelect)
                     {
                         if (fieldAttribute.SelectOptionsProviderAction.IsNotNullOrWhiteSpace())
                         {
@@ -124,6 +162,11 @@ namespace Sonarr.Http.ClientSchema
                         field.Hidden = fieldAttribute.Hidden.ToString().FirstCharToLower();
                     }
 
+                    if (fieldAttribute.Type is FieldType.Number && propertyInfo.PropertyType == typeof(double))
+                    {
+                        field.IsFloat = true;
+                    }
+
                     var valueConverter = GetValueConverter(propertyInfo.PropertyType);
 
                     result.Add(new FieldMapping
@@ -131,7 +174,7 @@ namespace Sonarr.Http.ClientSchema
                         Field = field,
                         PropertyType = propertyInfo.PropertyType,
                         GetterFunc = t => propertyInfo.GetValue(targetSelector(t), null),
-                        SetterFunc = (t, v) => propertyInfo.SetValue(targetSelector(t), valueConverter(v), null)
+                        SetterFunc = (t, v) => propertyInfo.SetValue(targetSelector(t), v?.GetType() == propertyInfo.PropertyType ? v : valueConverter(v), null)
                     });
                 }
                 else
@@ -152,35 +195,71 @@ namespace Sonarr.Http.ClientSchema
                 .ToArray();
         }
 
+        private static Dictionary<string, object> GetTokens(Type type, string label, TokenField field)
+        {
+            var tokens = new Dictionary<string, object>();
+
+            foreach (var propertyInfo in type.GetProperties())
+            {
+                foreach (var attribute in propertyInfo.GetCustomAttributes(true))
+                {
+                    if (attribute is FieldTokenAttribute fieldTokenAttribute && fieldTokenAttribute.Field == field && fieldTokenAttribute.Label == label)
+                    {
+                        tokens.Add(fieldTokenAttribute.Token, fieldTokenAttribute.Value);
+                    }
+                }
+            }
+
+            return tokens;
+        }
+
         private static List<SelectOption> GetSelectOptions(Type selectOptions)
         {
-            var options = selectOptions.GetFields().Where(v => v.IsStatic).Select(v =>
+            if (selectOptions.IsEnum)
             {
-                var name = v.Name.Replace('_', ' ');
-                var value = Convert.ToInt32(v.GetRawConstantValue());
-                var attrib = v.GetCustomAttribute<FieldOptionAttribute>();
-                if (attrib != null)
-                {
-                    return new SelectOption
+                var options = selectOptions
+                    .GetFields()
+                    .Where(v => v.IsStatic && !v.GetCustomAttributes(false).OfType<ObsoleteAttribute>().Any())
+                    .Select(v =>
                     {
-                        Value = value,
-                        Name = attrib.Label ?? name,
-                        Order = attrib.Order,
-                        Hint = attrib.Hint ?? $"({value})"
-                    };
-                }
-                else
-                {
-                    return new SelectOption
-                    {
-                        Value = value,
-                        Name = name,
-                        Order = value
-                    };
-                }
-            });
+                        var name = v.Name.Replace('_', ' ');
+                        var value = Convert.ToInt32(v.GetRawConstantValue());
+                        var attrib = v.GetCustomAttribute<FieldOptionAttribute>();
 
-            return options.OrderBy(o => o.Order).ToList();
+                        if (attrib != null)
+                        {
+                            var label = attrib.Label.IsNotNullOrWhiteSpace()
+                                ? _localizationService.GetLocalizedString(attrib.Label,
+                                    GetTokens(selectOptions, attrib.Label, TokenField.Label))
+                                : attrib.Label;
+
+                            return new SelectOption
+                            {
+                                Value = value,
+                                Name = label ?? name,
+                                Order = attrib.Order,
+                                Hint = attrib.Hint ?? $"({value})"
+                            };
+                        }
+
+                        return new SelectOption
+                        {
+                            Value = value,
+                            Name = name,
+                            Order = value
+                        };
+                    });
+
+                return options.OrderBy(o => o.Order).ToList();
+            }
+
+            if (typeof(ISelectOptionsConverter).IsAssignableFrom(selectOptions))
+            {
+                var converter = Activator.CreateInstance(selectOptions) as ISelectOptionsConverter;
+                return converter.GetSelectOptions();
+            }
+
+            throw new NotSupportedException();
         }
 
         private static Func<object, object> GetValueConverter(Type propertyType)
@@ -189,32 +268,26 @@ namespace Sonarr.Http.ClientSchema
             {
                 return fieldValue => fieldValue?.ToString().ParseInt32() ?? 0;
             }
-
             else if (propertyType == typeof(long))
             {
                 return fieldValue => fieldValue?.ToString().ParseInt64() ?? 0;
             }
-
             else if (propertyType == typeof(double))
             {
                 return fieldValue => fieldValue?.ToString().ParseDouble() ?? 0.0;
             }
-
             else if (propertyType == typeof(int?))
             {
                 return fieldValue => fieldValue?.ToString().ParseInt32();
             }
-
-            else if (propertyType == typeof(Int64?))
+            else if (propertyType == typeof(long?))
             {
                 return fieldValue => fieldValue?.ToString().ParseInt64();
             }
-
             else if (propertyType == typeof(double?))
             {
                 return fieldValue => fieldValue?.ToString().ParseDouble();
             }
-
             else if (propertyType == typeof(IEnumerable<int>))
             {
                 return fieldValue =>
@@ -223,9 +296,9 @@ namespace Sonarr.Http.ClientSchema
                     {
                         return Enumerable.Empty<int>();
                     }
-                    else if (fieldValue.GetType() == typeof(JArray))
+                    else if (fieldValue is JsonElement e && e.ValueKind == JsonValueKind.Array)
                     {
-                        return ((JArray)fieldValue).Select(s => s.Value<int>());
+                        return e.EnumerateArray().Select(s => s.GetInt32());
                     }
                     else
                     {
@@ -233,7 +306,6 @@ namespace Sonarr.Http.ClientSchema
                     }
                 };
             }
-
             else if (propertyType == typeof(IEnumerable<string>))
             {
                 return fieldValue =>
@@ -242,9 +314,9 @@ namespace Sonarr.Http.ClientSchema
                     {
                         return Enumerable.Empty<string>();
                     }
-                    else if (fieldValue.GetType() == typeof(JArray))
+                    else if (fieldValue is JsonElement e && e.ValueKind == JsonValueKind.Array)
                     {
-                        return ((JArray)fieldValue).Select(s => s.Value<string>());
+                        return e.EnumerateArray().Select(s => s.GetString());
                     }
                     else
                     {
@@ -252,16 +324,26 @@ namespace Sonarr.Http.ClientSchema
                     }
                 };
             }
-
             else
             {
-                return fieldValue => fieldValue;
+                return fieldValue =>
+                {
+                    var element = fieldValue as JsonElement?;
+
+                    if (element == null || !element.HasValue)
+                    {
+                        return null;
+                    }
+
+                    var json = element.Value.GetRawText();
+                    return STJson.Deserialize(json, propertyType);
+                };
             }
         }
 
         private static string GetCamelCaseName(string name)
         {
-            return Char.ToLowerInvariant(name[0]) + name.Substring(1);
+            return char.ToLowerInvariant(name[0]) + name.Substring(1);
         }
     }
 }

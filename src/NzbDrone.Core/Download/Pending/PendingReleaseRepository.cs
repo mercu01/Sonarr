@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
 
@@ -6,7 +6,7 @@ namespace NzbDrone.Core.Download.Pending
 {
     public interface IPendingReleaseRepository : IBasicRepository<PendingRelease>
     {
-        void DeleteBySeriesId(int seriesId);
+        void DeleteBySeriesIds(List<int> seriesIds);
         List<PendingRelease> AllBySeriesId(int seriesId);
         List<PendingRelease> WithoutFallback();
     }
@@ -18,19 +18,19 @@ namespace NzbDrone.Core.Download.Pending
         {
         }
 
-        public void DeleteBySeriesId(int seriesId)
+        public void DeleteBySeriesIds(List<int> seriesIds)
         {
-            Delete(r => r.SeriesId == seriesId);
+            Delete(r => seriesIds.Contains(r.SeriesId));
         }
 
         public List<PendingRelease> AllBySeriesId(int seriesId)
         {
-            return Query.Where(p => p.SeriesId == seriesId);
+            return Query(p => p.SeriesId == seriesId);
         }
 
         public List<PendingRelease> WithoutFallback()
         {
-            return Query.Where(p => p.Reason != PendingReleaseReason.Fallback);
+            return Query(p => p.Reason != PendingReleaseReason.Fallback);
         }
     }
 }

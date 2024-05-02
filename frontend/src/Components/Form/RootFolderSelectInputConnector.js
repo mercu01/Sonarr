@@ -3,17 +3,20 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { addRootFolder } from 'Store/Actions/rootFolderActions';
+import createRootFoldersSelector from 'Store/Selectors/createRootFoldersSelector';
+import translate from 'Utilities/String/translate';
 import RootFolderSelectInput from './RootFolderSelectInput';
 
 const ADD_NEW_KEY = 'addNew';
 
 function createMapStateToProps() {
   return createSelector(
-    (state) => state.rootFolders,
+    createRootFoldersSelector(),
     (state, { value }) => value,
     (state, { includeMissingValue }) => includeMissingValue,
     (state, { includeNoChange }) => includeNoChange,
-    (rootFolders, value, includeMissingValue, includeNoChange) => {
+    (state, { includeNoChangeDisabled }) => includeNoChangeDisabled,
+    (rootFolders, value, includeMissingValue, includeNoChange, includeNoChangeDisabled = true) => {
       const values = rootFolders.items.map((rootFolder) => {
         return {
           key: rootFolder.path,
@@ -26,8 +29,10 @@ function createMapStateToProps() {
       if (includeNoChange) {
         values.unshift({
           key: 'noChange',
-          value: 'No Change',
-          isDisabled: true,
+          get value() {
+            return translate('NoChange');
+          },
+          isDisabled: includeNoChangeDisabled,
           isMissing: false
         });
       }
@@ -52,7 +57,7 @@ function createMapStateToProps() {
 
       values.push({
         key: ADD_NEW_KEY,
-        value: 'Add a new path'
+        value: translate('AddANewPath')
       });
 
       return {
@@ -134,7 +139,7 @@ class RootFolderSelectInputConnector extends Component {
 
   onNewRootFolderSelect = (path) => {
     this.props.dispatchAddRootFolder(path);
-  }
+  };
 
   //
   // Render

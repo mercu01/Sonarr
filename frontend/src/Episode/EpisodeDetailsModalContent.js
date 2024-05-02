@@ -1,17 +1,18 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import episodeEntities from 'Episode/episodeEntities';
+import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Button from 'Components/Link/Button';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
-import EpisodeSummaryConnector from './Summary/EpisodeSummaryConnector';
+import episodeEntities from 'Episode/episodeEntities';
+import translate from 'Utilities/String/translate';
 import EpisodeHistoryConnector from './History/EpisodeHistoryConnector';
 import EpisodeSearchConnector from './Search/EpisodeSearchConnector';
 import SeasonEpisodeNumber from './SeasonEpisodeNumber';
+import EpisodeSummaryConnector from './Summary/EpisodeSummaryConnector';
 import styles from './EpisodeDetailsModalContent.css';
 
 const tabs = [
@@ -40,7 +41,7 @@ class EpisodeDetailsModalContent extends Component {
     const selectedTab = tabs[index];
     this.props.onTabChange(selectedTab === 'search');
     this.setState({ selectedTab });
-  }
+  };
 
   //
   // Render
@@ -117,21 +118,21 @@ class EpisodeDetailsModalContent extends Component {
                 className={styles.tab}
                 selectedClassName={styles.selectedTab}
               >
-                Details
+                {translate('Details')}
               </Tab>
 
               <Tab
                 className={styles.tab}
                 selectedClassName={styles.selectedTab}
               >
-                History
+                {translate('History')}
               </Tab>
 
               <Tab
                 className={styles.tab}
                 selectedClassName={styles.selectedTab}
               >
-                Search
+                {translate('Search')}
               </Tab>
             </TabList>
 
@@ -173,14 +174,14 @@ class EpisodeDetailsModalContent extends Component {
                 to={seriesLink}
                 onPress={onModalClose}
               >
-                Open Series
+                {translate('OpenSeries')}
               </Button>
           }
 
           <Button
             onPress={onModalClose}
           >
-            Close
+            {translate('Close')}
           </Button>
         </ModalFooter>
       </ModalContent>

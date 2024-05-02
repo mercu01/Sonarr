@@ -1,16 +1,21 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes } from 'Helpers/Props';
-import Button from 'Components/Link/Button';
-import SpinnerButton from 'Components/Link/SpinnerButton';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
+import SeriesMonitoringOptionsPopoverContent from 'AddSeries/SeriesMonitoringOptionsPopoverContent';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import Icon from 'Components/Icon';
+import Button from 'Components/Link/Button';
+import SpinnerButton from 'Components/Link/SpinnerButton';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import Popover from 'Components/Tooltip/Popover';
+import { icons, inputTypes, tooltipPositions } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
+import styles from './MonitoringOptionsModalContent.css';
 
 const NO_CHANGE = 'noChange';
 
@@ -31,7 +36,7 @@ class MonitoringOptionsModalContent extends Component {
     const {
       isSaving,
       saveError
-    } = prevProps;
+    } = this.props;
 
     if (prevProps.isSaving && !isSaving && !saveError) {
       this.setState({
@@ -42,7 +47,7 @@ class MonitoringOptionsModalContent extends Component {
 
   onInputChange = ({ name, value }) => {
     this.setState({ [name]: value });
-  }
+  };
 
   //
   // Listeners
@@ -58,7 +63,7 @@ class MonitoringOptionsModalContent extends Component {
     if (monitor !== NO_CHANGE) {
       onSavePress({ monitor });
     }
-  }
+  };
 
   //
   // Render
@@ -78,13 +83,27 @@ class MonitoringOptionsModalContent extends Component {
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          Monitor Series
+          {translate('MonitorSeries')}
         </ModalHeader>
 
         <ModalBody>
           <Form {...otherProps}>
             <FormGroup>
-              <FormLabel>Monitoring</FormLabel>
+              <FormLabel>
+                {translate('Monitoring')}
+
+                <Popover
+                  anchor={
+                    <Icon
+                      className={styles.labelIcon}
+                      name={icons.INFO}
+                    />
+                  }
+                  title={translate('MonitoringOptions')}
+                  body={<SeriesMonitoringOptionsPopoverContent />}
+                  position={tooltipPositions.RIGHT}
+                />
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.MONITOR_EPISODES_SELECT}
@@ -101,14 +120,14 @@ class MonitoringOptionsModalContent extends Component {
           <Button
             onPress={onModalClose}
           >
-            Cancel
+            {translate('Cancel')}
           </Button>
 
           <SpinnerButton
             isSpinning={isSaving}
             onPress={this.onSavePress}
           >
-            Save
+            {translate('Save')}
           </SpinnerButton>
         </ModalFooter>
       </ModalContent>

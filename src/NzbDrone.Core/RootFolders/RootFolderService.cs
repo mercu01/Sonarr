@@ -1,12 +1,13 @@
-using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.RootFolders
@@ -26,6 +27,7 @@ namespace NzbDrone.Core.RootFolders
         private readonly IRootFolderRepository _rootFolderRepository;
         private readonly IDiskProvider _diskProvider;
         private readonly ISeriesRepository _seriesRepository;
+        private readonly INamingConfigService _namingConfigService;
         private readonly Logger _logger;
 
         private static readonly HashSet<string> SpecialFolders = new HashSet<string>
@@ -41,15 +43,16 @@ namespace NzbDrone.Core.RootFolders
                                                                      ".grab"
                                                                  };
 
-
         public RootFolderService(IRootFolderRepository rootFolderRepository,
                                  IDiskProvider diskProvider,
                                  ISeriesRepository seriesRepository,
+                                 INamingConfigService namingConfigService,
                                  Logger logger)
         {
             _rootFolderRepository = rootFolderRepository;
             _diskProvider = diskProvider;
             _seriesRepository = seriesRepository;
+            _namingConfigService = namingConfigService;
             _logger = logger;
         }
 
@@ -69,12 +72,13 @@ namespace NzbDrone.Core.RootFolders
             {
                 try
                 {
-                    if (folder.Path.IsPathValid())
+                    if (folder.Path.IsPathValid(PathValidationType.CurrentOs))
                     {
                         GetDetails(folder, seriesPaths, true);
                     }
                 }
-                //We don't want an exception to prevent the root folders from loading in the UI, so they can still be deleted
+
+                // We don't want an exception to prevent the root folders from loading in the UI, so they can still be deleted
                 catch (Exception ex)
                 {
                     _logger.Error(ex, "Unable to get free space and unmapped folders for root folder {0}", folder.Path);
@@ -122,7 +126,7 @@ namespace NzbDrone.Core.RootFolders
             _rootFolderRepository.Delete(id);
         }
 
-        private List<UnmappedFolder> GetUnmappedFolders(string path, List<string> seriesPaths)
+        private List<UnmappedFolder> GetUnmappedFolders(string path, Dictionary<int, string> seriesPaths)
         {
             _logger.Debug("Generating list of unmapped folders");
 
@@ -139,13 +143,28 @@ namespace NzbDrone.Core.RootFolders
                 return results;
             }
 
+            var subFolderDepth = _namingConfigService.GetConfig().SeriesFolderFormat.Count(f => f == Path.DirectorySeparatorChar);
             var possibleSeriesFolders = _diskProvider.GetDirectories(path).ToList();
-            var unmappedFolders = possibleSeriesFolders.Except(seriesPaths, PathEqualityComparer.Instance).ToList();
 
-            foreach (string unmappedFolder in unmappedFolders)
+            if (subFolderDepth > 0)
+            {
+                for (var i = 0; i < subFolderDepth; i++)
+                {
+                    possibleSeriesFolders = possibleSeriesFolders.SelectMany(_diskProvider.GetDirectories).ToList();
+                }
+            }
+
+            var unmappedFolders = possibleSeriesFolders.Except(seriesPaths.Select(s => s.Value), PathEqualityComparer.Instance).ToList();
+
+            foreach (var unmappedFolder in unmappedFolders)
             {
                 var di = new DirectoryInfo(unmappedFolder.Normalize());
-                results.Add(new UnmappedFolder { Name = di.Name, Path = di.FullName });
+                results.Add(new UnmappedFolder
+                {
+                    Name = di.Name,
+                    Path = di.FullName,
+                    RelativePath = path.GetRelativePath(di.FullName)
+                });
             }
 
             var setToRemove = SpecialFolders;
@@ -167,19 +186,19 @@ namespace NzbDrone.Core.RootFolders
 
         public string GetBestRootFolderPath(string path)
         {
-            var possibleRootFolder = All().Where(r => r.Path.IsParentPath(path))
-                                          .OrderByDescending(r => r.Path.Length)
-                                          .FirstOrDefault();
+            var possibleRootFolder = All().Where(r => r.Path.IsParentPath(path)).MaxBy(r => r.Path.Length);
 
             if (possibleRootFolder == null)
             {
-                return _diskProvider.GetParentFolder(path);
+                var osPath = new OsPath(path);
+
+                return osPath.Directory.ToString().TrimEnd(osPath.IsUnixPath ? '/' : '\\');
             }
 
-            return possibleRootFolder.Path;
+            return possibleRootFolder?.Path;
         }
 
-        private void GetDetails(RootFolder rootFolder, List<string> seriesPaths, bool timeout)
+        private void GetDetails(RootFolder rootFolder, Dictionary<int, string> seriesPaths, bool timeout)
         {
             Task.Run(() =>
             {

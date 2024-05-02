@@ -1,8 +1,8 @@
-﻿using NzbDrone.Core.Extras.Metadata;
+using NzbDrone.Core.Extras.Metadata;
 
 namespace Sonarr.Api.V3.Metadata
 {
-    public class MetadataResource : ProviderResource
+    public class MetadataResource : ProviderResource<MetadataResource>
     {
         public bool Enable { get; set; }
     }
@@ -11,7 +11,10 @@ namespace Sonarr.Api.V3.Metadata
     {
         public override MetadataResource ToResource(MetadataDefinition definition)
         {
-            if (definition == null) return null;
+            if (definition == null)
+            {
+                return null;
+            }
 
             var resource = base.ToResource(definition);
 
@@ -20,11 +23,14 @@ namespace Sonarr.Api.V3.Metadata
             return resource;
         }
 
-        public override MetadataDefinition ToModel(MetadataResource resource)
+        public override MetadataDefinition ToModel(MetadataResource resource, MetadataDefinition existingDefinition)
         {
-            if (resource == null) return null;
+            if (resource == null)
+            {
+                return null;
+            }
 
-            var definition = base.ToModel(resource);
+            var definition = base.ToModel(resource, existingDefinition);
 
             definition.Enable = resource.Enable;
 

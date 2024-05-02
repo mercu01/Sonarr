@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { fetchEpisodeFile, deleteEpisodeFile } from 'Store/Actions/episodeFileActions';
-import createEpisodeSelector from 'Store/Selectors/createEpisodeSelector';
+import { deleteEpisodeFile, fetchEpisodeFile } from 'Store/Actions/episodeFileActions';
 import createEpisodeFileSelector from 'Store/Selectors/createEpisodeFileSelector';
+import createEpisodeSelector from 'Store/Selectors/createEpisodeSelector';
 import createSeriesSelector from 'Store/Selectors/createSeriesSelector';
 import EpisodeSummary from './EpisodeSummary';
 
@@ -28,10 +28,10 @@ function createMapStateToProps() {
         mediaInfo,
         path,
         size,
-        language,
-        languageCutoffNotMet,
+        languages,
         quality,
-        qualityCutoffNotMet
+        qualityCutoffNotMet,
+        customFormats
       } = episodeFile;
 
       return {
@@ -42,10 +42,10 @@ function createMapStateToProps() {
         mediaInfo,
         path,
         size,
-        language,
-        languageCutoffNotMet,
+        languages,
         quality,
-        qualityCutoffNotMet
+        qualityCutoffNotMet,
+        customFormats
       };
     }
   );

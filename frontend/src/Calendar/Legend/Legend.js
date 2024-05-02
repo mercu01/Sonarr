@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { icons, kinds } from 'Helpers/Props';
-import LegendItem from './LegendItem';
+import translate from 'Utilities/String/translate';
 import LegendIconItem from './LegendIconItem';
+import LegendItem from './LegendItem';
 import styles from './Legend.css';
 
 function Legend(props) {
@@ -21,10 +22,21 @@ function Legend(props) {
   if (showFinaleIcon) {
     iconsToShow.push(
       <LegendIconItem
-        name="Finale"
-        icon={icons.INFO}
-        kind={fullColorEvents ? kinds.DEFAULT : kinds.WARNING}
-        tooltip="Series or season finale"
+        name={translate('SeasonFinale')}
+        icon={icons.FINALE_SEASON}
+        kind={kinds.WARNING}
+        fullColorEvents={fullColorEvents}
+        tooltip={translate('CalendarLegendSeriesFinaleTooltip')}
+      />
+    );
+
+    iconsToShow.push(
+      <LegendIconItem
+        name={translate('SeriesFinale')}
+        icon={icons.FINALE_SERIES}
+        kind={kinds.DANGER}
+        fullColorEvents={fullColorEvents}
+        tooltip={translate('CalendarLegendSeriesFinaleTooltip')}
       />
     );
   }
@@ -32,11 +44,11 @@ function Legend(props) {
   if (showSpecialIcon) {
     iconsToShow.push(
       <LegendIconItem
-        name="Special"
+        name={translate('Special')}
         icon={icons.INFO}
         kind={kinds.PINK}
-        darken={fullColorEvents}
-        tooltip="Special episode"
+        fullColorEvents={fullColorEvents}
+        tooltip={translate('SpecialEpisode')}
       />
     );
   }
@@ -44,10 +56,11 @@ function Legend(props) {
   if (showCutoffUnmetIcon) {
     iconsToShow.push(
       <LegendIconItem
-        name="Cutoff Not Met"
+        name={translate('Cutoff Not Met')}
         icon={icons.EPISODE_FILE}
-        kind={fullColorEvents ? kinds.DEFAULT : kinds.WARNING}
-        tooltip="Quality or language cutoff has not been met"
+        kind={kinds.WARNING}
+        fullColorEvents={fullColorEvents}
+        tooltip={translate('QualityCutoffNotMet')}
       />
     );
   }
@@ -57,7 +70,7 @@ function Legend(props) {
       <div>
         <LegendItem
           status="unaired"
-          tooltip="Episode hasn't aired yet"
+          tooltip={translate('CalendarLegendEpisodeUnairedTooltip')}
           isAgendaView={isAgendaView}
           fullColorEvents={fullColorEvents}
           colorImpairedMode={colorImpairedMode}
@@ -65,7 +78,7 @@ function Legend(props) {
 
         <LegendItem
           status="unmonitored"
-          tooltip="Episode is unmonitored"
+          tooltip={translate('CalendarLegendEpisodeUnmonitoredTooltip')}
           isAgendaView={isAgendaView}
           fullColorEvents={fullColorEvents}
           colorImpairedMode={colorImpairedMode}
@@ -76,7 +89,7 @@ function Legend(props) {
         <LegendItem
           status="onAir"
           name="On Air"
-          tooltip="Episode is currently airing"
+          tooltip={translate('CalendarLegendEpisodeOnAirTooltip')}
           isAgendaView={isAgendaView}
           fullColorEvents={fullColorEvents}
           colorImpairedMode={colorImpairedMode}
@@ -84,7 +97,7 @@ function Legend(props) {
 
         <LegendItem
           status="missing"
-          tooltip="Episode has aired and is missing from disk"
+          tooltip={translate('CalendarLegendEpisodeMissingTooltip')}
           isAgendaView={isAgendaView}
           fullColorEvents={fullColorEvents}
           colorImpairedMode={colorImpairedMode}
@@ -94,7 +107,7 @@ function Legend(props) {
       <div>
         <LegendItem
           status="downloading"
-          tooltip="Episode is currently downloading"
+          tooltip={translate('CalendarLegendEpisodeDownloadingTooltip')}
           isAgendaView={isAgendaView}
           fullColorEvents={fullColorEvents}
           colorImpairedMode={colorImpairedMode}
@@ -102,7 +115,7 @@ function Legend(props) {
 
         <LegendItem
           status="downloaded"
-          tooltip="Episode was downloaded and sorted"
+          tooltip={translate('CalendarLegendEpisodeDownloadedTooltip')}
           isAgendaView={isAgendaView}
           fullColorEvents={fullColorEvents}
           colorImpairedMode={colorImpairedMode}
@@ -111,11 +124,11 @@ function Legend(props) {
 
       <div>
         <LegendIconItem
-          name="Premiere"
-          icon={icons.INFO}
+          name={translate('Premiere')}
+          icon={icons.PREMIERE}
           kind={kinds.INFO}
-          darken={true}
-          tooltip="Series or season premiere"
+          fullColorEvents={fullColorEvents}
+          tooltip={translate('CalendarLegendSeriesPremiereTooltip')}
         />
 
         {iconsToShow[0]}
@@ -126,6 +139,12 @@ function Legend(props) {
           <div>
             {iconsToShow[1]}
             {iconsToShow[2]}
+          </div>
+      }
+      {
+        iconsToShow.length > 3 &&
+          <div>
+            {iconsToShow[3]}
           </div>
       }
     </div>

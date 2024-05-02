@@ -14,7 +14,6 @@ namespace NzbDrone.Common.Processes
 {
     public interface IProcessProvider
     {
-        int GetCurrentProcessId();
         ProcessInfo GetCurrentProcess();
         ProcessInfo GetProcessById(int id);
         List<ProcessInfo> FindProcessByName(string name);
@@ -43,9 +42,9 @@ namespace NzbDrone.Common.Processes
             _logger = logger;
         }
 
-        public int GetCurrentProcessId()
+        public static int GetCurrentProcessId()
         {
-            return Process.GetCurrentProcess().Id;
+            return Environment.ProcessId;
         }
 
         public ProcessInfo GetCurrentProcess()
@@ -128,7 +127,11 @@ namespace NzbDrone.Common.Processes
                     try
                     {
                         _logger.Trace("Setting environment variable '{0}' to '{1}'", environmentVariable.Key, environmentVariable.Value);
-                        startInfo.EnvironmentVariables.Add(environmentVariable.Key.ToString(), environmentVariable.Value.ToString());
+
+                        var key = environmentVariable.Key.ToString();
+                        var value = environmentVariable.Value?.ToString();
+
+                        startInfo.EnvironmentVariables[key] = value;
                     }
                     catch (Exception e)
                     {
@@ -136,7 +139,6 @@ namespace NzbDrone.Common.Processes
                         {
                             _logger.Error(e, "Unable to set environment variable '{0}', value is null", environmentVariable.Key);
                         }
-
                         else
                         {
                             _logger.Error(e, "Unable to set environment variable '{0}'", environmentVariable.Key);
@@ -156,7 +158,10 @@ namespace NzbDrone.Common.Processes
 
             process.OutputDataReceived += (sender, eventArgs) =>
             {
-                if (string.IsNullOrWhiteSpace(eventArgs.Data)) return;
+                if (string.IsNullOrWhiteSpace(eventArgs.Data))
+                {
+                    return;
+                }
 
                 logger.Debug(eventArgs.Data);
 
@@ -168,7 +173,10 @@ namespace NzbDrone.Common.Processes
 
             process.ErrorDataReceived += (sender, eventArgs) =>
             {
-                if (string.IsNullOrWhiteSpace(eventArgs.Data)) return;
+                if (string.IsNullOrWhiteSpace(eventArgs.Data))
+                {
+                    return;
+                }
 
                 logger.Error(eventArgs.Data);
 
@@ -209,8 +217,11 @@ namespace NzbDrone.Common.Processes
         public ProcessOutput StartAndCapture(string path, string args = null, StringDictionary environmentVariables = null)
         {
             var output = new ProcessOutput();
-            var process = Start(path, args, environmentVariables, s => output.Lines.Add(new ProcessOutputLine(ProcessOutputLevel.Standard, s)),
-                                                                  error => output.Lines.Add(new ProcessOutputLine(ProcessOutputLevel.Error, error)));
+            var process = Start(path,
+                                args,
+                                environmentVariables,
+                                s => output.Lines.Add(new ProcessOutputLine(ProcessOutputLevel.Standard, s)),
+                                error => output.Lines.Add(new ProcessOutputLine(ProcessOutputLevel.Error, error)));
 
             process.WaitForExit();
             output.ExitCode = process.ExitCode;
@@ -249,7 +260,7 @@ namespace NzbDrone.Common.Processes
 
             process.Refresh();
 
-            if (process.Id != Process.GetCurrentProcess().Id && process.HasExited)
+            if (process.Id != GetCurrentProcessId() && process.HasExited)
             {
                 _logger.Debug("Process has already exited");
                 return;
@@ -270,7 +281,7 @@ namespace NzbDrone.Common.Processes
 
             foreach (var processInfo in processes)
             {
-                if (processInfo.Id == Process.GetCurrentProcess().Id)
+                if (processInfo.Id == GetCurrentProcessId())
                 {
                     _logger.Debug("Tried killing own process, skipping: {0} [{1}]", processInfo.Id, processInfo.ProcessName);
                     continue;
@@ -283,7 +294,10 @@ namespace NzbDrone.Common.Processes
 
         private ProcessInfo ConvertToProcessInfo(Process process)
         {
-            if (process == null) return null;
+            if (process == null)
+            {
+                return null;
+            }
 
             process.Refresh();
 
@@ -291,14 +305,17 @@ namespace NzbDrone.Common.Processes
 
             try
             {
-                if (process.Id <= 0) return null;
+                if (process.Id <= 0)
+                {
+                    return null;
+                }
 
                 processInfo = new ProcessInfo();
                 processInfo.Id = process.Id;
                 processInfo.Name = process.ProcessName;
-                processInfo.StartPath = GetExeFileName(process);
+                processInfo.StartPath = process.MainModule.FileName;
 
-                if (process.Id != Process.GetCurrentProcess().Id && process.HasExited)
+                if (process.Id != GetCurrentProcessId() && process.HasExited)
                 {
                     processInfo = null;
                 }
@@ -309,32 +326,11 @@ namespace NzbDrone.Common.Processes
             }
 
             return processInfo;
-
-        }
-
-        private static string GetExeFileName(Process process)
-        {
-            if (process.MainModule.FileName != "mono.exe")
-            {
-                return process.MainModule.FileName;
-            }
-
-            return process.Modules.Cast<ProcessModule>().FirstOrDefault(module => module.ModuleName.ToLower().EndsWith(".exe")).FileName;
         }
 
         private List<Process> GetProcessesByName(string name)
         {
-            //TODO: move this to an OS specific class
-
-            var monoProcesses = Process.GetProcessesByName("mono")
-                                       .Union(Process.GetProcessesByName("mono-sgen"))
-                                       .Where(process =>
-                                              process.Modules.Cast<ProcessModule>()
-                                                     .Any(module =>
-                                                          module.ModuleName.ToLower() == name.ToLower() + ".exe"));
-
-            var processes = Process.GetProcessesByName(name)
-                                   .Union(monoProcesses).ToList();
+            var processes = Process.GetProcessesByName(name).ToList();
 
             _logger.Debug("Found {0} processes with the name: {1}", processes.Count, name);
 
@@ -355,15 +351,6 @@ namespace NzbDrone.Common.Processes
 
         private (string Path, string Args) GetPathAndArgs(string path, string args)
         {
-            if (PlatformInfo.IsMono && path.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase))
-            {
-                return ("mono", $"--debug {path} {args}");
-            }
-            if (OsInfo.IsOsx && path.EndsWith(".app", StringComparison.InvariantCultureIgnoreCase))
-            {
-                return ("/usr/bin/open", $"--new {path} --args {args}");
-            }
-
             if (OsInfo.IsWindows && path.EndsWith(".bat", StringComparison.InvariantCultureIgnoreCase))
             {
                 return ("cmd.exe", $"/c {path} {args}");

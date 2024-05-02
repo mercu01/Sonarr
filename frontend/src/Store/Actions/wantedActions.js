@@ -1,12 +1,13 @@
 import { createAction } from 'redux-actions';
-import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
 import { filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
+import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
+import translate from 'Utilities/String/translate';
+import createBatchToggleEpisodeMonitoredHandler from './Creators/createBatchToggleEpisodeMonitoredHandler';
+import createHandleActions from './Creators/createHandleActions';
+import createServerSideCollectionHandlers from './Creators/createServerSideCollectionHandlers';
 import createClearReducer from './Creators/Reducers/createClearReducer';
 import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
-import createBatchToggleEpisodeMonitoredHandler from './Creators/createBatchToggleEpisodeMonitoredHandler';
-import createServerSideCollectionHandlers from './Creators/createServerSideCollectionHandlers';
-import createHandleActions from './Creators/createHandleActions';
 
 //
 // Variables
@@ -21,7 +22,7 @@ export const defaultState = {
     isFetching: false,
     isPopulated: false,
     pageSize: 20,
-    sortKey: 'airDateUtc',
+    sortKey: 'episodes.airDateUtc',
     sortDirection: sortDirections.DESCENDING,
     error: null,
     items: [],
@@ -29,34 +30,34 @@ export const defaultState = {
     columns: [
       {
         name: 'series.sortTitle',
-        label: 'Series Title',
+        label: () => translate('SeriesTitle'),
         isSortable: true,
         isVisible: true
       },
       {
         name: 'episode',
-        label: 'Episode',
+        label: () => translate('Episode'),
         isVisible: true
       },
       {
-        name: 'episodeTitle',
-        label: 'Episode Title',
+        name: 'episodes.title',
+        label: () => translate('EpisodeTitle'),
         isVisible: true
       },
       {
-        name: 'airDateUtc',
-        label: 'Air Date',
+        name: 'episodes.airDateUtc',
+        label: () => translate('AirDate'),
         isSortable: true,
         isVisible: true
       },
       {
         name: 'status',
-        label: 'Status',
+        label: () => translate('Status'),
         isVisible: true
       },
       {
         name: 'actions',
-        columnLabel: 'Actions',
+        columnLabel: () => translate('Actions'),
         isVisible: true,
         isModifiable: false
       }
@@ -67,7 +68,7 @@ export const defaultState = {
     filters: [
       {
         key: 'monitored',
-        label: 'Monitored',
+        label: () => translate('Monitored'),
         filters: [
           {
             key: 'monitored',
@@ -78,7 +79,7 @@ export const defaultState = {
       },
       {
         key: 'unmonitored',
-        label: 'Unmonitored',
+        label: () => translate('Unmonitored'),
         filters: [
           {
             key: 'monitored',
@@ -94,46 +95,46 @@ export const defaultState = {
     isFetching: false,
     isPopulated: false,
     pageSize: 20,
-    sortKey: 'airDateUtc',
+    sortKey: 'episodes.airDateUtc',
     sortDirection: sortDirections.DESCENDING,
     items: [],
 
     columns: [
       {
         name: 'series.sortTitle',
-        label: 'Series Title',
+        label: () => translate('SeriesTitle'),
         isSortable: true,
         isVisible: true
       },
       {
         name: 'episode',
-        label: 'Episode',
+        label: () => translate('Episode'),
         isVisible: true
       },
       {
-        name: 'episodeTitle',
-        label: 'Episode Title',
+        name: 'episodes.title',
+        label: () => translate('EpisodeTitle'),
         isVisible: true
       },
       {
-        name: 'airDateUtc',
-        label: 'Air Date',
+        name: 'episodes.airDateUtc',
+        label: () => translate('AirDate'),
         isSortable: true,
         isVisible: true
       },
       {
-        name: 'language',
-        label: 'Language',
+        name: 'languages',
+        label: () => translate('Languages'),
         isVisible: false
       },
       {
         name: 'status',
-        label: 'Status',
+        label: () => translate('Status'),
         isVisible: true
       },
       {
         name: 'actions',
-        columnLabel: 'Actions',
+        columnLabel: () => translate('Actions'),
         isVisible: true,
         isModifiable: false
       }
@@ -144,7 +145,7 @@ export const defaultState = {
     filters: [
       {
         key: 'monitored',
-        label: 'Monitored',
+        label: () => translate('Monitored'),
         filters: [
           {
             key: 'monitored',
@@ -155,7 +156,7 @@ export const defaultState = {
       },
       {
         key: 'unmonitored',
-        label: 'Unmonitored',
+        label: () => translate('Unmonitored'),
         filters: [
           {
             key: 'monitored',

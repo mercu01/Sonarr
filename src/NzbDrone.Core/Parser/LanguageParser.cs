@@ -1,10 +1,13 @@
-﻿using NLog;
-using NzbDrone.Common.Instrumentation;
-using NzbDrone.Core.Languages;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Instrumentation;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Parser
 {
@@ -17,106 +20,202 @@ namespace NzbDrone.Core.Parser
                 new RegexReplace(@".*?[_. ](S\d{2}(?:E\d{2,4})*[_. ].*)", "$1", RegexOptions.Compiled | RegexOptions.IgnoreCase)
             };
 
-        private static readonly Regex LanguageRegex = new Regex(@"(?:\W|_)(?<italian>\b(?:ita|italian)\b)|(?<german>german\b|videomann|ger[. ]dub)|(?<flemish>flemish)|(?<greek>greek)|(?<french>(?:\W|_)(?:FR|VF|VF2|VFF|VFQ|TRUEFRENCH)(?:\W|_))|(?<russian>\brus\b)|(?<hungarian>\b(?:HUNDUB|HUN)\b)|(?<hebrew>\bHebDub\b)|(?<polish>\b(?:PL\W?DUB|DUB\W?PL|LEK\W?PL|PL\W?LEK)\b)|(?<chinese>\[(?:CH[ST]|BIG5|GB)\]|简|繁|字幕)|(?<bulgarian>\bbgaudio\b)|(?<spanish>\b(?:español|castellano|cap.|temporada|\d{1,2}x\d{1,2}|T\d{1,2}|T \d{1,2})\b)|(?<ukrainian>\b(?:ukr)\b)",
-                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex LanguageRegex = new Regex(@"(?:\W|_)(?<italian>\b(?:ita|italian)\b)|(?<german>german\b|videomann|ger[. ]dub)|(?<flemish>flemish)|(?<greek>greek)|(?<french>(?:\W|_)(?:FR|VF|VF2|VFF|VFQ|TRUEFRENCH)(?:\W|_))|(?<russian>\brus\b)|(?<hungarian>\b(?:HUNDUB|HUN)\b)|(?<hebrew>\bHebDub\b)|(?<polish>\b(?:PL\W?DUB|DUB\W?PL|LEK\W?PL|PL\W?LEK)\b)|(?<chinese>\[(?:CH[ST]|BIG5|GB)\]|简|繁|字幕)|(?<bulgarian>\bbgaudio\b)|(?<spanish>\b(?:español|castellano|cap.|temporada|\d{1,2}x\d{1,2}|T\d{1,2}|T \d{1,2})\b)|(?<ukrainian>\b(?:ukr)\b)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex CaseSensitiveLanguageRegex = new Regex(@"(?:(?i)(?<!SUB[\W|_|^]))(?:(?<lithuanian>\bLT\b)|(?<czech>\bCZ\b)|(?<polish>\bPL\b)|(?<bulgarian>\bBG\b))(?:(?i)(?![\W|_|^]SUB))",
+        private static readonly Regex CaseSensitiveLanguageRegex = new Regex(@"(?:(?i)(?<!SUB[\W|_|^]))(?:(?<lithuanian>\bLT\b)|(?<czech>\bCZ\b)|(?<polish>\bPL\b)|(?<bulgarian>\bBG\b)|(?<slovak>\bSK\b))(?:(?i)(?![\W|_|^]SUB))",
                                                                 RegexOptions.Compiled);
 
+        private static readonly Regex GermanDualLanguageRegex = new(@"(?<!WEB[-_. ]?)\bDL\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex GermanMultiLanguageRegex = new(@"\bML\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Regex SubtitleLanguageRegex = new Regex(".+?[-_. ](?<iso_code>[a-z]{2,3})([-_. ](?<tags>full|forced|foreign|default|cc|psdh|sdh))*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex SubtitleLanguageRegex = new Regex(".+?([-_. ](?<tags>forced|foreign|default|cc|psdh|sdh))*[-_. ](?<iso_code>[a-z]{2,3})([-_. ](?<tags>forced|foreign|default|cc|psdh|sdh))*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public static Language ParseLanguage(string title, bool defaultToEnglish = true)
+        private static readonly Regex SubtitleLanguageTitleRegex = new Regex(@".+?(\.((?<tags1>forced|foreign|default|cc|psdh|sdh)|(?<iso_code>[a-z]{2,3})))*[-_. ](?<title>[^.]*)(\.((?<tags2>forced|foreign|default|cc|psdh|sdh)|(?<iso_code>[a-z]{2,3})))*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex SubtitleTitleRegex = new Regex(@"^((?<title>.+) - )?(?<copy>(?<!\d+)\d{1,3}(?!\d+))$", RegexOptions.Compiled);
+
+        public static List<Language> ParseLanguages(string title)
         {
             foreach (var regex in CleanSeriesTitleRegex)
             {
                 if (regex.TryReplace(ref title))
+                {
                     break;
+                }
             }
 
             var lowerTitle = title.ToLower();
 
-            if (lowerTitle.Contains("french"))
-                return Language.French;
+            var languages = new List<Language>();
 
+            if (lowerTitle.Contains("french"))
+            {
+                languages.Add(Language.French);
+            }
 
             if (lowerTitle.Contains("spanish"))
-                return Language.Spanish;
+            {
+                languages.Add(Language.Spanish);
+            }
 
             if (lowerTitle.Contains("danish"))
-                return Language.Danish;
+            {
+                languages.Add(Language.Danish);
+            }
 
             if (lowerTitle.Contains("dutch"))
-                return Language.Dutch;
+            {
+                languages.Add(Language.Dutch);
+            }
 
             if (lowerTitle.Contains("japanese"))
-                return Language.Japanese;
+            {
+                languages.Add(Language.Japanese);
+            }
 
             if (lowerTitle.Contains("icelandic"))
-                return Language.Icelandic;
+            {
+                languages.Add(Language.Icelandic);
+            }
 
             if (lowerTitle.Contains("mandarin") || lowerTitle.Contains("cantonese") || lowerTitle.Contains("chinese"))
-                return Language.Chinese;
+            {
+                languages.Add(Language.Chinese);
+            }
 
             if (lowerTitle.Contains("korean"))
-                return Language.Korean;
+            {
+                languages.Add(Language.Korean);
+            }
 
             if (lowerTitle.Contains("russian"))
-                return Language.Russian;
+            {
+                languages.Add(Language.Russian);
+            }
 
             if (lowerTitle.Contains("polish"))
-                return Language.Polish;
+            {
+                languages.Add(Language.Polish);
+            }
 
             if (lowerTitle.Contains("vietnamese"))
-                return Language.Vietnamese;
+            {
+                languages.Add(Language.Vietnamese);
+            }
 
             if (lowerTitle.Contains("swedish"))
-                return Language.Swedish;
+            {
+                languages.Add(Language.Swedish);
+            }
 
             if (lowerTitle.Contains("norwegian"))
-                return Language.Norwegian;
+            {
+                languages.Add(Language.Norwegian);
+            }
 
             if (lowerTitle.Contains("finnish"))
-                return Language.Finnish;
+            {
+                languages.Add(Language.Finnish);
+            }
 
             if (lowerTitle.Contains("turkish"))
-                return Language.Turkish;
+            {
+                languages.Add(Language.Turkish);
+            }
 
             if (lowerTitle.Contains("portuguese"))
-                return Language.Portuguese;
+            {
+                languages.Add(Language.Portuguese);
+            }
 
             if (lowerTitle.Contains("hungarian"))
-                return Language.Hungarian;
+            {
+                languages.Add(Language.Hungarian);
+            }
 
             if (lowerTitle.Contains("hebrew"))
-                return Language.Hebrew;
+            {
+                languages.Add(Language.Hebrew);
+            }
 
             if (lowerTitle.Contains("arabic"))
-                return Language.Arabic;
+            {
+                languages.Add(Language.Arabic);
+            }
 
             if (lowerTitle.Contains("hindi"))
-                return Language.Hindi;
+            {
+                languages.Add(Language.Hindi);
+            }
 
             if (lowerTitle.Contains("malayalam"))
-                return Language.Malayalam;
+            {
+                languages.Add(Language.Malayalam);
+            }
 
             if (lowerTitle.Contains("ukrainian"))
-                return Language.Ukrainian;
+            {
+                languages.Add(Language.Ukrainian);
+            }
 
             if (lowerTitle.Contains("bulgarian"))
-                return Language.Bulgarian;
-
-            var regexLanguage = RegexLanguage(title);
-
-            if (regexLanguage != Language.Unknown)
             {
-                return regexLanguage;
+                languages.Add(Language.Bulgarian);
+            }
+
+            if (lowerTitle.Contains("slovak"))
+            {
+                languages.Add(Language.Slovak);
+            }
+
+            if (lowerTitle.Contains("brazilian") || lowerTitle.Contains("dublado"))
+            {
+                languages.Add(Language.PortugueseBrazil);
+            }
+
+            if (lowerTitle.Contains("latino"))
+            {
+                languages.Add(Language.SpanishLatino);
+            }
+
+            if (lowerTitle.Contains("latvian"))
+            {
+                languages.Add(Language.Latvian);
+            }
+
+            var regexLanguages = RegexLanguage(title);
+
+            if (regexLanguages.Any())
+            {
+                languages.AddRange(regexLanguages);
             }
 
             if (lowerTitle.Contains("english"))
-                return Language.English;
+            {
+                languages.Add(Language.English);
+            }
 
-            return defaultToEnglish ? Language.English : Language.Unknown;
+            if (!languages.Any())
+            {
+                languages.Add(Language.Unknown);
+            }
+
+            if (languages.Count == 1 && languages.Single() == Language.German)
+            {
+                if (GermanDualLanguageRegex.IsMatch(title))
+                {
+                    Logger.Trace("Adding original language because the release title contains German DL tag");
+                    languages.Add(Language.Original);
+                }
+                else if (GermanMultiLanguageRegex.IsMatch(title))
+                {
+                    Logger.Trace("Adding original language and English because the release title contains German ML tag");
+                    languages.Add(Language.Original);
+                    languages.Add(Language.English);
+                }
+            }
+
+            return languages.DistinctBy(l => (int)l).ToList();
         }
 
         public static Language ParseSubtitleLanguage(string fileName)
@@ -136,7 +235,7 @@ namespace NzbDrone.Core.Parser
                     return isoLanguage?.Language ?? Language.Unknown;
                 }
 
-                foreach (Language language in Language.All)
+                foreach (var language in Language.All)
                 {
                     if (simpleFilename.EndsWith(language.ToString(), StringComparison.OrdinalIgnoreCase))
                     {
@@ -154,69 +253,230 @@ namespace NzbDrone.Core.Parser
             return Language.Unknown;
         }
 
-        private static Language RegexLanguage(string title)
+        public static SubtitleTitleInfo ParseBasicSubtitle(string fileName)
         {
+            return new SubtitleTitleInfo
+            {
+                TitleFirst = false,
+                LanguageTags = ParseLanguageTags(fileName),
+                Language = ParseSubtitleLanguage(fileName)
+            };
+        }
+
+        public static SubtitleTitleInfo ParseSubtitleLanguageInformation(string fileName)
+        {
+            var simpleFilename = Path.GetFileNameWithoutExtension(fileName);
+            var matchTitle = SubtitleLanguageTitleRegex.Match(simpleFilename);
+
+            if (!matchTitle.Groups["title"].Success || (matchTitle.Groups["iso_code"].Captures.Count is var languageCodeNumber && languageCodeNumber != 1))
+            {
+                Logger.Debug("Could not parse a title from subtitle file: {0}. Falling back to parsing without title.", fileName);
+
+                return ParseBasicSubtitle(fileName);
+            }
+
+            var isoCode = matchTitle.Groups["iso_code"].Value;
+            var isoLanguage = IsoLanguages.Find(isoCode.ToLower());
+
+            var language = isoLanguage?.Language ?? Language.Unknown;
+
+            var languageTags = matchTitle.Groups["tags1"].Captures
+                .Union(matchTitle.Groups["tags2"].Captures)
+                .Cast<Capture>()
+                .Where(tag => !tag.Value.Empty())
+                .Select(tag => tag.Value.ToLower());
+            var rawTitle = matchTitle.Groups["title"].Value;
+
+            var subtitleTitleInfo = new SubtitleTitleInfo
+            {
+                TitleFirst = matchTitle.Groups["tags1"].Captures.Empty(),
+                LanguageTags = languageTags.ToList(),
+                RawTitle = rawTitle,
+                Language = language
+            };
+
+            UpdateTitleAndCopyFromTitle(subtitleTitleInfo);
+
+            return subtitleTitleInfo;
+        }
+
+        public static void UpdateTitleAndCopyFromTitle(SubtitleTitleInfo subtitleTitleInfo)
+        {
+            if (subtitleTitleInfo.RawTitle is null)
+            {
+                subtitleTitleInfo.Title = null;
+                subtitleTitleInfo.Copy = 0;
+            }
+            else if (SubtitleTitleRegex.Match(subtitleTitleInfo.RawTitle) is var match && match.Success)
+            {
+                subtitleTitleInfo.Title = match.Groups["title"].Success ? match.Groups["title"].ToString() : null;
+                subtitleTitleInfo.Copy = int.Parse(match.Groups["copy"].ToString());
+            }
+            else
+            {
+                subtitleTitleInfo.Title = subtitleTitleInfo.RawTitle;
+                subtitleTitleInfo.Copy = 0;
+            }
+        }
+
+        public static List<string> ParseLanguageTags(string fileName)
+        {
+            try
+            {
+                var simpleFilename = Path.GetFileNameWithoutExtension(fileName);
+                var match = SubtitleLanguageRegex.Match(simpleFilename);
+                var languageTags = match.Groups["tags"].Captures
+                    .Where(tag => !tag.Value.Empty())
+                    .Select(tag => tag.Value.ToLower());
+                return languageTags.ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex, "Failed parsing language tags from subtitle file: {0}", fileName);
+            }
+
+            return new List<string>();
+        }
+
+        private static List<Language> RegexLanguage(string title)
+        {
+            var languages = new List<Language>();
+
             // Case sensitive
             var caseSensitiveMatch = CaseSensitiveLanguageRegex.Match(title);
 
-            if (caseSensitiveMatch.Groups["lithuanian"].Captures.Cast<Capture>().Any())
-                return Language.Lithuanian;
+            if (caseSensitiveMatch.Groups["lithuanian"].Captures.Any())
+            {
+                languages.Add(Language.Lithuanian);
+            }
 
-            if (caseSensitiveMatch.Groups["czech"].Captures.Cast<Capture>().Any())
-                return Language.Czech;
+            if (caseSensitiveMatch.Groups["czech"].Captures.Any())
+            {
+                languages.Add(Language.Czech);
+            }
 
-            if (caseSensitiveMatch.Groups["polish"].Captures.Cast<Capture>().Any())
-                return Language.Polish;
+            if (caseSensitiveMatch.Groups["polish"].Captures.Any())
+            {
+                languages.Add(Language.Polish);
+            }
 
-            if (caseSensitiveMatch.Groups["bulgarian"].Captures.Cast<Capture>().Any())
-                return Language.Bulgarian;
+            if (caseSensitiveMatch.Groups["bulgarian"].Captures.Any())
+            {
+                languages.Add(Language.Bulgarian);
+            }
+
+            if (caseSensitiveMatch.Groups["slovak"].Captures.Any())
+            {
+                languages.Add(Language.Slovak);
+            }
 
             // Case insensitive
-            var match = LanguageRegex.Match(title);
+            var matches = LanguageRegex.Matches(title);
 
-            if (match.Groups["italian"].Captures.Cast<Capture>().Any())
-                return Language.Italian;
+            foreach (Match match in matches)
+            {
+                if (match.Groups["english"].Success)
+                {
+                    languages.Add(Language.English);
+                }
 
-            if (match.Groups["german"].Captures.Cast<Capture>().Any())
-                return Language.German;
+                if (match.Groups["italian"].Captures.Any())
+                {
+                    languages.Add(Language.Italian);
+                }
 
-            if (match.Groups["flemish"].Captures.Cast<Capture>().Any())
-                return Language.Flemish;
+                if (match.Groups["german"].Captures.Any())
+                {
+                    languages.Add(Language.German);
+                }
 
-            if (match.Groups["greek"].Captures.Cast<Capture>().Any())
-                return Language.Greek;
+                if (match.Groups["flemish"].Captures.Any())
+                {
+                    languages.Add(Language.Flemish);
+                }
 
-            if (match.Groups["french"].Success)
-                return Language.French;
+                if (match.Groups["greek"].Captures.Any())
+                {
+                    languages.Add(Language.Greek);
+                }
 
-            if (match.Groups["russian"].Success)
-                return Language.Russian;
+                if (match.Groups["french"].Success)
+                {
+                    languages.Add(Language.French);
+                }
 
-            if (match.Groups["dutch"].Success)
-                return Language.Dutch;
+                if (match.Groups["russian"].Success)
+                {
+                    languages.Add(Language.Russian);
+                }
 
-            if (match.Groups["hungarian"].Success)
-                return Language.Hungarian;
+                if (match.Groups["dutch"].Success)
+                {
+                    languages.Add(Language.Dutch);
+                }
 
-            if (match.Groups["hebrew"].Success)
-                return Language.Hebrew;
+                if (match.Groups["hungarian"].Success)
+                {
+                    languages.Add(Language.Hungarian);
+                }
 
-            if (match.Groups["polish"].Success)
-                return Language.Polish;
+                if (match.Groups["hebrew"].Success)
+                {
+                    languages.Add(Language.Hebrew);
+                }
 
-            if (match.Groups["chinese"].Success)
-                return Language.Chinese;
+                if (match.Groups["polish"].Success)
+                {
+                    languages.Add(Language.Polish);
+                }
 
-            if (match.Groups["bulgarian"].Success)
-                return Language.Bulgarian;
+                if (match.Groups["chinese"].Success)
+                {
+                    languages.Add(Language.Chinese);
+                }
 
-            if (match.Groups["ukrainian"].Success)
-                return Language.Ukrainian;
+                if (match.Groups["bulgarian"].Success)
+                {
+                    languages.Add(Language.Bulgarian);
+                }
 
-            if (match.Groups["spanish"].Success)
-                return Language.Spanish;
+                if (match.Groups["ukrainian"].Success)
+                {
+                    languages.Add(Language.Ukrainian);
+                }
 
-            return Language.Unknown;
+                if (match.Groups["spanish"].Success)
+                {
+                    languages.Add(Language.Spanish);
+                }
+
+                if (match.Groups["thai"].Success)
+                {
+                    languages.Add(Language.Thai);
+                }
+
+                if (match.Groups["romanian"].Success)
+                {
+                    languages.Add(Language.Romanian);
+                }
+
+                if (match.Groups["catalan"].Success)
+                {
+                    languages.Add(Language.Catalan);
+                }
+
+                if (match.Groups["latvian"].Success)
+                {
+                    languages.Add(Language.Latvian);
+                }
+
+                if (match.Groups["turkish"].Success)
+                {
+                    languages.Add(Language.Turkish);
+                }
+            }
+
+            return languages;
         }
     }
 }

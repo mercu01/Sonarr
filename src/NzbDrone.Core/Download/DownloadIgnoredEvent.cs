@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using NzbDrone.Common.Messaging;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Download
 {
@@ -10,7 +10,7 @@ namespace NzbDrone.Core.Download
     {
         public int SeriesId { get; set; }
         public List<int> EpisodeIds { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
         public QualityModel Quality { get; set; }
         public string SourceTitle { get; set; }
         public DownloadClientItemClientInfo DownloadClientInfo { get; set; }

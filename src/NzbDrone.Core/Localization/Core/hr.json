@@ -1,0 +1,21 @@
+{
+    "Version": "Verzija",
+    "Options": "Opcije",
+    "Health": "Zdravlje",
+    "Result": "Rezultat",
+    "Type": "Tip",
+    "Yes": "Da",
+    "Year": "Godina",
+    "Priority": "Prioritet",
+    "History": "Povijest",
+    "Name": "Ime",
+    "Size": "Veličina",
+    "Save": "Spremi",
+    "No": "Ne",
+    "YesCancel": "Da, otkaži",
+    "Restart": "Resetiraj",
+    "System": "Sustav",
+    "Source": "Izvor",
+    "Status": "Status",
+    "Time": "Vrijeme"
+}

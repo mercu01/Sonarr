@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { shortcuts } from 'Components/keyboardShortcuts';
 import Button from 'Components/Link/Button';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import translate from 'Utilities/String/translate';
 import styles from './KeyboardShortcutsModalContent.css';
 
 function getShortcuts() {
@@ -47,7 +48,7 @@ function KeyboardShortcutsModalContent(props) {
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        Keyboard Shortcuts
+        {translate('KeyboardShortcuts')}
       </ModalHeader>
 
       <ModalBody>
@@ -75,7 +76,7 @@ function KeyboardShortcutsModalContent(props) {
         <Button
           onPress={onModalClose}
         >
-          Close
+          {translate('Close')}
         </Button>
       </ModalFooter>
     </ModalContent>

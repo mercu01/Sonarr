@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons } from 'Helpers/Props';
 import IconButton from 'Components/Link/IconButton';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
+import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './CustomFilter.css';
 
 class CustomFilter extends Component {
@@ -36,8 +37,8 @@ class CustomFilter extends Component {
       dispatchSetFilter
     } = this.props;
 
-    // Assume that delete and then unmounting means the delete was successful.
-    // Moving this check to a ancestor would be more accurate, but would have
+    // Assume that delete and then unmounting means the deletion was successful.
+    // Moving this check to an ancestor would be more accurate, but would have
     // more boilerplate.
     if (this.state.isDeleting && id === selectedFilterKey) {
       dispatchSetFilter({ selectedFilterKey: 'all' });
@@ -54,7 +55,7 @@ class CustomFilter extends Component {
     } = this.props;
 
     onEditPress(id);
-  }
+  };
 
   onRemovePress = () => {
     const {
@@ -66,7 +67,7 @@ class CustomFilter extends Component {
       dispatchDeleteCustomFilter({ id });
     });
 
-  }
+  };
 
   //
   // Render
@@ -89,7 +90,7 @@ class CustomFilter extends Component {
           />
 
           <SpinnerIconButton
-            title="Remove filter"
+            title={translate('RemoveFilter')}
             name={icons.REMOVE}
             isSpinning={this.state.isDeleting}
             onPress={this.onRemovePress}

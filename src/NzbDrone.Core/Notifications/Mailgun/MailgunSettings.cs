@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
@@ -15,30 +16,29 @@ namespace NzbDrone.Core.Notifications.Mailgun
             RuleFor(c => c.Recipients).NotEmpty();
         }
     }
-    
+
     public class MailgunSettings : IProviderConfig
     {
       private static readonly  MailGunSettingsValidator Validator = new MailGunSettingsValidator();
 
       public MailgunSettings()
       {
-          Recipients = new string[] { };
+          Recipients = Array.Empty<string>();
       }
-      
-      
-      [FieldDefinition(0, Label = "API Key", HelpText = "The API key generated from MailGun")]
+
+      [FieldDefinition(0, Label = "ApiKey", HelpText = "NotificationsMailgunSettingsApiKeyHelpText")]
       public string ApiKey { get; set; }
-      
-      [FieldDefinition(1, Label = "Use EU Endpoint?", HelpText = "You can choose to use the EU MailGun endpoint with this", Type = FieldType.Checkbox)]
+
+      [FieldDefinition(1, Label = "NotificationsMailgunSettingsUseEuEndpoint", HelpText = "NotificationsMailgunSettingsUseEuEndpointHelpText", Type = FieldType.Checkbox)]
       public bool UseEuEndpoint { get; set; }
-      
-      [FieldDefinition(2, Label = "From Address")]
+
+      [FieldDefinition(2, Label = "NotificationsEmailSettingsFromAddress")]
       public string From { get; set; }
-      
-      [FieldDefinition(3, Label = "Sender Domain")]
+
+      [FieldDefinition(3, Label = "NotificationsMailgunSettingsSenderDomain")]
       public string SenderDomain { get; set; }
-      
-      [FieldDefinition(4, Label = "Recipient Address(es)", Type = FieldType.Tag)]
+
+      [FieldDefinition(4, Label = "NotificationsEmailSettingsRecipientAddress", Type = FieldType.Tag)]
       public IEnumerable<string> Recipients { get; set; }
 
       public NzbDroneValidationResult Validate()

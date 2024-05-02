@@ -4,12 +4,12 @@
   margin-right: auto;
 }
 
-.hideLanguageProfile {
-  composes: group from '~Components/Form/FormGroup.css';
-
-  display: none;
-}
-
 .labelIcon {
   margin-left: 8px;
+}
+
+.message {
+  composes: alert from '~Components/Alert.css';
+
+  margin-bottom: 30px;
 }

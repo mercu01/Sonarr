@@ -1,26 +1,28 @@
-﻿using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Configuration;
 using Sonarr.Http.REST;
 
 namespace Sonarr.Api.V3.Config
 {
     public class UiConfigResource : RestResource
     {
-        //Calendar
+        // Calendar
         public int FirstDayOfWeek { get; set; }
         public string CalendarWeekColumnHeader { get; set; }
 
-        //Dates
+        // Dates
         public string ShortDateFormat { get; set; }
         public string LongDateFormat { get; set; }
         public string TimeFormat { get; set; }
         public bool ShowRelativeDates { get; set; }
 
         public bool EnableColorImpairedMode { get; set; }
+        public string Theme { get; set; }
+        public int UILanguage { get; set; }
     }
 
     public static class UiConfigResourceMapper
     {
-        public static UiConfigResource ToResource(IConfigService model)
+        public static UiConfigResource ToResource(IConfigFileProvider config, IConfigService model)
         {
             return new UiConfigResource
             {
@@ -33,6 +35,8 @@ namespace Sonarr.Api.V3.Config
                 ShowRelativeDates = model.ShowRelativeDates,
 
                 EnableColorImpairedMode = model.EnableColorImpairedMode,
+                Theme = config.Theme,
+                UILanguage = model.UILanguage
             };
         }
     }

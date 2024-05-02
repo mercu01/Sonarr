@@ -1,8 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Collections.Specialized;
+using System.Linq;
+using NzbDrone.Common.Extensions;
 
 namespace NzbDrone.Common.OAuth
 {
@@ -14,14 +15,14 @@ namespace NzbDrone.Common.OAuth
         {
             get
             {
-                var parameters = this.Where(p => p.Name.Equals(name));
-                
-                if(parameters.Count() == 0)
+                var parameters = this.Where(p => p.Name.Equals(name)).ToArray();
+
+                if (parameters.Empty())
                 {
                     return null;
                 }
 
-                if(parameters.Count() == 1)
+                if (parameters.Length == 1)
                 {
                     return parameters.Single();
                 }
@@ -47,7 +48,8 @@ namespace NzbDrone.Common.OAuth
         }
 
 #if !WINRT
-        public WebParameterCollection(NameValueCollection collection) : this()
+        public WebParameterCollection(NameValueCollection collection)
+            : this()
         {
             AddCollection(collection);
         }
@@ -67,7 +69,8 @@ namespace NzbDrone.Common.OAuth
         }
 #endif
 
-        public WebParameterCollection(IDictionary<string, string> collection) : this()
+        public WebParameterCollection(IDictionary<string, string> collection)
+            : this()
         {
             AddCollection(collection);
         }
@@ -128,8 +131,6 @@ namespace NzbDrone.Common.OAuth
             _parameters.Add(pair);
         }
 
-        #region IList<WebParameter> Members
-
         public virtual IEnumerator<WebParameter> GetEnumerator()
         {
             return _parameters.GetEnumerator();
@@ -142,7 +143,6 @@ namespace NzbDrone.Common.OAuth
 
         public virtual void Add(WebParameter parameter)
         {
-            
             _parameters.Add(parameter);
         }
 
@@ -196,7 +196,5 @@ namespace NzbDrone.Common.OAuth
             get { return _parameters[index]; }
             set { _parameters[index] = value; }
         }
-
-        #endregion
     }
 }

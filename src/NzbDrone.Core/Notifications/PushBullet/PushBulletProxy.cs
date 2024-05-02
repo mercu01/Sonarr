@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.Notifications.PushBullet
 {
@@ -22,11 +24,13 @@ namespace NzbDrone.Core.Notifications.PushBullet
         private const string PUSH_URL = "https://api.pushbullet.com/v2/pushes";
         private const string DEVICE_URL = "https://api.pushbullet.com/v2/devices";
         private readonly IHttpClient _httpClient;
+        private readonly ILocalizationService _localizationService;
         private readonly Logger _logger;
 
-        public PushBulletProxy(IHttpClient httpClient, Logger logger)
+        public PushBulletProxy(IHttpClient httpClient, ILocalizationService localizationService, Logger logger)
         {
             _httpClient = httpClient;
+            _localizationService = localizationService;
             _logger = logger;
         }
 
@@ -100,8 +104,8 @@ namespace NzbDrone.Core.Notifications.PushBullet
 
                 var request = requestBuilder.Build();
 
-                request.Method = HttpMethod.GET;
-                request.AddBasicAuthentication(settings.ApiKey, string.Empty);
+                request.Method = HttpMethod.Get;
+                request.Credentials = new BasicNetworkCredential(settings.ApiKey, string.Empty);
 
                 var response = _httpClient.Execute(request);
 
@@ -133,16 +137,16 @@ namespace NzbDrone.Core.Notifications.PushBullet
                 if (ex.Response.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     _logger.Error(ex, "API Key is invalid");
-                    return new ValidationFailure("ApiKey", "API Key is invalid");
+                    return new ValidationFailure("ApiKey", _localizationService.GetLocalizedString("NotificationsValidationInvalidApiKey"));
                 }
 
                 _logger.Error(ex, "Unable to send test message");
-                return new ValidationFailure("ApiKey", "Unable to send test message");
+                return new ValidationFailure("ApiKey", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Unable to send test message");
-                return new ValidationFailure("", "Unable to send test message");
+                return new ValidationFailure("", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;
@@ -151,18 +155,16 @@ namespace NzbDrone.Core.Notifications.PushBullet
         private HttpRequestBuilder BuildDeviceRequest(string deviceId)
         {
             var requestBuilder = new HttpRequestBuilder(PUSH_URL).Post();
-            long integerId;
 
             if (deviceId.IsNullOrWhiteSpace())
             {
                 return requestBuilder;
             }
 
-            if (long.TryParse(deviceId, out integerId))
+            if (long.TryParse(deviceId, out var integerId))
             {
                 requestBuilder.AddFormParameter("device_id", integerId);
             }
-
             else
             {
                 requestBuilder.AddFormParameter("device_iden", deviceId);
@@ -198,7 +200,7 @@ namespace NzbDrone.Core.Notifications.PushBullet
 
                 var request = requestBuilder.Build();
 
-                request.AddBasicAuthentication(settings.ApiKey, string.Empty);
+                request.Credentials = new BasicNetworkCredential(settings.ApiKey, string.Empty);
 
                 _httpClient.Execute(request);
             }

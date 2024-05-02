@@ -1,14 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons } from 'Helpers/Props';
+import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import Table from 'Components/Table/Table';
-import TableBody from 'Components/Table/TableBody';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
-import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
+import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
+import Table from 'Components/Table/Table';
+import TableBody from 'Components/Table/TableBody';
+import { icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import BackupRow from './BackupRow';
 import RestoreBackupModalConnector from './RestoreBackupModalConnector';
 
@@ -19,17 +21,17 @@ const columns = [
   },
   {
     name: 'name',
-    label: 'Name',
+    label: () => translate('Name'),
     isVisible: true
   },
   {
     name: 'size',
-    label: 'Size',
+    label: () => translate('Size'),
     isVisible: true
   },
   {
     name: 'time',
-    label: 'Time',
+    label: () => translate('Time'),
     isVisible: true
   },
   {
@@ -56,11 +58,11 @@ class Backups extends Component {
 
   onRestorePress = () => {
     this.setState({ isRestoreModalOpen: true });
-  }
+  };
 
   onRestoreModalClose = () => {
     this.setState({ isRestoreModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -80,18 +82,18 @@ class Backups extends Component {
     const noBackups = isPopulated && !items.length;
 
     return (
-      <PageContent title="Backups">
+      <PageContent title={translate('Backups')}>
         <PageToolbar>
           <PageToolbarSection>
             <PageToolbarButton
-              label="Backup Now"
+              label={translate('BackupNow')}
               iconName={icons.BACKUP}
               isSpinning={backupExecuting}
               onPress={onBackupPress}
             />
 
             <PageToolbarButton
-              label="Restore Backup"
+              label={translate('RestoreBackup')}
               iconName={icons.RESTORE}
               onPress={this.onRestorePress}
             />
@@ -106,12 +108,16 @@ class Backups extends Component {
 
           {
             !isFetching && !!error &&
-              <div>Unable to load backups</div>
+              <Alert kind={kinds.DANGER}>
+                {translate('BackupsLoadError')}
+              </Alert>
           }
 
           {
             noBackups &&
-              <div>No backups are available</div>
+              <Alert kind={kinds.INFO}>
+                {translate('NoBackupsAreAvailable')}
+              </Alert>
           }
 
           {

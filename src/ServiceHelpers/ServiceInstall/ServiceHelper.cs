@@ -12,7 +12,7 @@ namespace ServiceInstall
 
         private static bool IsAnAdministrator()
         {
-            WindowsPrincipal principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+            var principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
@@ -41,8 +41,8 @@ namespace ServiceInstall
                                 };
 
             var process = new Process { StartInfo = startInfo };
-            process.OutputDataReceived += (OnDataReceived);
-            process.ErrorDataReceived += (OnDataReceived);
+            process.OutputDataReceived += OnDataReceived;
+            process.ErrorDataReceived += OnDataReceived;
 
             process.Start();
 

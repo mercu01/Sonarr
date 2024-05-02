@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -353,6 +352,26 @@ namespace NzbDrone.Common.Test.DiskTests
         }
 
         [Test]
+        public void should_not_rollback_move_on_partial_if_destination_already_exists()
+        {
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(v => v.MoveFile(_sourcePath, _targetPath, false))
+                .Callback(() =>
+                {
+                    WithExistingFile(_targetPath, true, 900);
+                });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(v => v.MoveFile(_sourcePath, _targetPath, false))
+                .Throws(new FileAlreadyExistsException("File already exists", _targetPath));
+
+            Assert.Throws<FileAlreadyExistsException>(() => Subject.TransferFile(_sourcePath, _targetPath, TransferMode.Move));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(v => v.DeleteFile(_targetPath), Times.Never());
+        }
+
+        [Test]
         public void should_log_error_if_rollback_partialmove_fails()
         {
             Mocker.GetMock<IDiskProvider>()
@@ -394,7 +413,7 @@ namespace NzbDrone.Common.Test.DiskTests
             var destination = new DirectoryInfo(GetTempFilePath());
             Subject.TransferFolder(source.FullName, destination.FullName, TransferMode.Copy);
 
-            //Delete Random File
+            // Delete Random File
             destination.GetFiles("*.*", SearchOption.AllDirectories).First().Delete();
 
             Subject.TransferFolder(source.FullName, destination.FullName, TransferMode.Copy);
@@ -439,7 +458,7 @@ namespace NzbDrone.Common.Test.DiskTests
         [Test]
         public void CopyFolder_should_not_copy_casesensitive_folder()
         {
-            MonoOnly();
+            PosixOnly();
 
             WithRealDiskProvider();
 
@@ -540,9 +559,10 @@ namespace NzbDrone.Common.Test.DiskTests
         }
 
         [Test]
+        [Platform(Exclude = "MacOsX")]
         public void MoveFolder_should_rename_casesensitive_folder()
         {
-            MonoOnly();
+            PosixOnly();
 
             WithRealDiskProvider();
 
@@ -583,7 +603,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(0);
+            count.Should().Be(0);
             destination.GetFileSystemInfos().Should().BeEmpty();
         }
 
@@ -603,7 +623,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(0);
+            count.Should().Be(0);
             destination.GetFileSystemInfos().Should().HaveCount(1);
         }
 
@@ -620,7 +640,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(3);
+            count.Should().Be(3);
             VerifyCopyFolder(original.FullName, destination.FullName);
         }
 
@@ -637,7 +657,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(3);
+            count.Should().Be(3);
 
             File.Exists(Path.Combine(destination.FullName, _nfsFile)).Should().BeFalse();
         }
@@ -657,7 +677,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(0);
+            count.Should().Be(0);
             VerifyCopyFolder(original.FullName, destination.FullName);
         }
 
@@ -674,7 +694,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName + Path.DirectorySeparatorChar, destination.FullName);
 
-            count.Should().Equals(3);
+            count.Should().Be(3);
             VerifyCopyFolder(original.FullName, destination.FullName);
         }
 
@@ -750,7 +770,9 @@ namespace NzbDrone.Common.Test.DiskTests
         {
             var dir = Path.GetDirectoryName(path);
             if (exists && dir.IsNotNullOrWhiteSpace())
+            {
                 WithExistingFolder(dir);
+            }
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.FolderExists(path))
@@ -761,7 +783,9 @@ namespace NzbDrone.Common.Test.DiskTests
         {
             var dir = Path.GetDirectoryName(path);
             if (exists && dir.IsNotNullOrWhiteSpace())
+            {
                 WithExistingFolder(dir);
+            }
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.FileExists(path))
@@ -815,7 +839,6 @@ namespace NzbDrone.Common.Test.DiskTests
                     WithExistingFile(v, false);
                 });
 
-
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.FolderExists(It.IsAny<string>()))
                 .Returns(false);
@@ -833,6 +856,7 @@ namespace NzbDrone.Common.Test.DiskTests
                {
                    WithExistingFolder(s, false);
                    WithExistingFolder(d);
+
                    // Note: Should also deal with the files.
                });
 
@@ -841,6 +865,7 @@ namespace NzbDrone.Common.Test.DiskTests
                .Callback<string, bool>((f, r) =>
                {
                    WithExistingFolder(f, false);
+
                    // Note: Should also deal with the files.
                });
 
@@ -906,8 +931,13 @@ namespace NzbDrone.Common.Test.DiskTests
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(v => v.MoveFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
-                .Callback<string, string, bool>((s,d,o) => {
-                    if (File.Exists(d) && o) File.Delete(d);
+                .Callback<string, string, bool>((s, d, o) =>
+                {
+                    if (File.Exists(d) && o)
+                    {
+                        File.Delete(d);
+                    }
+
                     File.Move(s, d);
                 });
 

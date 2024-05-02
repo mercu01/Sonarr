@@ -130,7 +130,7 @@ namespace NzbDrone.Core.Jobs
 
                     new ScheduledTask
                     {
-                        Interval = 24 * 60,
+                        Interval = 5,
                         TypeName = typeof(ImportListSyncCommand).FullName
                     },
 
@@ -141,7 +141,7 @@ namespace NzbDrone.Core.Jobs
                     },
 
                     new ScheduledTask
-                    { 
+                    {
                         Interval = GetRssSyncInterval(),
                         TypeName = typeof(RssSyncCommand).FullName
                     }
@@ -149,7 +149,7 @@ namespace NzbDrone.Core.Jobs
 
             var currentTasks = _scheduledTaskRepository.All().ToList();
 
-            _logger.Trace("Initializing jobs. Available: {0} Existing: {1}", defaultTasks.Count(), currentTasks.Count());
+            _logger.Trace("Initializing jobs. Available: {0} Existing: {1}", defaultTasks.Count, currentTasks.Count);
 
             foreach (var job in currentTasks)
             {
@@ -221,9 +221,14 @@ namespace NzbDrone.Core.Jobs
                 _logger.Trace("Updating last run time for: {0}", scheduledTask.TypeName);
 
                 var lastExecution = DateTime.UtcNow;
+                var startTime = message.Command.StartedAt.Value;
 
-                _scheduledTaskRepository.SetLastExecutionTime(scheduledTask.Id, lastExecution);
-                _cache.Find(scheduledTask.TypeName).LastExecution = lastExecution;
+                _scheduledTaskRepository.SetLastExecutionTime(scheduledTask.Id, lastExecution, startTime);
+
+                var cached = _cache.Find(scheduledTask.TypeName);
+
+                cached.LastExecution = lastExecution;
+                cached.LastStartTime = startTime;
             }
         }
 
@@ -235,7 +240,7 @@ namespace NzbDrone.Core.Jobs
             var backup = _scheduledTaskRepository.GetDefinition(typeof(BackupCommand));
             backup.Interval = GetBackupInterval();
 
-            _scheduledTaskRepository.UpdateMany(new List<ScheduledTask>{ rss, backup });
+            _scheduledTaskRepository.UpdateMany(new List<ScheduledTask> { rss, backup });
 
             _cache.Find(rss.TypeName).Interval = rss.Interval;
             _cache.Find(backup.TypeName).Interval = backup.Interval;

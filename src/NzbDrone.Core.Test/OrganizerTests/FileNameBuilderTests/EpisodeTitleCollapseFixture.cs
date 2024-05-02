@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Qualities;
@@ -29,10 +30,8 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                     .With(s => s.Title = "South Park")
                     .Build();
 
-
             _namingConfig = NamingConfig.Default;
             _namingConfig.RenameEpisodes = true;
-
 
             Mocker.GetMock<INamingConfigService>()
                   .Setup(c => c.GetConfig()).Returns(_namingConfig);
@@ -63,8 +62,11 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             Mocker.GetMock<IQualityDefinitionService>()
                 .Setup(v => v.Get(Moq.It.IsAny<Quality>()))
                 .Returns<Quality>(v => Quality.DefaultQualityDefinitions.First(c => c.Quality == v));
-        }
 
+            Mocker.GetMock<ICustomFormatService>()
+                  .Setup(v => v.All())
+                  .Returns(new List<CustomFormat>());
+        }
 
         [TestCase("Hey, Baby, What's Wrong (1)", "Hey, Baby, What's Wrong (2)", "Hey, Baby, What's Wrong")]
         [TestCase("Meet the Guys and Girls of Cycle 20 Part 1", "Meet the Guys and Girls of Cycle 20 Part 2", "Meet the Guys and Girls of Cycle 20")]
@@ -89,7 +91,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_not_collapse_episode_titles_when_episode_titles_are_not_the_same()
         {
             _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
-            _namingConfig.MultiEpisodeStyle = 3;
+            _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Scene;
 
             _episode1.Title = "Hello";
             _episode2.Title = "World";

@@ -1,14 +1,16 @@
 using System.Net;
+using System.Threading.Tasks;
+using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.ThingiProvider;
-using NzbDrone.Core.Configuration;
-using NLog;
 using NzbDrone.Core.RemotePathMappings;
+using NzbDrone.Core.ThingiProvider;
 
 namespace NzbDrone.Core.Download
 {
@@ -23,8 +25,9 @@ namespace NzbDrone.Core.Download
                                    IDiskProvider diskProvider,
                                    IRemotePathMappingService remotePathMappingService,
                                    IValidateNzbs nzbValidationService,
-                                   Logger logger)
-            : base(configService, diskProvider, remotePathMappingService, logger)
+                                   Logger logger,
+                                   ILocalizationService localizationService)
+            : base(configService, diskProvider, remotePathMappingService, logger, localizationService)
         {
             _httpClient = httpClient;
             _nzbValidationService = nzbValidationService;
@@ -34,7 +37,7 @@ namespace NzbDrone.Core.Download
 
         protected abstract string AddFromNzbFile(RemoteEpisode remoteEpisode, string filename, byte[] fileContent);
 
-        public override string Download(RemoteEpisode remoteEpisode)
+        public override async Task<string> Download(RemoteEpisode remoteEpisode, IIndexer indexer)
         {
             var url = remoteEpisode.Release.DownloadUrl;
             var filename =  FileNameBuilder.CleanFileName(remoteEpisode.Release.Title) + ".nzb";
@@ -43,9 +46,14 @@ namespace NzbDrone.Core.Download
 
             try
             {
-                var request = new HttpRequest(url);
+                var request = indexer?.GetDownloadRequest(url) ?? new HttpRequest(url);
                 request.RateLimitKey = remoteEpisode?.Release?.IndexerId.ToString();
-                nzbData = _httpClient.Get(request).ResponseData;
+
+                var response = await RetryStrategy
+                    .ExecuteAsync(static async (state, _) => await state._httpClient.GetAsync(state.request), (_httpClient, request))
+                    .ConfigureAwait(false);
+
+                nzbData = response.ResponseData;
 
                 _logger.Debug("Downloaded nzb for episode '{0}' finished ({1} bytes from {2})", remoteEpisode.Release.Title, nzbData.Length, url);
             }

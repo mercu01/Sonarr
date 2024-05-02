@@ -1,8 +1,8 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { findDOMNode } from 'react-dom';
 import { DragSource, DropTarget } from 'react-dnd';
-import classNames from 'classnames';
+import { findDOMNode } from 'react-dom';
 import { TABLE_COLUMN } from 'Helpers/dragTypes';
 import TableOptionsColumn from './TableOptionsColumn';
 import styles from './TableOptionsColumnDragSource.css';
@@ -112,7 +112,7 @@ class TableOptionsColumnDragSource extends Component {
 
         <TableOptionsColumn
           name={name}
-          label={label}
+          label={typeof label === 'function' ? label() : label}
           isVisible={isVisible}
           isModifiable={isModifiable}
           index={index}
@@ -138,7 +138,7 @@ class TableOptionsColumnDragSource extends Component {
 
 TableOptionsColumnDragSource.propTypes = {
   name: PropTypes.string.isRequired,
-  label: PropTypes.string.isRequired,
+  label: PropTypes.oneOfType([PropTypes.string, PropTypes.func]).isRequired,
   isVisible: PropTypes.bool.isRequired,
   isModifiable: PropTypes.bool.isRequired,
   index: PropTypes.number.isRequired,

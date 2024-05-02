@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
             _logger = logger;
         }
 
-        public override string Link => "https://kodi.tv";
+        public override string Link => "https://kodi.tv/";
 
         public override void OnGrab(GrabMessage grabMessage)
         {
@@ -50,6 +50,14 @@ namespace NzbDrone.Core.Notifications.Xbmc
             UpdateAndClean(deleteMessage.Series, true);
         }
 
+        public override void OnSeriesAdd(SeriesAddMessage message)
+        {
+            const string header = "Sonarr - Added";
+
+            Notify(Settings, header, message.Message);
+            UpdateAndClean(message.Series, true);
+        }
+
         public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
         {
             if (deleteMessage.DeletedFiles)
@@ -66,9 +74,19 @@ namespace NzbDrone.Core.Notifications.Xbmc
             Notify(Settings, HEALTH_ISSUE_TITLE_BRANDED, healthCheck.Message);
         }
 
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
+        {
+            Notify(Settings, HEALTH_RESTORED_TITLE_BRANDED, $"The following issue is now resolved: {previousCheck.Message}");
+        }
+
         public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
         {
             Notify(Settings, APPLICATION_UPDATE_TITLE_BRANDED, updateMessage.Message);
+        }
+
+        public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
+        {
+            Notify(Settings, MANUAL_INTERACTION_REQUIRED_TITLE, message.Message);
         }
 
         public override string Name => "Kodi";

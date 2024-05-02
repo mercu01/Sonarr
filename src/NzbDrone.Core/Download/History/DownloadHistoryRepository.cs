@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
 
@@ -7,7 +8,7 @@ namespace NzbDrone.Core.Download.History
     public interface IDownloadHistoryRepository : IBasicRepository<DownloadHistory>
     {
         List<DownloadHistory> FindByDownloadId(string downloadId);
-        void DeleteBySeriesId(int seriesId);
+        void DeleteBySeriesIds(List<int> seriesIds);
     }
 
     public class DownloadHistoryRepository : BasicRepository<DownloadHistory>, IDownloadHistoryRepository
@@ -19,13 +20,12 @@ namespace NzbDrone.Core.Download.History
 
         public List<DownloadHistory> FindByDownloadId(string downloadId)
         {
-            return Query.Where(h => h.DownloadId == downloadId)
-                        .OrderByDescending(h => h.Date);
+            return Query(h => h.DownloadId == downloadId).OrderByDescending(h => h.Date).ToList();
         }
 
-        public void DeleteBySeriesId(int seriesId)
+        public void DeleteBySeriesIds(List<int> seriesIds)
         {
-            Delete(r => r.SeriesId == seriesId);
+            Delete(r => seriesIds.Contains(r.SeriesId));
         }
     }
 }

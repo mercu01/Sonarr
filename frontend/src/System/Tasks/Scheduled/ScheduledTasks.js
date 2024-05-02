@@ -4,27 +4,33 @@ import FieldSet from 'Components/FieldSet';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
+import translate from 'Utilities/String/translate';
 import ScheduledTaskRowConnector from './ScheduledTaskRowConnector';
 
 const columns = [
   {
     name: 'name',
-    label: 'Name',
+    label: () => translate('Name'),
     isVisible: true
   },
   {
     name: 'interval',
-    label: 'Interval',
+    label: () => translate('Interval'),
     isVisible: true
   },
   {
     name: 'lastExecution',
-    label: 'Last Execution',
+    label: () => translate('LastExecution'),
+    isVisible: true
+  },
+  {
+    name: 'lastDuration',
+    label: () => translate('LastDuration'),
     isVisible: true
   },
   {
     name: 'nextExecution',
-    label: 'Next Execution',
+    label: () => translate('NextExecution'),
     isVisible: true
   },
   {
@@ -41,30 +47,30 @@ function ScheduledTasks(props) {
   } = props;
 
   return (
-    <FieldSet legend="Scheduled">
+    <FieldSet legend={translate('Scheduled')}>
       {
         isFetching && !isPopulated &&
-        <LoadingIndicator />
+          <LoadingIndicator />
       }
 
       {
         isPopulated &&
-        <Table
-          columns={columns}
-        >
-          <TableBody>
-            {
-              items.map((item) => {
-                return (
-                  <ScheduledTaskRowConnector
-                    key={item.id}
-                    {...item}
-                  />
-                );
-              })
-            }
-          </TableBody>
-        </Table>
+          <Table
+            columns={columns}
+          >
+            <TableBody>
+              {
+                items.map((item) => {
+                  return (
+                    <ScheduledTaskRowConnector
+                      key={item.id}
+                      {...item}
+                    />
+                  );
+                })
+              }
+            </TableBody>
+          </Table>
       }
     </FieldSet>
   );

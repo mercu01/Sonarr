@@ -26,7 +26,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public static string GetCleanSceneTitle(string title)
         {
-            Ensure.That(title,() => title).IsNotNullOrWhiteSpace();
+            Ensure.That(title, () => title).IsNotNullOrWhiteSpace();
 
             var cleanTitle = BeginningThe.Replace(title, string.Empty);
 
@@ -34,7 +34,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
             cleanTitle = SpecialCharacter.Replace(cleanTitle, "");
             cleanTitle = NonWord.Replace(cleanTitle, "+");
 
-            //remove any repeating +s
+            // remove any repeating +s
             cleanTitle = Regex.Replace(cleanTitle, @"\+{2,}", "+");
             cleanTitle = cleanTitle.RemoveAccent();
             return cleanTitle.Trim('+', ' ');

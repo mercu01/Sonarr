@@ -3,6 +3,7 @@ using System.IO;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Test.Common;
@@ -34,7 +35,8 @@ namespace NzbDrone.Common.Test
         [TestCase(@"\\Testserver\\Test\", @"\\Testserver\Test")]
         [TestCase(@"\\Testserver\Test\file.ext", @"\\Testserver\Test\file.ext")]
         [TestCase(@"\\Testserver\Test\file.ext\\", @"\\Testserver\Test\file.ext")]
-        [TestCase(@"\\Testserver\Test\file.ext   \\", @"\\Testserver\Test\file.ext")]
+        [TestCase(@"\\Testserver\Test\file.ext   ", @"\\Testserver\Test\file.ext")]
+        [TestCase(@"//CAPITAL//lower// ", @"\\CAPITAL\lower")]
         public void Clean_Path_Windows(string dirty, string clean)
         {
             WindowsOnly();
@@ -52,7 +54,7 @@ namespace NzbDrone.Common.Test
         [TestCase(@"//CAPITAL//lower// ", @"/CAPITAL/lower")]
         public void Clean_Path_Linux(string dirty, string clean)
         {
-            MonoOnly();
+            PosixOnly();
 
             var result = dirty.CleanFilePath();
             result.Should().Be(clean);
@@ -110,6 +112,7 @@ namespace NzbDrone.Common.Test
 
             _parent.IsParentPath(path).Should().BeTrue();
         }
+
         [TestCase(@"C:\Test\", @"C:\Test\mydir")]
         [TestCase(@"C:\Test\", @"C:\Test\mydir\")]
         [TestCase(@"C:\Test", @"C:\Test\30.Rock.S01E01.Pilot.avi")]
@@ -152,14 +155,33 @@ namespace NzbDrone.Common.Test
         [TestCase(@"/test", "/")]
         public void path_should_return_parent_mono(string path, string parentPath)
         {
-            MonoOnly();
+            PosixOnly();
             path.GetParentPath().Should().Be(parentPath);
+        }
+
+        [TestCase(@"C:\Test\mydir", "Test")]
+        [TestCase(@"C:\Test\", @"C:\")]
+        [TestCase(@"C:\", null)]
+        [TestCase(@"\\server\share", null)]
+        [TestCase(@"\\server\share\test", @"\\server\share")]
+        public void path_should_return_parent_name_windows(string path, string parentPath)
+        {
+            WindowsOnly();
+            path.GetParentName().Should().Be(parentPath);
+        }
+
+        [TestCase(@"/", null)]
+        [TestCase(@"/test", "/")]
+        public void path_should_return_parent_name_mono(string path, string parentPath)
+        {
+            PosixOnly();
+            path.GetParentName().Should().Be(parentPath);
         }
 
         [Test]
         public void path_should_return_parent_for_oversized_path()
         {
-            MonoOnly();
+            PosixOnly();
 
             // This test will fail on Windows if long path support is not enabled: https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/
             // It will also fail if the app isn't configured to use long path (such as resharper): https://blogs.msdn.microsoft.com/jeremykuhne/2016/07/30/net-4-6-2-and-long-paths-on-windows-10/
@@ -198,9 +220,8 @@ namespace NzbDrone.Common.Test
         public void get_actual_casing_for_none_existing_file_return_partially_fixed_result()
         {
             WindowsOnly();
-           "C:\\WINDOWS\\invalidfile.exe".GetActualCasing().Should().Be("C:\\Windows\\invalidfile.exe");
+            "C:\\WINDOWS\\invalidfile.exe".GetActualCasing().Should().Be("C:\\Windows\\invalidfile.exe");
         }
-
 
         [Test]
         public void get_actual_casing_for_none_existing_folder_return_partially_fixed_result()
@@ -218,12 +239,11 @@ namespace NzbDrone.Common.Test
             path.ToLower().GetActualCasing().Should().Be(path);
         }
 
-
         [Test]
         public void get_actual_casing_should_return_actual_casing_for_local_dir_in_windows()
         {
             WindowsOnly();
-            var path = Directory.GetCurrentDirectory().Replace("c:\\","C:\\").Replace("system32", "System32");
+            var path = Directory.GetCurrentDirectory().Replace("c:\\", "C:\\").Replace("d:\\", "D:\\").Replace("system32", "System32");
 
             path.ToUpper().GetActualCasing().Should().Be(path);
             path.ToLower().GetActualCasing().Should().Be(path);
@@ -232,7 +252,7 @@ namespace NzbDrone.Common.Test
         [Test]
         public void get_actual_casing_should_return_original_value_in_linux()
         {
-            MonoOnly();
+            PosixOnly();
             var path = Directory.GetCurrentDirectory();
             path.GetActualCasing().Should().Be(path);
             path.GetActualCasing().Should().Be(path);
@@ -280,7 +300,7 @@ namespace NzbDrone.Common.Test
         [Test]
         public void GetUpdateClientExePath()
         {
-            GetIAppDirectoryInfo().GetUpdateClientExePath().Should().BeEquivalentTo(@"C:\Temp\sonarr_update\Sonarr.Update.exe".AsOsAgnostic());
+            GetIAppDirectoryInfo().GetUpdateClientExePath().Should().BeEquivalentTo(@"C:\Temp\sonarr_update\Sonarr.Update".AsOsAgnostic().ProcessNameToExe());
         }
 
         [Test]
@@ -306,7 +326,7 @@ namespace NzbDrone.Common.Test
         [Test]
         public void GetAncestorFolders_should_return_all_ancestors_in_path_Linux()
         {
-            MonoOnly();
+            PosixOnly();
             var path = @"/Test/TV/Series Title";
             var result = path.GetAncestorFolders();
 
@@ -315,6 +335,31 @@ namespace NzbDrone.Common.Test
             result[1].Should().Be(@"Test");
             result[2].Should().Be(@"TV");
             result[3].Should().Be(@"Series Title");
+        }
+
+        [TestCase(@"C:\Test\")]
+        [TestCase(@"C:\Test")]
+        [TestCase(@"C:\Test\TV\")]
+        [TestCase(@"C:\Test\TV")]
+        public void IsPathValid_should_be_true(string path)
+        {
+            path.AsOsAgnostic().IsPathValid(PathValidationType.CurrentOs).Should().BeTrue();
+        }
+
+        [TestCase(@"C:\Test \")]
+        [TestCase(@"C:\Test ")]
+        [TestCase(@"C:\ Test\")]
+        [TestCase(@"C:\ Test")]
+        [TestCase(@"C:\Test \TV")]
+        [TestCase(@"C:\ Test\TV")]
+        [TestCase(@"C:\Test \TV\")]
+        [TestCase(@"C:\ Test\TV\")]
+        [TestCase(@" C:\Test\TV\")]
+        [TestCase(@" C:\Test\TV")]
+
+        public void IsPathValid_should_be_false(string path)
+        {
+            path.AsOsAgnostic().IsPathValid(PathValidationType.CurrentOs).Should().BeFalse();
         }
     }
 }

@@ -4,7 +4,6 @@ using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class SeasonParserFixture : CoreTest
     {
@@ -35,6 +34,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Black Mirror T 08 [WEB-DL 1080p]", "Black Mirror", 8)]
         [TestCase("Black Mirror T11 [WEB-DL 1080p]", "Black Mirror", 11)]
         [TestCase("Black Mirror T 11 [WEB-DL 1080p]", "Black Mirror", 11)]
+        [TestCase("Series.Stagione.3.HDTV.XviD-NOTAG", "Series", 3)]
+        [TestCase("Series.Stagione.3.HDTV.XviD-NOTAG", "Series", 3)]
+        [TestCase("Series No More S01 2023 1080p WEB-DL AVC AC3 2.0 Dual Audio -ZR-", "Series No More", 1)]
         public void should_parse_full_season_release(string postTitle, string title, int season)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -76,6 +78,7 @@ namespace NzbDrone.Core.Test.ParserTests
         }
 
         [TestCase("The.Series.2016.S02.Part.1.1080p.NF.WEBRip.DD5.1.x264-NTb", "The Series 2016", 2, 1)]
+        [TestCase("The.Series.S07.Vol.1.1080p.NF.WEBRip.DD5.1.x264-NTb", "The Series", 7, 1)]
         public void should_parse_partial_season_release(string postTitle, string title, int season, int seasonPart)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -93,6 +96,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title S01 - S07 BluRay 1080p x264 REPACK -SacReD", "Series Title", 1)]
         [TestCase("Series Title Season 01-07 BluRay 1080p x264 REPACK -SacReD", "Series Title", 1)]
         [TestCase("Series Title Season 01 - Season 07 BluRay 1080p x264 REPACK -SacReD", "Series Title", 1)]
+        [TestCase("Series Title Complete Series S01 S04 (1080p BluRay x265 HEVC 10bit AAC 5.1 Vyndros)", "Series Title", 1)]
+        [TestCase("Series Title S01 S04 (1080p BluRay x265 HEVC 10bit AAC 5.1 Vyndros)", "Series Title", 1)]
+        [TestCase("Series Title S01 04 (1080p BluRay x265 HEVC 10bit AAC 5.1 Vyndros)", "Series Title", 1)]
         public void should_parse_multi_season_release(string postTitle, string title, int firstSeason)
         {
             var result = Parser.Parser.ParseTitle(postTitle);

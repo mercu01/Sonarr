@@ -1,26 +1,47 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
-import { boolSettingShape, numberSettingShape, tagSettingShape } from 'Helpers/Props/Shapes/settingShape';
+import Alert from 'Components/Alert';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import Button from 'Components/Link/Button';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import Alert from 'Components/Alert';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
+import { boolSettingShape, numberSettingShape, tagSettingShape } from 'Helpers/Props/Shapes/settingShape';
+import translate from 'Utilities/String/translate';
 import styles from './EditDelayProfileModalContent.css';
 
 const protocolOptions = [
-  { key: 'preferUsenet', value: 'Prefer Usenet' },
-  { key: 'preferTorrent', value: 'Prefer Torrent' },
-  { key: 'onlyUsenet', value: 'Only Usenet' },
-  { key: 'onlyTorrent', value: 'Only Torrent' }
+  {
+    key: 'preferUsenet',
+    get value() {
+      return translate('PreferUsenet');
+    }
+  },
+  {
+    key: 'preferTorrent',
+    get value() {
+      return translate('PreferTorrent');
+    }
+  },
+  {
+    key: 'onlyUsenet',
+    get value() {
+      return translate('OnlyUsenet');
+    }
+  },
+  {
+    key: 'onlyTorrent',
+    get value() {
+      return translate('OnlyTorrent');
+    }
+  }
 ];
 
 function EditDelayProfileModalContent(props) {
@@ -46,13 +67,15 @@ function EditDelayProfileModalContent(props) {
     usenetDelay,
     torrentDelay,
     bypassIfHighestQuality,
+    bypassIfAboveCustomFormatScore,
+    minimumCustomFormatScore,
     tags
   } = item;
 
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        {id ? 'Edit Delay Profile' : 'Add Delay Profile'}
+        {id ? translate('EditDelayProfile') : translate('AddDelayProfile')}
       </ModalHeader>
 
       <ModalBody>
@@ -64,7 +87,9 @@ function EditDelayProfileModalContent(props) {
 
         {
           !isFetching && !!error ?
-            <div>Unable to add a new quality profile, please try again.</div> :
+            <Alert kind={kinds.DANGER}>
+              {translate('AddDelayProfileError')}
+            </Alert> :
             null
         }
 
@@ -72,78 +97,106 @@ function EditDelayProfileModalContent(props) {
           !isFetching && !error ?
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>Preferred Protocol</FormLabel>
+                <FormLabel>{translate('PreferredProtocol')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
                   name="protocol"
                   value={protocol}
                   values={protocolOptions}
-                  helpText="Choose which protocol(s) to use and which one is preferred when choosing between otherwise equal releases"
+                  helpText={translate('ProtocolHelpText')}
                   onChange={onProtocolChange}
                 />
               </FormGroup>
 
               {
-                enableUsenet.value &&
+                enableUsenet.value ?
                   <FormGroup>
-                    <FormLabel>Usenet Delay</FormLabel>
+                    <FormLabel>{translate('UsenetDelay')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.NUMBER}
                       name="usenetDelay"
                       unit="minutes"
                       {...usenetDelay}
-                      helpText="Delay in minutes to wait before grabbing a release from Usenet"
+                      helpText={translate('UsenetDelayHelpText')}
                       onChange={onInputChange}
                     />
-                  </FormGroup>
+                  </FormGroup> :
+                  null
               }
 
               {
-                enableTorrent.value &&
+                enableTorrent.value ?
                   <FormGroup>
-                    <FormLabel>Torrent Delay</FormLabel>
+                    <FormLabel>{translate('TorrentDelay')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.NUMBER}
                       name="torrentDelay"
                       unit="minutes"
                       {...torrentDelay}
-                      helpText="Delay in minutes to wait before grabbing a torrent"
+                      helpText={translate('TorrentDelayHelpText')}
                       onChange={onInputChange}
                     />
-                  </FormGroup>
+                  </FormGroup> :
+                  null
               }
 
-              {
-                <FormGroup>
-                  <FormLabel>Bypass if Highest Quality</FormLabel>
+              <FormGroup>
+                <FormLabel>{translate('BypassDelayIfHighestQuality')}</FormLabel>
 
-                  <FormInputGroup
-                    type={inputTypes.CHECK}
-                    name="bypassIfHighestQuality"
-                    {...bypassIfHighestQuality}
-                    helpText="Bypass delay when release has the highest enabled quality in the quality profile with the preferred protocol"
-                    onChange={onInputChange}
-                  />
-                </FormGroup>
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="bypassIfHighestQuality"
+                  {...bypassIfHighestQuality}
+                  helpText={translate('BypassDelayIfHighestQualityHelpText')}
+                  onChange={onInputChange}
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <FormLabel>{translate('BypassDelayIfAboveCustomFormatScore')}</FormLabel>
+
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="bypassIfAboveCustomFormatScore"
+                  {...bypassIfAboveCustomFormatScore}
+                  helpText={translate('BypassDelayIfAboveCustomFormatScoreHelpText')}
+                  onChange={onInputChange}
+                />
+              </FormGroup>
+
+              {
+                bypassIfAboveCustomFormatScore.value ?
+                  <FormGroup>
+                    <FormLabel>{translate('BypassDelayIfAboveCustomFormatScoreMinimumScore')}</FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.NUMBER}
+                      name="minimumCustomFormatScore"
+                      {...minimumCustomFormatScore}
+                      helpText={translate('BypassDelayIfAboveCustomFormatScoreMinimumScoreHelpText')}
+                      onChange={onInputChange}
+                    />
+                  </FormGroup> :
+                  null
               }
 
               {
                 id === 1 ?
                   <Alert>
-                    This is the default profile. It applies to all series that don't have an explicit profile.
+                    {translate('DefaultDelayProfileSeries')}
                   </Alert> :
 
                   <FormGroup>
-                    <FormLabel>Tags</FormLabel>
+                    <FormLabel>{translate('Tags')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.TAG}
                       name="tags"
                       {...tags}
-                      helpText="Applies to series with at least one matching tag"
+                      helpText={translate('DelayProfileSeriesTagsHelpText')}
                       onChange={onInputChange}
                     />
                   </FormGroup>
@@ -160,7 +213,7 @@ function EditDelayProfileModalContent(props) {
               kind={kinds.DANGER}
               onPress={onDeleteDelayProfilePress}
             >
-              Delete
+              {translate('Delete')}
             </Button> :
             null
         }
@@ -168,7 +221,7 @@ function EditDelayProfileModalContent(props) {
         <Button
           onPress={onModalClose}
         >
-          Cancel
+          {translate('Cancel')}
         </Button>
 
         <SpinnerErrorButton
@@ -176,7 +229,7 @@ function EditDelayProfileModalContent(props) {
           error={saveError}
           onPress={onSavePress}
         >
-          Save
+          {translate('Save')}
         </SpinnerErrorButton>
       </ModalFooter>
     </ModalContent>
@@ -188,6 +241,9 @@ const delayProfileShape = {
   enableTorrent: PropTypes.shape(boolSettingShape).isRequired,
   usenetDelay: PropTypes.shape(numberSettingShape).isRequired,
   torrentDelay: PropTypes.shape(numberSettingShape).isRequired,
+  bypassIfHighestQuality: PropTypes.shape(boolSettingShape).isRequired,
+  bypassIfAboveCustomFormatScore: PropTypes.shape(boolSettingShape).isRequired,
+  minimumCustomFormatScore: PropTypes.shape(numberSettingShape).isRequired,
   order: PropTypes.shape(numberSettingShape),
   tags: PropTypes.shape(tagSettingShape).isRequired
 };

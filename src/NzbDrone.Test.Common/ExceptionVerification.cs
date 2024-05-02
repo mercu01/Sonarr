@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -44,10 +44,10 @@ namespace NzbDrone.Test.Common
 
         private static string GetLogsString(IEnumerable<LogEventInfo> logs)
         {
-            string errors = "";
+            var errors = "";
             foreach (var log in logs)
             {
-                string exception = "";
+                var exception = "";
                 if (log.Exception != null)
                 {
                     exception = string.Format("[{0}: {1}]", log.Exception.GetType(), log.Exception.Message);
@@ -55,6 +55,7 @@ namespace NzbDrone.Test.Common
 
                 errors += Environment.NewLine + string.Format("[{0}] {1}: {2} {3}", log.Level, log.LoggerName, log.FormattedMessage, exception);
             }
+
             return errors;
         }
 
@@ -75,7 +76,9 @@ namespace NzbDrone.Test.Common
                 }
 
                 if (!_waitEvent.Wait(msec))
+                {
                     break;
+                }
             }
 
             Expected(LogLevel.Error, count);
@@ -142,9 +145,11 @@ namespace NzbDrone.Test.Common
 
                 if (levelLogs.Count != count)
                 {
-
                     var message = string.Format("{0} {1}(s) were expected but {2} were logged.\n\r{3}",
-                        count, level, levelLogs.Count, GetLogsString(levelLogs));
+                        count,
+                        level,
+                        levelLogs.Count,
+                        GetLogsString(levelLogs));
 
                     message = "\n\r****************************************************************************************\n\r"
                         + message +

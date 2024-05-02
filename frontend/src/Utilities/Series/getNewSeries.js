@@ -3,8 +3,8 @@ function getNewSeries(series, payload) {
   const {
     rootFolderPath,
     monitor,
+    monitorNewItems,
     qualityProfileId,
-    languageProfileId,
     seriesType,
     seasonFolder,
     tags,
@@ -20,8 +20,8 @@ function getNewSeries(series, payload) {
 
   series.addOptions = addOptions;
   series.monitored = true;
+  series.monitorNewItems = monitorNewItems;
   series.qualityProfileId = qualityProfileId;
-  series.languageProfileId = languageProfileId;
   series.rootFolderPath = rootFolderPath;
   series.seriesType = seriesType;
   series.seasonFolder = seasonFolder;

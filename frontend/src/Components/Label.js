@@ -1,6 +1,6 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import { kinds, sizes } from 'Helpers/Props';
 import styles from './Label.css';
 
@@ -31,6 +31,7 @@ function Label(props) {
 
 Label.propTypes = {
   className: PropTypes.string.isRequired,
+  title: PropTypes.string,
   kind: PropTypes.oneOf(kinds.all).isRequired,
   size: PropTypes.oneOf(sizes.all).isRequired,
   outline: PropTypes.bool.isRequired,

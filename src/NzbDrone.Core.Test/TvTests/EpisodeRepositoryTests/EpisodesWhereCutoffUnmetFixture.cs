@@ -5,13 +5,12 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.Qualities;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Languages;
-using NzbDrone.Core.Profiles.Languages;
 
 namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
 {
@@ -22,29 +21,21 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         private Series _unmonitoredSeries;
         private PagingSpec<Episode> _pagingSpec;
         private List<QualitiesBelowCutoff> _qualitiesBelowCutoff;
-        private List<LanguagesBelowCutoff> _languagesBelowCutoff;
         private List<Episode> _unairedEpisodes;
-            
+
         [SetUp]
         public void Setup()
         {
-            var profile = new QualityProfile 
-            {  
+            var profile = new QualityProfile
+            {
                 Id = 1,
                 Cutoff = Quality.WEBDL480p.Id,
-                Items = new List<QualityProfileQualityItem> 
-                { 
+                Items = new List<QualityProfileQualityItem>
+                {
                     new QualityProfileQualityItem { Allowed = true, Quality = Quality.SDTV },
                     new QualityProfileQualityItem { Allowed = true, Quality = Quality.WEBDL480p },
                     new QualityProfileQualityItem { Allowed = true, Quality = Quality.RAWHD }
                 }
-            };
-
-            var langProfile = new LanguageProfile
-            {
-                Id = 1,
-                Languages = Languages.LanguageFixture.GetDefaultLanguages(),
-                Cutoff = Language.Spanish
             };
 
             _monitoredSeries = Builder<Series>.CreateNew()
@@ -53,7 +44,6 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
                                               .With(s => s.Monitored = true)
                                               .With(s => s.TitleSlug = "Title3")
                                               .With(s => s.QualityProfileId = profile.Id)
-                                              .With(s => s.LanguageProfileId = langProfile.Id)
                                               .BuildNew();
 
             _unmonitoredSeries = Builder<Series>.CreateNew()
@@ -62,7 +52,6 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
                                                 .With(s => s.Monitored = false)
                                                 .With(s => s.TitleSlug = "Title2")
                                                 .With(s => s.QualityProfileId = profile.Id)
-                                                .With(s => s.LanguageProfileId = langProfile.Id)
                                                 .BuildNew();
 
             _monitoredSeries.Id = Db.Insert(_monitoredSeries).Id;
@@ -78,25 +67,20 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
 
             _qualitiesBelowCutoff = new List<QualitiesBelowCutoff>
                                     {
-                                        new QualitiesBelowCutoff(profile.Id, new[] {Quality.SDTV.Id})
+                                        new QualitiesBelowCutoff(profile.Id, new[] { Quality.SDTV.Id })
                                     };
 
-            _languagesBelowCutoff = new List<LanguagesBelowCutoff>
-                                    {
-                                        new LanguagesBelowCutoff(profile.Id, new[] {Language.English.Id})
-                                    };
+            var qualityMetLanguageUnmet = new EpisodeFile { RelativePath = "a", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.English } };
+            var qualityMetLanguageMet = new EpisodeFile { RelativePath = "b", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.Spanish } };
+            var qualityMetLanguageExceed = new EpisodeFile { RelativePath = "c", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.French } };
+            var qualityUnmetLanguageUnmet = new EpisodeFile { RelativePath = "d", Quality = new QualityModel { Quality = Quality.SDTV }, Languages = new List<Language> { Language.English } };
+            var qualityUnmetLanguageMet = new EpisodeFile { RelativePath = "e", Quality = new QualityModel { Quality = Quality.SDTV }, Languages = new List<Language> { Language.Spanish } };
+            var qualityUnmetLanguageExceed = new EpisodeFile { RelativePath = "f", Quality = new QualityModel { Quality = Quality.SDTV }, Languages = new List<Language> { Language.French } };
+            var qualityRawHDLanguageUnmet = new EpisodeFile { RelativePath = "g", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.English } };
+            var qualityRawHDLanguageMet = new EpisodeFile { RelativePath = "h", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.Spanish } };
+            var qualityRawHDLanguageExceed = new EpisodeFile { RelativePath = "i", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.French } };
 
-            var qualityMetLanguageUnmet = new EpisodeFile { RelativePath = "a", Quality = new QualityModel { Quality = Quality.WEBDL480p } , Language = Language.English };
-            var qualityMetLanguageMet = new EpisodeFile { RelativePath = "b", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Language = Language.Spanish };
-            var qualityMetLanguageExceed = new EpisodeFile { RelativePath = "c", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Language = Language.French };
-            var qualityUnmetLanguageUnmet = new EpisodeFile { RelativePath = "d", Quality = new QualityModel { Quality = Quality.SDTV }, Language = Language.English };
-            var qualityUnmetLanguageMet = new EpisodeFile { RelativePath = "e", Quality = new QualityModel { Quality = Quality.SDTV }, Language = Language.Spanish };
-            var qualityUnmetLanguageExceed = new EpisodeFile { RelativePath = "f", Quality = new QualityModel { Quality = Quality.SDTV }, Language = Language.French };
-            var qualityRawHDLanguageUnmet = new EpisodeFile { RelativePath = "g", Quality = new QualityModel { Quality = Quality.RAWHD }, Language = Language.English };
-            var qualityRawHDLanguageMet = new EpisodeFile { RelativePath = "h", Quality = new QualityModel { Quality = Quality.RAWHD }, Language = Language.Spanish };
-            var qualityRawHDLanguageExceed = new EpisodeFile { RelativePath = "i", Quality = new QualityModel { Quality = Quality.RAWHD }, Language = Language.French };
-
-            MediaFileRepository fileRepository = Mocker.Resolve<MediaFileRepository>();
+            var fileRepository = Mocker.Resolve<MediaFileRepository>();
 
             qualityMetLanguageUnmet = fileRepository.Insert(qualityMetLanguageUnmet);
             qualityMetLanguageMet = fileRepository.Insert(qualityMetLanguageMet);
@@ -138,7 +122,6 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
                                            .With(e => e.SeasonNumber = 0)
                                            .Build();
 
-
             _unairedEpisodes             = Builder<Episode>.CreateListOfSize(1)
                                            .All()
                                            .With(e => e.Id = 0)
@@ -148,7 +131,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
                                            .With(e => e.EpisodeFileId = qualityUnmetLanguageUnmet.Id)
                                            .Build()
                                            .ToList();
-            
+
             Db.InsertMany(monitoredSeriesEpisodes);
             Db.InsertMany(unmonitoredSeriesEpisodes);
         }
@@ -168,7 +151,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         {
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(1);
             spec.Records.Should().OnlyContain(e => e.EpisodeFile.Value.Quality.Quality == Quality.SDTV);
@@ -179,7 +162,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         {
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(1);
             spec.Records.Should().OnlyContain(e => e.Monitored);
@@ -190,7 +173,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         {
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(1);
             spec.Records.Should().OnlyContain(e => e.Series.Monitored);
@@ -203,7 +186,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
 
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(2);
             spec.Records.Should().OnlyContain(e => e.Series.Monitored);

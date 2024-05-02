@@ -1,5 +1,5 @@
-import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
+import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import createAllSeriesSelector from 'Store/Selectors/createAllSeriesSelector';
 import createDeepEqualSelector from 'Store/Selectors/createDeepEqualSelector';
@@ -18,6 +18,9 @@ function createCleanSeriesSelector() {
           sortTitle,
           images,
           alternateTitles = [],
+          tvdbId,
+          tvMazeId,
+          imdbId,
           tags = []
         } = series;
 
@@ -27,6 +30,9 @@ function createCleanSeriesSelector() {
           sortTitle,
           images,
           alternateTitles,
+          tvdbId,
+          tvMazeId,
+          imdbId,
           firstCharacter: title.charAt(0).toLowerCase(),
           tags: tags.reduce((acc, id) => {
             const matchingTag = allTags.find((tag) => tag.id === id);

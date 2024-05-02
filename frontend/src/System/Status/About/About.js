@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import titleCase from 'Utilities/String/titleCase';
-import FieldSet from 'Components/FieldSet';
-import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import DescriptionList from 'Components/DescriptionList/DescriptionList';
 import DescriptionListItem from 'Components/DescriptionList/DescriptionListItem';
+import FieldSet from 'Components/FieldSet';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
+import titleCase from 'Utilities/String/titleCase';
+import translate from 'Utilities/String/translate';
 import StartTime from './StartTime';
 import styles from './About.css';
 
@@ -18,8 +19,12 @@ class About extends Component {
       version,
       packageVersion,
       packageAuthor,
-      isMonoRuntime,
+      isNetCore,
+      isDocker,
       runtimeVersion,
+      databaseVersion,
+      databaseType,
+      migrationVersion,
       appData,
       startupPath,
       mode,
@@ -29,50 +34,71 @@ class About extends Component {
     } = this.props;
 
     return (
-      <FieldSet legend="About">
+      <FieldSet legend={translate('About')}>
         <DescriptionList className={styles.descriptionList}>
           <DescriptionListItem
-            title="Version"
+            title={translate('Version')}
             data={version}
           />
 
           {
             packageVersion &&
               <DescriptionListItem
-                title="Package Version"
-                data={(packageAuthor ? <span> {packageVersion} {' by '} <InlineMarkdown data={packageAuthor} /> </span> : packageVersion)}
+                title={translate('PackageVersion')}
+                data={(packageAuthor ?
+                  <InlineMarkdown data={translate('PackageVersionInfo', {
+                    packageVersion,
+                    packageAuthor
+                  })}
+                  /> :
+                  packageVersion
+                )}
               />
           }
 
           {
-            isMonoRuntime ?
+            isNetCore &&
               <DescriptionListItem
-                title="Mono Version"
-                data={runtimeVersion}
-              /> :
+                title={translate('DotNetVersion')}
+                data={`Yes (${runtimeVersion})`}
+              />
+          }
+
+          {
+            isDocker &&
               <DescriptionListItem
-                title=".net Version"
-                data={runtimeVersion}
+                title={translate('Docker')}
+                data={'Yes'}
               />
           }
 
           <DescriptionListItem
-            title="AppData directory"
+            title={translate('Database')}
+            data={`${titleCase(databaseType)} ${databaseVersion}`}
+          />
+
+          <DescriptionListItem
+            title={translate('DatabaseMigration')}
+            data={migrationVersion}
+          />
+
+          <DescriptionListItem
+            title={translate('AppDataDirectory')}
             data={appData}
           />
 
           <DescriptionListItem
-            title="Startup directory"
+            title={translate('StartupDirectory')}
             data={startupPath}
           />
 
           <DescriptionListItem
-            title="Mode"
+            title={translate('Mode')}
             data={titleCase(mode)}
           />
 
           <DescriptionListItem
-            title="Uptime"
+            title={translate('Uptime')}
             data={
               <StartTime
                 startTime={startTime}
@@ -92,8 +118,12 @@ About.propTypes = {
   version: PropTypes.string.isRequired,
   packageVersion: PropTypes.string,
   packageAuthor: PropTypes.string,
-  isMonoRuntime: PropTypes.bool.isRequired,
+  isNetCore: PropTypes.bool.isRequired,
   runtimeVersion: PropTypes.string.isRequired,
+  isDocker: PropTypes.bool.isRequired,
+  databaseType: PropTypes.string.isRequired,
+  databaseVersion: PropTypes.string.isRequired,
+  migrationVersion: PropTypes.number.isRequired,
   appData: PropTypes.string.isRequired,
   startupPath: PropTypes.string.isRequired,
   mode: PropTypes.string.isRequired,

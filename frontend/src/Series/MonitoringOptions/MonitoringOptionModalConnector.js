@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
-import MonitoringOptionsModal from './EditSeriesModal';
+import MonitoringOptionsModal from './MonitoringOptionsModal';
 
 const mapDispatchToProps = {
   clearPendingChanges
@@ -16,7 +16,7 @@ class MonitoringOptionsModalConnector extends Component {
   onModalClose = () => {
     this.props.clearPendingChanges({ section: 'series' });
     this.props.onModalClose();
-  }
+  };
 
   //
   // Render

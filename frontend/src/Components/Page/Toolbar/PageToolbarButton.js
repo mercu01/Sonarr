@@ -1,9 +1,9 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
-import { icons } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
+import { icons } from 'Helpers/Props';
 import styles from './PageToolbarButton.css';
 
 function PageToolbarButton(props) {
@@ -45,7 +45,8 @@ PageToolbarButton.propTypes = {
   iconName: PropTypes.object.isRequired,
   spinningName: PropTypes.object,
   isSpinning: PropTypes.bool,
-  isDisabled: PropTypes.bool
+  isDisabled: PropTypes.bool,
+  onPress: PropTypes.func
 };
 
 PageToolbarButton.defaultProps = {

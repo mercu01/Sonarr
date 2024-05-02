@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore.Migration;
@@ -38,7 +37,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                 });
             });
 
-            var items = db.Query<NotificationDefinition173>("SELECT * FROM Notifications");
+            var items = db.Query<NotificationDefinition173>("SELECT * FROM \"Notifications\"");
 
             items.Should().HaveCount(1);
             items.First().Implementation.Should().Be("Email");

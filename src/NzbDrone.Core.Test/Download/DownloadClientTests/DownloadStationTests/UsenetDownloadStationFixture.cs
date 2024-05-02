@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
@@ -9,10 +10,9 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.DownloadStation;
 using NzbDrone.Core.Download.Clients.DownloadStation.Proxies;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
+using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
-using NzbDrone.Core.Organizer;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
 {
@@ -65,12 +65,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                 {
                     Detail = new Dictionary<string, string>
                     {
-                        { "destination","shared/folder" },
+                        { "destination", "shared/folder" },
                         { "uri", FileNameBuilder.CleanFileName(_remoteEpisode.Release.Title) + ".nzb" }
                     },
                     Transfer = new Dictionary<string, string>
                     {
-                        { "size_downloaded", "0"},
+                        { "size_downloaded", "0" },
                         { "speed_download", "0" }
                     }
                 }
@@ -88,12 +88,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                 {
                     Detail = new Dictionary<string, string>
                     {
-                        { "destination","shared/folder" },
+                        { "destination", "shared/folder" },
                         { "uri", FileNameBuilder.CleanFileName(_remoteEpisode.Release.Title) + ".nzb" }
                     },
                     Transfer = new Dictionary<string, string>
                     {
-                        { "size_downloaded", "1000"},
+                        { "size_downloaded", "1000" },
                         { "speed_download", "0" }
                     },
                 }
@@ -111,12 +111,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                 {
                     Detail = new Dictionary<string, string>
                     {
-                        { "destination","shared/folder" },
+                        { "destination", "shared/folder" },
                         { "uri", FileNameBuilder.CleanFileName(_remoteEpisode.Release.Title) + ".nzb" }
                     },
                     Transfer = new Dictionary<string, string>
                     {
-                        { "size_downloaded", "1000"},
+                        { "size_downloaded", "1000" },
                         { "speed_download", "0" }
                     }
                 }
@@ -134,12 +134,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                 {
                     Detail = new Dictionary<string, string>
                     {
-                        { "destination","shared/folder" },
+                        { "destination", "shared/folder" },
                         { "uri", FileNameBuilder.CleanFileName(_remoteEpisode.Release.Title) + ".nzb" }
                     },
                     Transfer = new Dictionary<string, string>
                     {
-                        { "size_downloaded", "100"},
+                        { "size_downloaded", "100" },
                         { "speed_download", "50" }
                     }
                 }
@@ -157,12 +157,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                 {
                     Detail = new Dictionary<string, string>
                     {
-                        { "destination","shared/folder" },
+                        { "destination", "shared/folder" },
                         { "uri", FileNameBuilder.CleanFileName(_remoteEpisode.Release.Title) + ".nzb" }
                     },
                     Transfer = new Dictionary<string, string>
                     {
-                        { "size_downloaded", "10"},
+                        { "size_downloaded", "10" },
                         { "speed_download", "0" }
                     }
                 }
@@ -170,7 +170,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
 
             Mocker.GetMock<IHttpClient>()
                   .Setup(s => s.Get(It.IsAny<HttpRequest>()))
-                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), new byte[0]));
+                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), Array.Empty<byte>()));
 
             _downloadStationConfigItems = new Dictionary<string, object>
             {
@@ -236,7 +236,6 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                   .Setup(s => s.Get(It.IsAny<HttpRequest>()))
                   .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), new byte[1000]));
             */
-
             Mocker.GetMock<IDownloadStationTaskProxy>()
                   .Setup(s => s.AddTaskFromData(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DownloadStationSettings>()))
                   .Callback(PrepareClientToReturnQueuedItem);
@@ -252,7 +251,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
         }
 
         [Test]
-        public void Download_with_TvDirectory_should_force_directory()
+        public async Task Download_with_TvDirectory_should_force_directory()
         {
             GivenSerialNumber();
             GivenTvDirectory();
@@ -260,7 +259,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().NotBeNullOrEmpty();
 
@@ -269,7 +268,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
         }
 
         [Test]
-        public void Download_with_category_should_force_directory()
+        public async Task Download_with_category_should_force_directory()
         {
             GivenSerialNumber();
             GivenTvCategory();
@@ -277,7 +276,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().NotBeNullOrEmpty();
 
@@ -286,14 +285,14 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
         }
 
         [Test]
-        public void Download_without_TvDirectory_and_Category_should_use_default()
+        public async Task Download_without_TvDirectory_and_Category_should_use_default()
         {
             GivenSerialNumber();
             GivenSuccessfulDownload();
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().NotBeNullOrEmpty();
 
@@ -372,7 +371,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                   .Setup(s => s.GetSerialNumber(_settings))
                   .Throws(new ApplicationException("Some unknown exception, HttpException or DownloadClientException"));
 
-            Assert.Throws(Is.InstanceOf<Exception>(), () => Subject.Download(remoteEpisode));
+            Assert.ThrowsAsync(Is.InstanceOf<Exception>(), async () => await Subject.Download(remoteEpisode, CreateIndexer()));
 
             Mocker.GetMock<IDownloadStationTaskProxy>()
                   .Verify(v => v.AddTaskFromUrl(It.IsAny<string>(), null, _settings), Times.Never());

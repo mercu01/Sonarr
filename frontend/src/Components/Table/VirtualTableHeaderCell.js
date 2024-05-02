@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, sortDirections } from 'Helpers/Props';
-import Link from 'Components/Link/Link';
 import Icon from 'Components/Icon';
+import Link from 'Components/Link/Link';
+import { icons, sortDirections } from 'Helpers/Props';
 import styles from './VirtualTableHeaderCell.css';
 
 export function headerRenderer(headerProps) {
@@ -13,6 +13,8 @@ export function headerRenderer(headerProps) {
   } = headerProps;
 
   return (
+
+    // eslint-disable-next-line no-use-before-define
     <VirtualTableHeaderCell
       name={dataKey}
       {...columnData}
@@ -38,7 +40,7 @@ class VirtualTableHeaderCell extends Component {
     } else {
       this.props.onSortPress(name);
     }
-  }
+  };
 
   //
   // Render

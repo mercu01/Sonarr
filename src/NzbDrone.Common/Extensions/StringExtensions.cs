@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -18,7 +20,11 @@ namespace NzbDrone.Common.Extensions
 
         public static object NullSafe(this object target)
         {
-            if (target != null) return target;
+            if (target != null)
+            {
+                return target;
+            }
+
             return "[NULL]";
         }
 
@@ -76,7 +82,9 @@ namespace NzbDrone.Common.Extensions
         public static string TrimEnd(this string text, string postfix)
         {
             if (text.EndsWith(postfix))
+            {
                 text = text.Substring(0, text.Length - postfix.Length);
+            }
 
             return text;
         }
@@ -123,7 +131,7 @@ namespace NzbDrone.Common.Extensions
 
         public static string WrapInQuotes(this string text)
         {
-            if (!text.Contains(" "))
+            if (!text.Contains(' '))
             {
                 return text;
             }
@@ -134,7 +142,7 @@ namespace NzbDrone.Common.Extensions
         public static byte[] HexToByteArray(this string input)
         {
             return Enumerable.Range(0, input.Length)
-                             .Where(x => x%2 == 0)
+                             .Where(x => x % 2 == 0)
                              .Select(x => Convert.ToByte(input.Substring(x, 2), 16))
                              .ToArray();
         }
@@ -151,9 +159,9 @@ namespace NzbDrone.Common.Extensions
             var first = int.Parse(octalValue.Substring(0, 1));
             var second = int.Parse(octalValue.Substring(1, 1));
             var third = int.Parse(octalValue.Substring(2, 1));
-            var byteResult = (byte)((first << 6) | (second << 3) | (third));
+            var byteResult = (byte)((first << 6) | (second << 3) | third);
 
-            return Encoding.ASCII.GetString(new [] { byteResult });
+            return Encoding.ASCII.GetString(new[] { byteResult });
         }
 
         public static string SplitCamelCase(this string input)
@@ -165,28 +173,83 @@ namespace NzbDrone.Common.Extensions
         {
             return source.Contains(value, StringComparer.InvariantCultureIgnoreCase);
         }
-                
+
         public static string ToUrlSlug(this string value)
         {
-            //First to lower case
+            // First to lower case
             value = value.ToLowerInvariant();
 
-            //Remove all accents
+            // Remove all accents
             value = value.RemoveAccent();
 
-            //Replace spaces
+            // Replace spaces
             value = Regex.Replace(value, @"\s", "-", RegexOptions.Compiled);
 
-            //Remove invalid chars
+            // Remove invalid chars
             value = Regex.Replace(value, @"[^a-z0-9\s-_]", "", RegexOptions.Compiled);
 
-            //Trim dashes from end
+            // Trim dashes from end
             value = value.Trim('-', '_');
 
-            //Replace double occurences of - or _
+            // Replace double occurrences of - or _
             value = Regex.Replace(value, @"([-_]){2,}", "$1", RegexOptions.Compiled);
 
             return value;
+        }
+
+        public static string EncodeRFC3986(this string value)
+        {
+            // From Twitterizer http://www.twitterizer.net/
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            var encoded = Uri.EscapeDataString(value);
+
+            return Regex
+                .Replace(encoded, "(%[0-9a-f][0-9a-f])", c => c.Value.ToUpper())
+                .Replace("(", "%28")
+                .Replace(")", "%29")
+                .Replace("$", "%24")
+                .Replace("!", "%21")
+                .Replace("*", "%2A")
+                .Replace("'", "%27")
+                .Replace("%7E", "~");
+        }
+
+        public static bool IsValidIpAddress(this string value)
+        {
+            if (!IPAddress.TryParse(value, out var parsedAddress))
+            {
+                return false;
+            }
+
+            if (parsedAddress.Equals(IPAddress.Parse("255.255.255.255")))
+            {
+                return false;
+            }
+
+            if (parsedAddress.IsIPv6Multicast)
+            {
+                return false;
+            }
+
+            return parsedAddress.AddressFamily == AddressFamily.InterNetwork || parsedAddress.AddressFamily == AddressFamily.InterNetworkV6;
+        }
+
+        public static string ToUrlHost(this string input)
+        {
+            return input.Contains(':') ? $"[{input}]" : input;
+        }
+
+        public static string Reverse(this string text)
+        {
+            var array = text.ToCharArray();
+
+            Array.Reverse(array);
+
+            return new string(array);
         }
     }
 }

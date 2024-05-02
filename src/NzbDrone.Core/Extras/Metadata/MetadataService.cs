@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -136,7 +136,7 @@ namespace NzbDrone.Core.Extras.Metadata
 
             if (seriesFolder.IsNullOrWhiteSpace() && seasonFolder.IsNullOrWhiteSpace())
             {
-                return new List<MetadataFile>();
+                return Array.Empty<MetadataFile>();
             }
 
             var files = new List<MetadataFile>();
@@ -416,7 +416,7 @@ namespace NzbDrone.Core.Extras.Metadata
                         _diskTransferService.TransferFile(existingFullPath, fullPath, TransferMode.Move);
                         existingMetadata.RelativePath = image.RelativePath;
 
-                        return new List<MetadataFile>{ existingMetadata };
+                        return new List<MetadataFile> { existingMetadata };
                     }
                 }
 
@@ -443,6 +443,7 @@ namespace NzbDrone.Core.Extras.Metadata
         private void DownloadImage(Series series, ImageFileResult image)
         {
             var fullPath = Path.Combine(series.Path, image.RelativePath);
+            var downloaded = true;
 
             try
             {
@@ -450,11 +451,19 @@ namespace NzbDrone.Core.Extras.Metadata
                 {
                     _httpClient.DownloadFile(image.Url, fullPath);
                 }
-                else
+                else if (_diskProvider.FileExists(image.Url))
                 {
                     _diskProvider.CopyFile(image.Url, fullPath);
                 }
-                _mediaFileAttributeService.SetFilePermissions(fullPath);
+                else
+                {
+                    downloaded = false;
+                }
+
+                if (downloaded)
+                {
+                    _mediaFileAttributeService.SetFilePermissions(fullPath);
+                }
             }
             catch (HttpException ex)
             {
@@ -485,7 +494,7 @@ namespace NzbDrone.Core.Extras.Metadata
                 return null;
             }
 
-            //Remove duplicate metadata files from DB and disk
+            // Remove duplicate metadata files from DB and disk
             foreach (var file in matchingMetadataFiles.Skip(1))
             {
                 var path = Path.Combine(series.Path, file.RelativePath);

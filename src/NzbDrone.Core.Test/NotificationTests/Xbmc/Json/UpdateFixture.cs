@@ -11,7 +11,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.NotificationTests.Xbmc.Json
 {
     [TestFixture]
-    public class UpdateFixture : CoreTest<JsonApiProvider>
+    public class UpdateFixture : CoreTest<XbmcService>
     {
         private const int TVDB_ID = 5;
         private XbmcSettings _settings;
@@ -59,9 +59,9 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc.Json
                                             .With(s => s.Title = "Not 30 Rock")
                                             .Build();
 
-             Subject.Update(_settings, fakeSeries);
+            Subject.Update(_settings, fakeSeries);
 
-             Mocker.GetMock<IXbmcJsonApiProxy>()
+            Mocker.GetMock<IXbmcJsonApiProxy>()
                    .Verify(v => v.UpdateLibrary(_settings, null), Times.Once());
         }
     }

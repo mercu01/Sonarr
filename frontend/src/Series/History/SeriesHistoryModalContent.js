@@ -1,15 +1,20 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
+import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
-import SeasonNumber from 'Season/SeasonNumber';
+import { icons, kinds } from 'Helpers/Props';
+import formatSeason from 'Season/formatSeason';
+import translate from 'Utilities/String/translate';
 import SeriesHistoryRowConnector from './SeriesHistoryRowConnector';
+
 const columns = [
   {
     name: 'eventType',
@@ -17,37 +22,46 @@ const columns = [
   },
   {
     name: 'episode',
-    label: 'Episode',
+    label: () => translate('Episode'),
     isVisible: true
   },
   {
     name: 'sourceTitle',
-    label: 'Source Title',
+    label: () => translate('SourceTitle'),
     isVisible: true
   },
   {
-    name: 'language',
-    label: 'Language',
+    name: 'languages',
+    label: () => translate('Languages'),
     isVisible: true
   },
   {
     name: 'quality',
-    label: 'Quality',
+    label: () => translate('Quality'),
+    isVisible: true
+  },
+  {
+    name: 'customFormats',
+    label: () => translate('CustomFormats'),
+    isSortable: false,
+    isVisible: true
+  },
+  {
+    name: 'customFormatScore',
+    label: React.createElement(Icon, {
+      name: icons.SCORE,
+      title: () => translate('CustomFormatScore')
+    }),
+    isSortable: true,
     isVisible: true
   },
   {
     name: 'date',
-    label: 'Date',
-    isVisible: true
-  },
-  {
-    name: 'details',
-    label: 'Details',
+    label: () => translate('Date'),
     isVisible: true
   },
   {
     name: 'actions',
-    label: 'Actions',
     isVisible: true
   }
 ];
@@ -74,7 +88,10 @@ class SeriesHistoryModalContent extends Component {
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          History {seasonNumber != null && <SeasonNumber seasonNumber={seasonNumber} />}
+          {seasonNumber == null ?
+            translate('History') :
+            translate('HistoryModalHeaderSeason', { season: formatSeason(seasonNumber) })
+          }
         </ModalHeader>
 
         <ModalBody>
@@ -85,12 +102,12 @@ class SeriesHistoryModalContent extends Component {
 
           {
             !isFetching && !!error &&
-              <div>Unable to load history.</div>
+              <Alert kind={kinds.DANGER}>{translate('HistoryLoadError')}</Alert>
           }
 
           {
             isPopulated && !hasItems && !error &&
-              <div>No history.</div>
+              <div>{translate('NoHistory')}</div>
           }
 
           {
@@ -116,7 +133,7 @@ class SeriesHistoryModalContent extends Component {
 
         <ModalFooter>
           <Button onPress={onModalClose}>
-            Close
+            {translate('Close')}
           </Button>
         </ModalFooter>
       </ModalContent>

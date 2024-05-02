@@ -14,6 +14,8 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { inputTypes, kinds } from 'Helpers/Props';
+import AdvancedSettingsButton from 'Settings/AdvancedSettingsButton';
+import translate from 'Utilities/String/translate';
 import NotificationEventItems from './NotificationEventItems';
 import styles from './EditNotificationModalContent.css';
 
@@ -31,6 +33,7 @@ function EditNotificationModalContent(props) {
     onModalClose,
     onSavePress,
     onTestPress,
+    onAdvancedSettingsPress,
     onDeleteNotificationPress,
     ...otherProps
   } = props;
@@ -47,7 +50,7 @@ function EditNotificationModalContent(props) {
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        {`${id ? 'Edit' : 'Add'} Connection - ${implementationName}`}
+        {id ? translate('EditConnectionImplementation', { implementationName }) : translate('AddConnectionImplementation', { implementationName })}
       </ModalHeader>
 
       <ModalBody>
@@ -58,9 +61,9 @@ function EditNotificationModalContent(props) {
 
         {
           !isFetching && !!error &&
-            <div>
-              Unable to add a new notification, please try again.
-            </div>
+            <Alert kind={kinds.DANGER}>
+              {translate('AddNotificationError')}
+            </Alert>
         }
 
         {
@@ -77,7 +80,7 @@ function EditNotificationModalContent(props) {
               }
 
               <FormGroup>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>{translate('Name')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.TEXT}
@@ -93,12 +96,12 @@ function EditNotificationModalContent(props) {
               />
 
               <FormGroup>
-                <FormLabel>Tags</FormLabel>
+                <FormLabel>{translate('Tags')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.TAG}
                   name="tags"
-                  helpText="Only send notifications for series with at least one matching tag"
+                  helpText={translate('NotificationsTagsSeriesHelpText')}
                   {...tags}
                   onChange={onInputChange}
                 />
@@ -131,22 +134,28 @@ function EditNotificationModalContent(props) {
               kind={kinds.DANGER}
               onPress={onDeleteNotificationPress}
             >
-              Delete
+              {translate('Delete')}
             </Button>
         }
+
+        <AdvancedSettingsButton
+          advancedSettings={advancedSettings}
+          onAdvancedSettingsPress={onAdvancedSettingsPress}
+          showLabel={false}
+        />
 
         <SpinnerErrorButton
           isSpinning={isTesting}
           error={saveError}
           onPress={onTestPress}
         >
-          Test
+          {translate('Test')}
         </SpinnerErrorButton>
 
         <Button
           onPress={onModalClose}
         >
-          Cancel
+          {translate('Cancel')}
         </Button>
 
         <SpinnerErrorButton
@@ -154,7 +163,7 @@ function EditNotificationModalContent(props) {
           error={saveError}
           onPress={onSavePress}
         >
-          Save
+          {translate('Save')}
         </SpinnerErrorButton>
       </ModalFooter>
     </ModalContent>
@@ -174,6 +183,7 @@ EditNotificationModalContent.propTypes = {
   onModalClose: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onTestPress: PropTypes.func.isRequired,
+  onAdvancedSettingsPress: PropTypes.func.isRequired,
   onDeleteNotificationPress: PropTypes.func
 };
 

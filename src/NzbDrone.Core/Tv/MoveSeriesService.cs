@@ -1,6 +1,7 @@
 using System.IO;
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
@@ -51,6 +52,12 @@ namespace NzbDrone.Core.Tv
                 _logger.ProgressInfo("Moving {0} from '{1}' to '{2}'", series.Title, sourcePath, destinationPath);
             }
 
+            if (sourcePath.PathEquals(destinationPath))
+            {
+                _logger.ProgressInfo("{0} is already in the specified location '{1}'.", series, destinationPath);
+                return;
+            }
+
             try
             {
                 // Ensure the parent of the series folder exists, this will often just be the root folder, but
@@ -58,7 +65,7 @@ namespace NzbDrone.Core.Tv
                 _diskProvider.CreateFolder(new DirectoryInfo(destinationPath).Parent.FullName);
                 _diskTransferService.TransferFolder(sourcePath, destinationPath, TransferMode.Move);
 
-                _logger.ProgressInfo("{0} moved successfully to {1}", series.Title, series.Path);
+                _logger.ProgressInfo("{0} moved successfully to {1}", series.Title, destinationPath);
 
                 _eventAggregator.PublishEvent(new SeriesMovedEvent(series, sourcePath, destinationPath));
             }

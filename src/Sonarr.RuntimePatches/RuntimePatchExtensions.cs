@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -14,11 +14,17 @@ namespace NzbDrone.RuntimePatches
         {
             var codes = instructions.Select(v => v.opcode).Where(v => v != OpCodes.Nop).ToList();
 
-            if (codes.Count != opcodes.Length) return false;
+            if (codes.Count != opcodes.Length)
+            {
+                return false;
+            }
 
             for (var i = 0; i < codes.Count; i++)
             {
-                if (codes[i] != opcodes[i]) return false;
+                if (codes[i] != opcodes[i])
+                {
+                    return false;
+                }
             }
 
             return true;
@@ -36,7 +42,7 @@ namespace NzbDrone.RuntimePatches
 
         public static string GetSimplifiedName(this Type t, bool includeNamespace = false)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             if (includeNamespace && string.IsNullOrEmpty(t.Namespace))
             {
@@ -49,13 +55,16 @@ namespace NzbDrone.RuntimePatches
                 sb.Append(t.Name, 0, t.Name.LastIndexOf('`'));
                 sb.Append('<');
                 var args = t.GetGenericArguments();
-                for (int i = 0; i < args.Length; i++)
+                for (var i = 0; i < args.Length; i++)
                 {
                     if (i != 0)
+                    {
                         sb.Append(", ");
+                    }
 
                     sb.Append(GetSimplifiedName(args[i], includeNamespace));
                 }
+
                 sb.Append('>');
             }
             else

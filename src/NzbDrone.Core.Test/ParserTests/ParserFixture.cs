@@ -1,4 +1,3 @@
-using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Parser;
@@ -7,11 +6,9 @@ using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class ParserFixture : CoreTest
     {
-
         [TestCase("Series Title - 4x05 - Title", "seriestitle")]
         [TestCase("Series & Title - 4x05 - Title", "seriestitle")]
         [TestCase("Bad Format", "badformat")]
@@ -43,7 +40,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series (2022) S03E14 720p HDTV X264-DIMENSION", "Series", 2022)]
         [TestCase("Series.2022.S03E14.720p.HDTV.X264-DIMENSION", "Series", 2022)]
         [TestCase("Series-2022-S03E14-720p-HDTV-X264-DIMENSION", "Series", 2022)]
-        [TestCase("Series_2022_S03E14_720p_HDTV_X264-DIMENSION", "Series", 2022)]        
+        [TestCase("Series_2022_S03E14_720p_HDTV_X264-DIMENSION", "Series", 2022)]
         [TestCase("1234 S03E14 720p HDTV X264-DIMENSION", "1234")]
         [TestCase("1234.S03E14.720p.HDTV.X264-DIMENSION", "1234")]
         [TestCase("1234-S03E14-720p-HDTV-X264-DIMENSION", "1234")]
@@ -94,6 +91,14 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             var result = Parser.Parser.ParseTitle(path);
             result.ReleaseTitle.Should().Be(releaseTitle);
+        }
+
+        [TestCase("Босх: Спадок (S2E1) / Series: Legacy (S2E1) (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Босх: Спадок", "Series: Legacy")]
+        [TestCase("Босх: Спадок / Series: Legacy / S2E1-4 of 10 (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Босх: Спадок", "Series: Legacy")]
+        public void should_parse_multiple_series_titles(string postTitle, params string[] titles)
+        {
+            var seriesTitleInfo = Parser.Parser.ParseTitle(postTitle).SeriesTitleInfo;
+            seriesTitleInfo.AllTitles.Should().BeEquivalentTo(titles);
         }
     }
 }

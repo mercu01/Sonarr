@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NLog;
@@ -9,8 +10,7 @@ using NzbDrone.Automation.Test.PageModel;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Test.Common;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Firefox;
-using OpenQA.Selenium.Remote;
+using OpenQA.Selenium.Chrome;
 
 namespace NzbDrone.Automation.Test
 {
@@ -19,7 +19,7 @@ namespace NzbDrone.Automation.Test
     public abstract class AutomationTest
     {
         private NzbDroneRunner _runner;
-        protected RemoteWebDriver driver;
+        protected ChromeDriver driver;
 
         public AutomationTest()
         {
@@ -34,11 +34,18 @@ namespace NzbDrone.Automation.Test
         [OneTimeSetUp]
         public void SmokeTestSetup()
         {
-            driver = new FirefoxDriver();
+            var options = new ChromeOptions();
+            options.AddArguments("--headless");
+            var service = ChromeDriverService.CreateDefaultService();
 
-            _runner = new NzbDroneRunner(LogManager.GetCurrentClassLogger());
+            // Timeout as windows automation tests seem to take alot longer to get going
+            driver = new ChromeDriver(service, options, TimeSpan.FromMinutes(3));
+
+            driver.Manage().Window.Size = new System.Drawing.Size(1920, 1080);
+
+            _runner = new NzbDroneRunner(LogManager.GetCurrentClassLogger(), null);
             _runner.KillAll();
-            _runner.Start();
+            _runner.Start(true);
 
             driver.Url = "http://localhost:8989";
 
@@ -54,6 +61,19 @@ namespace NzbDrone.Automation.Test
         {
             return driver.FindElements(By.CssSelector("#errors div"))
                 .Select(e => e.Text);
+        }
+
+        protected void TakeScreenshot(string name)
+        {
+            try
+            {
+                var image = ((ITakesScreenshot)driver).GetScreenshot();
+                image.SaveAsFile($"./{name}_test_screenshot.png", ScreenshotImageFormat.Png);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to save screenshot {name}, {ex.Message}");
+            }
         }
 
         [OneTimeTearDown]

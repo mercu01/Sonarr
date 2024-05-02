@@ -1,15 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, scrollDirections } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
 import Measure from 'Components/Measure';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import Scroller from 'Components/Scroller/Scroller';
-import DelayProfileDragSource from './DelayProfileDragSource';
-import DelayProfileDragPreview from './DelayProfileDragPreview';
+import { icons, scrollDirections } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import DelayProfile from './DelayProfile';
+import DelayProfileDragPreview from './DelayProfileDragPreview';
+import DelayProfileDragSource from './DelayProfileDragSource';
 import EditDelayProfileModalConnector from './EditDelayProfileModalConnector';
 import styles from './DelayProfiles.css';
 
@@ -32,15 +33,15 @@ class DelayProfiles extends Component {
 
   onAddDelayProfilePress = () => {
     this.setState({ isAddDelayProfileModalOpen: true });
-  }
+  };
 
   onModalClose = () => {
     this.setState({ isAddDelayProfileModalOpen: false });
-  }
+  };
 
   onMeasure = ({ width }) => {
     this.setState({ width });
-  }
+  };
 
   //
   // Render
@@ -67,9 +68,9 @@ class DelayProfiles extends Component {
 
     return (
       <Measure onMeasure={this.onMeasure}>
-        <FieldSet legend="Delay Profiles">
+        <FieldSet legend={translate('DelayProfiles')}>
           <PageSectionContent
-            errorMessage="Unable to load Delay Profiles"
+            errorMessage={translate('DelayProfilesLoadError')}
             {...otherProps}
           >
             <Scroller
@@ -81,10 +82,18 @@ class DelayProfiles extends Component {
             >
               <div>
                 <div className={styles.delayProfilesHeader}>
-                  <div className={styles.column}>Preferred Protocol</div>
-                  <div className={styles.column}>Usenet Delay</div>
-                  <div className={styles.column}>Torrent Delay</div>
-                  <div className={styles.tags}>Tags</div>
+                  <div className={styles.column}>
+                    {translate('PreferredProtocol')}
+                  </div>
+                  <div className={styles.column}>
+                    {translate('UsenetDelay')}
+                  </div>
+                  <div className={styles.column}>
+                    {translate('TorrentDelay')}
+                  </div>
+                  <div className={styles.tags}>
+                    {translate('Tags')}
+                  </div>
                 </div>
 
                 <div className={styles.delayProfiles}>

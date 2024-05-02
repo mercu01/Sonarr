@@ -1,0 +1,19 @@
+{
+    "ApiKeyValidationHealthCheckMessage": "Vennligst oppdater din API-nøkkel til å være minst {length} tegn lang. Du kan gjøre dette via innstillinger eller konfigurasjonsfilen",
+    "ApplyChanges": "Bekreft endringer",
+    "AllTitles": "Alle titler",
+    "AddAutoTag": "Legg til automatisk tagg",
+    "AddCondition": "Legg til betingelse",
+    "Add": "Legg til",
+    "Absolute": "Absolutt",
+    "Activity": "Aktivitet",
+    "About": "Om",
+    "CalendarOptions": "Kalenderinnstillinger",
+    "AbsoluteEpisodeNumbers": "Absolutte Episode Numre",
+    "AddANewPath": "Legg til ny filsti",
+    "AddConditionImplementation": "Legg til betingelse - {implementationName}",
+    "AddConditionError": "Ikke mulig å legge til ny betingelse, vennligst prøv igjen",
+    "AbsoluteEpisodeNumber": "Absolutt Episode Nummer",
+    "AddAutoTagError": "Ikke mulig å legge til ny automatisk tagg, vennligst prøv igjen",
+    "Actions": "Handlinger"
+}

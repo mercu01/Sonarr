@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes } from 'Helpers/Props';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import { inputTypes } from 'Helpers/Props';
 
 function getType({ type, selectOptionsProviderAction }) {
   switch (type) {
@@ -27,6 +27,8 @@ function getType({ type, selectOptionsProviderAction }) {
         return inputTypes.DYNAMIC_SELECT;
       }
       return inputTypes.SELECT;
+    case 'seriesTag':
+      return inputTypes.SERIES_TAG;
     case 'tag':
       return inputTypes.TEXT_TAG;
     case 'tagSelect':
@@ -35,6 +37,10 @@ function getType({ type, selectOptionsProviderAction }) {
       return inputTypes.TEXT;
     case 'oAuth':
       return inputTypes.OAUTH;
+    case 'rootFolder':
+      return inputTypes.ROOT_FOLDER_SELECT;
+    case 'qualityProfile':
+      return inputTypes.QUALITY_PROFILE_SELECT;
     default:
       return inputTypes.TEXT;
   }
@@ -62,7 +68,9 @@ function ProviderFieldFormGroup(props) {
     name,
     label,
     helpText,
+    helpTextWarning,
     helpLink,
+    placeholder,
     value,
     type,
     advanced,
@@ -94,7 +102,9 @@ function ProviderFieldFormGroup(props) {
         name={name}
         label={label}
         helpText={helpText}
+        helpTextWarning={helpTextWarning}
         helpLink={helpLink}
+        placeholder={placeholder}
         value={value}
         values={getSelectValues(selectOptions)}
         errors={errors}
@@ -119,7 +129,9 @@ ProviderFieldFormGroup.propTypes = {
   name: PropTypes.string.isRequired,
   label: PropTypes.string.isRequired,
   helpText: PropTypes.string,
+  helpTextWarning: PropTypes.string,
   helpLink: PropTypes.string,
+  placeholder: PropTypes.string,
   value: PropTypes.any,
   type: PropTypes.string.isRequired,
   advanced: PropTypes.bool.isRequired,

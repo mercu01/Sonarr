@@ -2,8 +2,8 @@
   overflow-x: hidden;
   margin: 4px 2px;
   padding: 5px;
-  border-bottom: 1px solid $borderColor;
-  border-left: 4px solid $borderColor;
+  border-bottom: 1px solid var(--borderColor);
+  border-left: 4px solid var(--borderColor);
   font-size: 12px;
 }
 
@@ -16,18 +16,18 @@
   @add-mixin truncate;
   flex: 1 0 1px;
   margin-right: 10px;
-  color: #3a3f51;
+  color: var(--calendarTextDimAlternate);
   font-size: $defaultFontSize;
 }
 
 .airTime {
   flex: 1 0 1px;
-  color: $calendarTextDim;
+  color: var(--calendarTextDim);
 }
 
 .episodeInfo {
   margin-left: 10px;
-  color: $calendarTextDim;
+  color: var(--calendarTextDim);
 }
 
 .absoluteEpisodeNumber {
@@ -43,11 +43,21 @@
 .expandContainer,
 .collapseContainer {
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
 .collapseContainer {
   margin-bottom: 5px;
+}
+
+.statusContainer {
+  display: flex;
+  align-items: center;
+
+   &:global(.fullColor) {
+    filter: var(--calendarFullColorFilter)
+  }
 }
 
 .statusIcon {

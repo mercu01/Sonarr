@@ -14,7 +14,7 @@ namespace Sonarr.Http.Frontend.Mappers
         public IndexHtmlMapper(IAppFolderInfo appFolderInfo,
                                IDiskProvider diskProvider,
                                IConfigFileProvider configFileProvider,
-                               Func<ICacheBreakerProvider> cacheBreakProviderFactory,
+                               Lazy<ICacheBreakerProvider> cacheBreakProviderFactory,
                                Logger logger)
             : base(diskProvider, cacheBreakProviderFactory, logger)
         {
@@ -35,7 +35,7 @@ namespace Sonarr.Http.Frontend.Mappers
 
             return !resourceUrl.StartsWith("/content") &&
                    !resourceUrl.StartsWith("/mediacover") &&
-                   !resourceUrl.Contains(".") &&
+                   !resourceUrl.Contains('.') &&
                    !resourceUrl.StartsWith("/login");
         }
     }

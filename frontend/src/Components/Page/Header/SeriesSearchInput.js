@@ -2,12 +2,13 @@ import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Autosuggest from 'react-autosuggest';
-import { icons } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import keyboardShortcuts, { shortcuts } from 'Components/keyboardShortcuts';
-import SeriesSearchResult from './SeriesSearchResult';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import FuseWorker from './fuse.worker';
+import SeriesSearchResult from './SeriesSearchResult';
 import styles from './SeriesSearchInput.css';
 
 const ADD_NEW_TYPE = 'addNew';
@@ -55,12 +56,12 @@ class SeriesSearchInput extends Component {
 
   setAutosuggestRef = (ref) => {
     this._autosuggest = ref;
-  }
+  };
 
   focusInput = (event) => {
     event.preventDefault();
     this._autosuggest.input.focus();
-  }
+  };
 
   getSectionSuggestions(section) {
     return section.suggestions;
@@ -73,11 +74,11 @@ class SeriesSearchInput extends Component {
 
         {
           section.loading &&
-          <LoadingIndicator
-            className={styles.loading}
-            rippleClassName={styles.ripple}
-            size={20}
-          />
+            <LoadingIndicator
+              className={styles.loading}
+              rippleClassName={styles.ripple}
+              size={20}
+            />
         }
       </div>
     );
@@ -91,7 +92,7 @@ class SeriesSearchInput extends Component {
     if (item.type === ADD_NEW_TYPE) {
       return (
         <div className={styles.addNewSeriesSuggestion}>
-          Search for {query}
+          {translate('SearchForQuery', { query })}
         </div>
       );
     }
@@ -126,7 +127,7 @@ class SeriesSearchInput extends Component {
     }
 
     this.setState({ value: newValue });
-  }
+  };
 
   onKeyDown = (event) => {
     if (event.shiftKey || event.altKey || event.ctrlKey) {
@@ -171,11 +172,11 @@ class SeriesSearchInput extends Component {
 
     this._autosuggest.input.blur();
     this.reset();
-  }
+  };
 
   onBlur = () => {
     this.reset();
-  }
+  };
 
   onSuggestionsFetchRequested = ({ value }) => {
     if (!this.state.loading) {
@@ -240,14 +241,14 @@ class SeriesSearchInput extends Component {
 
       this.getWorker().postMessage(payload);
     }
-  }
+  };
 
   onSuggestionsClearRequested = () => {
     this.setState({
       suggestions: [],
       loading: false
     });
-  }
+  };
 
   onSuggestionSelected = (event, { suggestion }) => {
     if (suggestion.type === ADD_NEW_TYPE) {
@@ -255,7 +256,7 @@ class SeriesSearchInput extends Component {
     } else {
       this.goToSeries(suggestion);
     }
-  }
+  };
 
   //
   // Render
@@ -271,14 +272,14 @@ class SeriesSearchInput extends Component {
 
     if (suggestions.length || loading) {
       suggestionGroups.push({
-        title: 'Existing Series',
+        title: translate('ExistingSeries'),
         loading,
         suggestions
       });
     }
 
     suggestionGroups.push({
-      title: 'Add New Series',
+      title: translate('AddNewSeries'),
       suggestions: [
         {
           type: ADD_NEW_TYPE,
@@ -292,7 +293,7 @@ class SeriesSearchInput extends Component {
       className: styles.input,
       name: 'seriesSearch',
       value,
-      placeholder: 'Search',
+      placeholder: translate('Search'),
       autoComplete: 'off',
       spellCheck: false,
       onChange: this.onChange,

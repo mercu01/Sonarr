@@ -1,12 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { align, icons, kinds } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import Menu from 'Components/Menu/Menu';
 import MenuButton from 'Components/Menu/MenuButton';
 import MenuContent from 'Components/Menu/MenuContent';
 import MenuItem from 'Components/Menu/MenuItem';
 import MenuItemSeparator from 'Components/Menu/MenuItemSeparator';
+import { align, icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './PageHeaderActionsMenu.css';
 
 function PageHeaderActionsMenu(props) {
@@ -20,9 +21,10 @@ function PageHeaderActionsMenu(props) {
   return (
     <div>
       <Menu alignMenu={align.RIGHT}>
-        <MenuButton className={styles.menuButton}>
+        <MenuButton className={styles.menuButton} aria-label="Menu Button">
           <Icon
             name={icons.INTERACTIVE}
+            title={translate('Menu')}
           />
         </MenuButton>
 
@@ -32,7 +34,7 @@ function PageHeaderActionsMenu(props) {
               className={styles.itemIcon}
               name={icons.KEYBOARD}
             />
-            Keyboard Shortcuts
+            {translate('KeyboardShortcuts')}
           </MenuItem>
 
           <MenuItemSeparator />
@@ -42,7 +44,7 @@ function PageHeaderActionsMenu(props) {
               className={styles.itemIcon}
               name={icons.RESTART}
             />
-            Restart
+            {translate('Restart')}
           </MenuItem>
 
           <MenuItem onPress={onShutdownPress}>
@@ -51,7 +53,7 @@ function PageHeaderActionsMenu(props) {
               name={icons.SHUTDOWN}
               kind={kinds.DANGER}
             />
-            Shutdown
+            {translate('Shutdown')}
           </MenuItem>
 
           {
@@ -69,7 +71,7 @@ function PageHeaderActionsMenu(props) {
                   className={styles.itemIcon}
                   name={icons.LOGOUT}
                 />
-                Logout
+                {translate('Logout')}
               </MenuItem>
           }
         </MenuContent>

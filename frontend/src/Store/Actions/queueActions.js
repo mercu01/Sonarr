@@ -1,16 +1,19 @@
 import _ from 'lodash';
+import React from 'react';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
+import Icon from 'Components/Icon';
+import { filterBuilderTypes, filterBuilderValueTypes, icons, sortDirections } from 'Helpers/Props';
+import { createThunk, handleThunks } from 'Store/thunks';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
-import { sortDirections } from 'Helpers/Props';
-import { createThunk, handleThunks } from 'Store/thunks';
-import createClearReducer from './Creators/Reducers/createClearReducer';
-import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
+import translate from 'Utilities/String/translate';
+import { set, updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
 import createServerSideCollectionHandlers from './Creators/createServerSideCollectionHandlers';
-import { set, updateItem } from './baseActions';
+import createClearReducer from './Creators/Reducers/createClearReducer';
+import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
 
 //
 // Variables
@@ -57,100 +60,158 @@ export const defaultState = {
     columns: [
       {
         name: 'status',
-        columnLabel: 'Status',
+        columnLabel: () => translate('Status'),
         isSortable: true,
         isVisible: true,
         isModifiable: false
       },
       {
         name: 'series.sortTitle',
-        label: 'Series',
+        label: () => translate('Series'),
         isSortable: true,
         isVisible: true
       },
       {
         name: 'episode',
-        label: 'Episode',
+        label: () => translate('Episode'),
         isSortable: true,
         isVisible: true
       },
       {
-        name: 'episode.title',
-        label: 'Episode Title',
+        name: 'episodes.title',
+        label: () => translate('EpisodeTitle'),
         isSortable: true,
         isVisible: true
       },
       {
-        name: 'episode.airDateUtc',
-        label: 'Episode Air Date',
+        name: 'episodes.airDateUtc',
+        label: () => translate('EpisodeAirDate'),
         isSortable: true,
         isVisible: false
       },
       {
-        name: 'language',
-        label: 'Language',
+        name: 'languages',
+        label: () => translate('Languages'),
         isSortable: true,
         isVisible: false
       },
       {
         name: 'quality',
-        label: 'Quality',
+        label: () => translate('Quality'),
         isSortable: true,
         isVisible: true
       },
       {
+        name: 'customFormats',
+        label: () => translate('Formats'),
+        isSortable: false,
+        isVisible: true
+      },
+      {
+        name: 'customFormatScore',
+        columnLabel: () => translate('CustomFormatScore'),
+        label: React.createElement(Icon, {
+          name: icons.SCORE,
+          title: () => translate('CustomFormatScore')
+        }),
+        isVisible: false
+      },
+      {
         name: 'protocol',
-        label: 'Protocol',
+        label: () => translate('Protocol'),
         isSortable: true,
         isVisible: false
       },
       {
         name: 'indexer',
-        label: 'Indexer',
+        label: () => translate('Indexer'),
         isSortable: true,
         isVisible: false
       },
       {
         name: 'downloadClient',
-        label: 'Download Client',
+        label: () => translate('DownloadClient'),
         isSortable: true,
         isVisible: false
       },
       {
         name: 'title',
-        label: 'Release Title',
+        label: () => translate('ReleaseTitle'),
         isSortable: true,
         isVisible: false
       },
       {
         name: 'size',
-        label: 'Size',
+        label: () => translate('Size'),
         isSortable: true,
-        isVisibile: false
+        isVisible: false
       },
       {
         name: 'outputPath',
-        label: 'Output Path',
+        label: () => translate('OutputPath'),
         isSortable: false,
         isVisible: false
       },
       {
         name: 'estimatedCompletionTime',
-        label: 'Time Left',
+        label: () => translate('TimeLeft'),
         isSortable: true,
         isVisible: true
       },
       {
+        name: 'added',
+        label: () => translate('Added'),
+        isSortable: true,
+        isVisible: false
+      },
+      {
         name: 'progress',
-        label: 'Progress',
+        label: () => translate('Progress'),
         isSortable: true,
         isVisible: true
       },
       {
         name: 'actions',
-        columnLabel: 'Actions',
+        columnLabel: () => translate('Actions'),
         isVisible: true,
         isModifiable: false
+      }
+    ],
+
+    selectedFilterKey: 'all',
+
+    filters: [
+      {
+        key: 'all',
+        label: 'All',
+        filters: []
+      }
+    ],
+
+    filterBuilderProps: [
+      {
+        name: 'seriesIds',
+        label: () => translate('Series'),
+        type: filterBuilderTypes.EQUAL,
+        valueType: filterBuilderValueTypes.SERIES
+      },
+      {
+        name: 'quality',
+        label: () => translate('Quality'),
+        type: filterBuilderTypes.EQUAL,
+        valueType: filterBuilderValueTypes.QUALITY
+      },
+      {
+        name: 'languages',
+        label: () => translate('Languages'),
+        type: filterBuilderTypes.CONTAINS,
+        valueType: filterBuilderValueTypes.LANGUAGE
+      },
+      {
+        name: 'protocol',
+        label: () => translate('Protocol'),
+        type: filterBuilderTypes.EQUAL,
+        valueType: filterBuilderValueTypes.PROTOCOL
       }
     ]
   }
@@ -161,7 +222,8 @@ export const persistState = [
   'queue.paged.pageSize',
   'queue.paged.sortKey',
   'queue.paged.sortDirection',
-  'queue.paged.columns'
+  'queue.paged.columns',
+  'queue.paged.selectedFilterKey'
 ];
 
 //
@@ -186,6 +248,7 @@ export const GOTO_NEXT_QUEUE_PAGE = 'queue/gotoQueueNextPage';
 export const GOTO_LAST_QUEUE_PAGE = 'queue/gotoQueueLastPage';
 export const GOTO_QUEUE_PAGE = 'queue/gotoQueuePage';
 export const SET_QUEUE_SORT = 'queue/setQueueSort';
+export const SET_QUEUE_FILTER = 'queue/setQueueFilter';
 export const SET_QUEUE_TABLE_OPTION = 'queue/setQueueTableOption';
 export const SET_QUEUE_OPTION = 'queue/setQueueOption';
 export const CLEAR_QUEUE = 'queue/clearQueue';
@@ -210,6 +273,7 @@ export const gotoQueueNextPage = createThunk(GOTO_NEXT_QUEUE_PAGE);
 export const gotoQueueLastPage = createThunk(GOTO_LAST_QUEUE_PAGE);
 export const gotoQueuePage = createThunk(GOTO_QUEUE_PAGE);
 export const setQueueSort = createThunk(SET_QUEUE_SORT);
+export const setQueueFilter = createThunk(SET_QUEUE_FILTER);
 export const setQueueTableOption = createAction(SET_QUEUE_TABLE_OPTION);
 export const setQueueOption = createAction(SET_QUEUE_OPTION);
 export const clearQueue = createAction(CLEAR_QUEUE);
@@ -261,7 +325,8 @@ export const actionHandlers = handleThunks({
       [serverSideCollectionHandlers.NEXT_PAGE]: GOTO_NEXT_QUEUE_PAGE,
       [serverSideCollectionHandlers.LAST_PAGE]: GOTO_LAST_QUEUE_PAGE,
       [serverSideCollectionHandlers.EXACT_PAGE]: GOTO_QUEUE_PAGE,
-      [serverSideCollectionHandlers.SORT]: SET_QUEUE_SORT
+      [serverSideCollectionHandlers.SORT]: SET_QUEUE_SORT,
+      [serverSideCollectionHandlers.FILTER]: SET_QUEUE_FILTER
     },
     fetchDataAugmenter
   ),
@@ -364,13 +429,15 @@ export const actionHandlers = handleThunks({
     const {
       id,
       remove,
-      blocklist
+      blocklist,
+      skipRedownload,
+      changeCategory
     } = payload;
 
     dispatch(updateItem({ section: paged, id, isRemoving: true }));
 
     const promise = createAjaxRequest({
-      url: `/queue/${id}?removeFromClient=${remove}&blocklist=${blocklist}`,
+      url: `/queue/${id}?removeFromClient=${remove}&blocklist=${blocklist}&skipRedownload=${skipRedownload}&changeCategory=${changeCategory}`,
       method: 'DELETE'
     }).request;
 
@@ -387,7 +454,9 @@ export const actionHandlers = handleThunks({
     const {
       ids,
       remove,
-      blocklist
+      blocklist,
+      skipRedownload,
+      changeCategory
     } = payload;
 
     dispatch(batchActions([
@@ -403,9 +472,10 @@ export const actionHandlers = handleThunks({
     ]));
 
     const promise = createAjaxRequest({
-      url: `/queue/bulk?removeFromClient=${remove}&blocklist=${blocklist}`,
+      url: `/queue/bulk?removeFromClient=${remove}&blocklist=${blocklist}&skipRedownload=${skipRedownload}&changeCategory=${changeCategory}`,
       method: 'DELETE',
       dataType: 'json',
+      contentType: 'application/json',
       data: JSON.stringify({ ids })
     }).request;
 

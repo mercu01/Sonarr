@@ -3,13 +3,20 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
 import { createSelector } from 'reselect';
-import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
-import { saveDimensions, setIsSidebarVisible } from 'Store/Actions/appActions';
+import { fetchTranslations, saveDimensions, setIsSidebarVisible } from 'Store/Actions/appActions';
 import { fetchCustomFilters } from 'Store/Actions/customFilterActions';
 import { fetchSeries } from 'Store/Actions/seriesActions';
-import { fetchTags } from 'Store/Actions/tagActions';
-import { fetchQualityProfiles, fetchLanguageProfiles, fetchImportLists, fetchUISettings } from 'Store/Actions/settingsActions';
+import {
+  fetchImportLists,
+  fetchIndexerFlags,
+  fetchLanguages,
+  fetchQualityProfiles,
+  fetchUISettings
+} from 'Store/Actions/settingsActions';
 import { fetchStatus } from 'Store/Actions/systemActions';
+import { fetchTags } from 'Store/Actions/tagActions';
+import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
+import createSystemStatusSelector from 'Store/Selectors/createSystemStatusSelector';
 import ErrorPage from './ErrorPage';
 import LoadingPage from './LoadingPage';
 import Page from './Page';
@@ -48,18 +55,22 @@ const selectIsPopulated = createSelector(
   (state) => state.tags.isPopulated,
   (state) => state.settings.ui.isPopulated,
   (state) => state.settings.qualityProfiles.isPopulated,
-  (state) => state.settings.languageProfiles.isPopulated,
+  (state) => state.settings.languages.isPopulated,
   (state) => state.settings.importLists.isPopulated,
+  (state) => state.settings.indexerFlags.isPopulated,
   (state) => state.system.status.isPopulated,
+  (state) => state.app.translations.isPopulated,
   (
     seriesIsPopulated,
     customFiltersIsPopulated,
     tagsIsPopulated,
     uiSettingsIsPopulated,
     qualityProfilesIsPopulated,
-    languageProfilesIsPopulated,
+    languagesIsPopulated,
     importListsIsPopulated,
-    systemStatusIsPopulated
+    indexerFlagsIsPopulated,
+    systemStatusIsPopulated,
+    translationsIsPopulated
   ) => {
     return (
       seriesIsPopulated &&
@@ -67,9 +78,11 @@ const selectIsPopulated = createSelector(
       tagsIsPopulated &&
       uiSettingsIsPopulated &&
       qualityProfilesIsPopulated &&
-      languageProfilesIsPopulated &&
+      languagesIsPopulated &&
       importListsIsPopulated &&
-      systemStatusIsPopulated
+      indexerFlagsIsPopulated &&
+      systemStatusIsPopulated &&
+      translationsIsPopulated
     );
   }
 );
@@ -80,18 +93,22 @@ const selectErrors = createSelector(
   (state) => state.tags.error,
   (state) => state.settings.ui.error,
   (state) => state.settings.qualityProfiles.error,
-  (state) => state.settings.languageProfiles.error,
+  (state) => state.settings.languages.error,
   (state) => state.settings.importLists.error,
+  (state) => state.settings.indexerFlags.error,
   (state) => state.system.status.error,
+  (state) => state.app.translations.error,
   (
     seriesError,
     customFiltersError,
     tagsError,
     uiSettingsError,
     qualityProfilesError,
-    languageProfilesError,
+    languagesError,
     importListsError,
-    systemStatusError
+    indexerFlagsError,
+    systemStatusError,
+    translationsError
   ) => {
     const hasError = !!(
       seriesError ||
@@ -99,9 +116,11 @@ const selectErrors = createSelector(
       tagsError ||
       uiSettingsError ||
       qualityProfilesError ||
-      languageProfilesError ||
+      languagesError ||
       importListsError ||
-      systemStatusError
+      indexerFlagsError ||
+      systemStatusError ||
+      translationsError
     );
 
     return {
@@ -111,9 +130,11 @@ const selectErrors = createSelector(
       tagsError,
       uiSettingsError,
       qualityProfilesError,
-      languageProfilesError,
+      languagesError,
       importListsError,
-      systemStatusError
+      indexerFlagsError,
+      systemStatusError,
+      translationsError
     };
   }
 );
@@ -125,18 +146,21 @@ function createMapStateToProps() {
     selectErrors,
     selectAppProps,
     createDimensionsSelector(),
+    createSystemStatusSelector(),
     (
       enableColorImpairedMode,
       isPopulated,
       errors,
       app,
-      dimensions
+      dimensions,
+      systemStatus
     ) => {
       return {
         ...app,
         ...errors,
         isPopulated,
         isSmallScreen: dimensions.isSmallScreen,
+        authenticationEnabled: systemStatus.authentication !== 'none',
         enableColorImpairedMode
       };
     }
@@ -157,17 +181,23 @@ function createMapDispatchToProps(dispatch, props) {
     dispatchFetchQualityProfiles() {
       dispatch(fetchQualityProfiles());
     },
-    dispatchFetchLanguageProfiles() {
-      dispatch(fetchLanguageProfiles());
+    dispatchFetchLanguages() {
+      dispatch(fetchLanguages());
     },
     dispatchFetchImportLists() {
       dispatch(fetchImportLists());
+    },
+    dispatchFetchIndexerFlags() {
+      dispatch(fetchIndexerFlags());
     },
     dispatchFetchUISettings() {
       dispatch(fetchUISettings());
     },
     dispatchFetchStatus() {
       dispatch(fetchStatus());
+    },
+    dispatchFetchTranslations() {
+      dispatch(fetchTranslations());
     },
     onResize(dimensions) {
       dispatch(saveDimensions(dimensions));
@@ -197,10 +227,12 @@ class PageConnector extends Component {
       this.props.dispatchFetchCustomFilters();
       this.props.dispatchFetchTags();
       this.props.dispatchFetchQualityProfiles();
-      this.props.dispatchFetchLanguageProfiles();
+      this.props.dispatchFetchLanguages();
       this.props.dispatchFetchImportLists();
+      this.props.dispatchFetchIndexerFlags();
       this.props.dispatchFetchUISettings();
       this.props.dispatchFetchStatus();
+      this.props.dispatchFetchTranslations();
     }
   }
 
@@ -209,7 +241,7 @@ class PageConnector extends Component {
 
   onSidebarToggle = () => {
     this.props.onSidebarVisibleChange(!this.props.isSidebarVisible);
-  }
+  };
 
   //
   // Render
@@ -221,10 +253,12 @@ class PageConnector extends Component {
       dispatchFetchSeries,
       dispatchFetchTags,
       dispatchFetchQualityProfiles,
-      dispatchFetchLanguageProfiles,
+      dispatchFetchLanguages,
       dispatchFetchImportLists,
+      dispatchFetchIndexerFlags,
       dispatchFetchUISettings,
       dispatchFetchStatus,
+      dispatchFetchTranslations,
       ...otherProps
     } = this.props;
 
@@ -260,10 +294,12 @@ PageConnector.propTypes = {
   dispatchFetchCustomFilters: PropTypes.func.isRequired,
   dispatchFetchTags: PropTypes.func.isRequired,
   dispatchFetchQualityProfiles: PropTypes.func.isRequired,
-  dispatchFetchLanguageProfiles: PropTypes.func.isRequired,
+  dispatchFetchLanguages: PropTypes.func.isRequired,
   dispatchFetchImportLists: PropTypes.func.isRequired,
+  dispatchFetchIndexerFlags: PropTypes.func.isRequired,
   dispatchFetchUISettings: PropTypes.func.isRequired,
   dispatchFetchStatus: PropTypes.func.isRequired,
+  dispatchFetchTranslations: PropTypes.func.isRequired,
   onSidebarVisibleChange: PropTypes.func.isRequired
 };
 

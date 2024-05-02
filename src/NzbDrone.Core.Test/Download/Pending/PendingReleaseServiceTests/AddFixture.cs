@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
-using Marr.Data;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Parser;
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _parsedEpisodeInfo.Quality = new QualityModel(Quality.HDTV720p);
 
             _remoteEpisode = new RemoteEpisode();
-            _remoteEpisode.Episodes = new List<Episode>{ _episode };
+            _remoteEpisode.Episodes = new List<Episode> { _episode };
             _remoteEpisode.Series = _series;
             _remoteEpisode.ParsedEpisodeInfo = _parsedEpisodeInfo;
             _remoteEpisode.Release = _release;
@@ -85,7 +85,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
 
             Mocker.GetMock<IParsingService>()
                   .Setup(s => s.GetEpisodes(It.IsAny<ParsedEpisodeInfo>(), _series, true, null))
-                  .Returns(new List<Episode> {_episode});
+                  .Returns(new List<Episode> { _episode });
 
             Mocker.GetMock<IPrioritizeDownloadDecision>()
                   .Setup(s => s.PrioritizeDecisions(It.IsAny<List<DownloadDecision>>()))
@@ -98,13 +98,13 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             release.Indexer = indexer;
             release.PublishDate = publishDate;
 
-
             var heldReleases = Builder<PendingRelease>.CreateListOfSize(1)
                                                    .All()
                                                    .With(h => h.SeriesId = _series.Id)
                                                    .With(h => h.Title = title)
                                                    .With(h => h.Release = release)
                                                    .With(h => h.Reason = reason)
+                                                   .With(h => h.ParsedEpisodeInfo = _parsedEpisodeInfo)
                                                    .Build();
 
             _heldReleases.AddRange(heldReleases);

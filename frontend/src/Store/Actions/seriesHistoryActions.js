@@ -1,9 +1,9 @@
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
 import { createThunk, handleThunks } from 'Store/thunks';
-import createHandleActions from './Creators/createHandleActions';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
 import { set, update } from './baseActions';
+import createHandleActions from './Creators/createHandleActions';
 
 //
 // Variables
@@ -78,11 +78,9 @@ export const actionHandlers = handleThunks({
     } = payload;
 
     const promise = createAjaxRequest({
-      url: '/history/failed',
+      url: `/history/failed/${historyId}`,
       method: 'POST',
-      data: {
-        id: historyId
-      }
+      dataType: 'json'
     }).request;
 
     promise.done(() => {

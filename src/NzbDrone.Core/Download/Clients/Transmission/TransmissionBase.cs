@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
@@ -6,7 +6,9 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
@@ -24,8 +26,10 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             IConfigService configService,
             IDiskProvider diskProvider,
             IRemotePathMappingService remotePathMappingService,
+            ILocalizationService localizationService,
+            IBlocklistService blocklistService,
             Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _proxy = proxy;
         }
@@ -40,18 +44,27 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             foreach (var torrent in torrents)
             {
                 // If totalsize == 0 the torrent is a magnet downloading metadata
-                if (torrent.TotalSize == 0) continue;
+                if (torrent.TotalSize == 0)
+                {
+                    continue;
+                }
 
                 var outputPath = new OsPath(torrent.DownloadDir);
 
                 if (Settings.TvDirectory.IsNotNullOrWhiteSpace())
                 {
-                    if (!new OsPath(Settings.TvDirectory).Contains(outputPath)) continue;
+                    if (!new OsPath(Settings.TvDirectory).Contains(outputPath))
+                    {
+                        continue;
+                    }
                 }
                 else if (Settings.TvCategory.IsNotNullOrWhiteSpace())
                 {
                     var directories = outputPath.FullPath.Split('\\', '/');
-                    if (!directories.Contains(Settings.TvCategory)) continue;
+                    if (!directories.Contains(Settings.TvCategory))
+                    {
+                        continue;
+                    }
                 }
 
                 outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, outputPath);
@@ -61,17 +74,24 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 item.Category = Settings.TvCategory;
                 item.Title = torrent.Name;
 
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false);
 
                 item.OutputPath = GetOutputPath(outputPath, torrent);
                 item.TotalSize = torrent.TotalSize;
                 item.RemainingSize = torrent.LeftUntilDone;
                 item.SeedRatio = torrent.DownloadedEver <= 0 ? 0 :
-                    (double) torrent.UploadedEver / torrent.DownloadedEver;
+                    (double)torrent.UploadedEver / torrent.DownloadedEver;
 
                 if (torrent.Eta >= 0)
                 {
-                    item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
+                    try
+                    {
+                        item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
+                    }
+                    catch (OverflowException)
+                    {
+                        item.RemainingTime = TimeSpan.FromMilliseconds(torrent.Eta);
+                    }
                 }
 
                 if (!torrent.ErrorString.IsNullOrWhiteSpace())
@@ -112,7 +132,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
         {
             var isStopped = torrent.Status == TransmissionTorrentStatus.Stopped;
             var isSeeding = torrent.Status == TransmissionTorrentStatus.Seeding;
-            
+
             if (torrent.SeedRatioMode == 1)
             {
                 if (isStopped && ratio.HasValue && ratio >= torrent.SeedRatioLimit)
@@ -155,12 +175,21 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
         public override DownloadClientInfo GetStatus()
         {
-            var config = _proxy.GetConfig(Settings);
-            var destDir = config.DownloadDir;
+            string destDir;
 
-            if (Settings.TvCategory.IsNotNullOrWhiteSpace())
+            if (Settings.TvDirectory.IsNotNullOrWhiteSpace())
             {
-                destDir = string.Format("{0}/.{1}", destDir, Settings.TvCategory);
+                destDir = Settings.TvDirectory;
+            }
+            else
+            {
+                var config = _proxy.GetConfig(Settings);
+                destDir = config.DownloadDir;
+
+                if (Settings.TvCategory.IsNotNullOrWhiteSpace())
+                {
+                    destDir = $"{destDir}/{Settings.TvCategory}";
+                }
             }
 
             return new DownloadClientInfo
@@ -177,8 +206,8 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
             var isRecentEpisode = remoteEpisode.IsRecentEpisode();
 
-            if (isRecentEpisode && Settings.RecentTvPriority == (int)TransmissionPriority.First ||
-                !isRecentEpisode && Settings.OlderTvPriority == (int)TransmissionPriority.First)
+            if ((isRecentEpisode && Settings.RecentTvPriority == (int)TransmissionPriority.First) ||
+                (!isRecentEpisode && Settings.OlderTvPriority == (int)TransmissionPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -193,8 +222,8 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
             var isRecentEpisode = remoteEpisode.IsRecentEpisode();
 
-            if (isRecentEpisode && Settings.RecentTvPriority == (int)TransmissionPriority.First ||
-                !isRecentEpisode && Settings.OlderTvPriority == (int)TransmissionPriority.First)
+            if ((isRecentEpisode && Settings.RecentTvPriority == (int)TransmissionPriority.First) ||
+                (!isRecentEpisode && Settings.OlderTvPriority == (int)TransmissionPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -205,7 +234,11 @@ namespace NzbDrone.Core.Download.Clients.Transmission
         protected override void Test(List<ValidationFailure> failures)
         {
             failures.AddIfNotNull(TestConnection());
-            if (failures.HasErrors()) return;
+            if (failures.HasErrors())
+            {
+                return;
+            }
+
             failures.AddIfNotNull(TestGetTorrents());
         }
 
@@ -221,7 +254,10 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 return Settings.TvDirectory;
             }
 
-            if (!Settings.TvCategory.IsNotNullOrWhiteSpace()) return null;
+            if (!Settings.TvCategory.IsNotNullOrWhiteSpace())
+            {
+                return null;
+            }
 
             var config = _proxy.GetConfig(Settings);
             var destDir = config.DownloadDir;
@@ -238,16 +274,16 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             catch (DownloadClientAuthenticationException ex)
             {
                 _logger.Error(ex, ex.Message);
-                return new NzbDroneValidationFailure("Username", "Authentication failure")
+                return new NzbDroneValidationFailure("Username", _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailure"))
                 {
-                    DetailedDescription = string.Format("Please verify your username and password. Also verify if the host running Sonarr isn't blocked from accessing {0} by WhiteList limitations in the {0} configuration.", Name)
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
                 };
             }
             catch (DownloadClientUnavailableException ex)
             {
                 _logger.Error(ex, ex.Message);
 
-                return new NzbDroneValidationFailure("Host", "Unable to connect to Transmission")
+                return new NzbDroneValidationFailure("Host", _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect", new Dictionary<string, object> { { "clientName", Name } }))
                        {
                            DetailedDescription = ex.Message
                        };
@@ -256,7 +292,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             {
                 _logger.Error(ex, "Failed to test");
 
-                return new NzbDroneValidationFailure(string.Empty, "Unknown exception: " + ex.Message);
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationUnknownException", new Dictionary<string, object> { { "exception", ex.Message } }));
             }
         }
 
@@ -271,7 +307,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to get torrents");
-                return new NzbDroneValidationFailure(string.Empty, "Failed to get the list of torrents: " + ex.Message);
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationTestTorrents", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;

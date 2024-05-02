@@ -1,9 +1,9 @@
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
@@ -17,7 +17,6 @@ using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
 {
-
     [TestFixture]
     public class UsenetBlackholeFixture : DownloadClientFixtureBase<UsenetBlackhole>
     {
@@ -72,7 +71,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
                 .Returns(new[] { targetDir });
 
             Mocker.GetMock<IDiskProvider>()
-                .Setup(c => c.GetFiles(targetDir, SearchOption.AllDirectories))
+                .Setup(c => c.GetFiles(targetDir, true))
                 .Returns(new[] { Path.Combine(targetDir, "somefile.mkv") });
 
             Mocker.GetMock<IDiskProvider>()
@@ -105,7 +104,6 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
             VerifyPostprocessing(result);
         }
 
-
         [Test]
         public void should_return_category()
         {
@@ -118,19 +116,19 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
         }
 
         [Test]
-        public void Download_should_download_file_if_it_doesnt_exist()
+        public async Task Download_should_download_file_if_it_doesnt_exist()
         {
             var remoteEpisode = CreateRemoteEpisode();
 
-            Subject.Download(remoteEpisode);
+            await Subject.Download(remoteEpisode, CreateIndexer());
 
-            Mocker.GetMock<IHttpClient>().Verify(c => c.Get(It.Is<HttpRequest>(v => v.Url.FullUri == _downloadUrl)), Times.Once());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.Is<HttpRequest>(v => v.Url.FullUri == _downloadUrl)), Times.Once());
             Mocker.GetMock<IDiskProvider>().Verify(c => c.OpenWriteStream(_filePath), Times.Once());
-            Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
         }
 
         [Test]
-        public void Download_should_replace_illegal_characters_in_title()
+        public async Task Download_should_replace_illegal_characters_in_title()
         {
             var illegalTitle = "Saturday Night Live - S38E08 - Jeremy Renner/Maroon 5 [SDTV]";
             var expectedFilename = Path.Combine(_blackholeFolder, "Saturday Night Live - S38E08 - Jeremy Renner+Maroon 5 [SDTV]" + Path.GetExtension(_filePath));
@@ -138,11 +136,11 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
             var remoteEpisode = CreateRemoteEpisode();
             remoteEpisode.Release.Title = illegalTitle;
 
-            Subject.Download(remoteEpisode);
+            await Subject.Download(remoteEpisode, CreateIndexer());
 
-            Mocker.GetMock<IHttpClient>().Verify(c => c.Get(It.Is<HttpRequest>(v => v.Url.FullUri == _downloadUrl)), Times.Once());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.Is<HttpRequest>(v => v.Url.FullUri == _downloadUrl)), Times.Once());
             Mocker.GetMock<IDiskProvider>().Verify(c => c.OpenWriteStream(expectedFilename), Times.Once());
-            Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
         }
 
         [Test]

@@ -3,24 +3,24 @@ import * as app from './appActions';
 import * as blocklist from './blocklistActions';
 import * as calendar from './calendarActions';
 import * as captcha from './captchaActions';
-import * as customFilters from './customFilterActions';
 import * as commands from './commandActions';
+import * as customFilters from './customFilterActions';
 import * as episodes from './episodeActions';
 import * as episodeFiles from './episodeFileActions';
 import * as episodeHistory from './episodeHistoryActions';
+import * as episodeSelection from './episodeSelectionActions';
 import * as history from './historyActions';
 import * as importSeries from './importSeriesActions';
 import * as interactiveImportActions from './interactiveImportActions';
 import * as oAuth from './oAuthActions';
 import * as organizePreview from './organizePreviewActions';
+import * as parse from './parseActions';
 import * as paths from './pathActions';
 import * as providerOptions from './providerOptionActions';
 import * as queue from './queueActions';
 import * as releases from './releaseActions';
 import * as rootFolders from './rootFolderActions';
-import * as seasonPass from './seasonPassActions';
 import * as series from './seriesActions';
-import * as seriesEditor from './seriesEditorActions';
 import * as seriesHistory from './seriesHistoryActions';
 import * as seriesIndex from './seriesIndexActions';
 import * as settings from './settingsActions';
@@ -39,19 +39,19 @@ export default [
   episodes,
   episodeFiles,
   episodeHistory,
+  episodeSelection,
   history,
   importSeries,
   interactiveImportActions,
   oAuth,
   organizePreview,
+  parse,
   paths,
   providerOptions,
   queue,
   releases,
   rootFolders,
-  seasonPass,
   series,
-  seriesEditor,
   seriesHistory,
   seriesIndex,
   settings,

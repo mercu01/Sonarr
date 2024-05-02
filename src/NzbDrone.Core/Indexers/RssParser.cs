@@ -12,6 +12,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Indexers.Exceptions;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Indexers
@@ -84,7 +85,7 @@ namespace NzbDrone.Core.Indexers
 
             if (!PostProcess(indexerResponse, items, releases))
             {
-                return new List<ReleaseInfo>();
+                return Array.Empty<ReleaseInfo>();
             }
 
             return releases;
@@ -120,7 +121,8 @@ namespace NzbDrone.Core.Indexers
 
         protected virtual bool PreProcess(IndexerResponse indexerResponse)
         {
-            if (indexerResponse.HttpResponse.StatusCode != HttpStatusCode.OK)
+            // Server Down HTTP Errors are handled in HTTPIndexerBase so ignore them here
+            if (indexerResponse.HttpResponse.StatusCode != HttpStatusCode.OK && !indexerResponse.HttpResponse.HasHttpServerError)
             {
                 throw new IndexerException(indexerResponse, "Indexer API call resulted in an unexpected StatusCode [{0}]", indexerResponse.HttpResponse.StatusCode);
             }
@@ -158,6 +160,7 @@ namespace NzbDrone.Core.Indexers
             releaseInfo.DownloadUrl = GetDownloadUrl(item);
             releaseInfo.InfoUrl = GetInfoUrl(item);
             releaseInfo.CommentUrl = GetCommentUrl(item);
+            releaseInfo.Languages = GetLanguages(item);
 
             try
             {
@@ -224,12 +227,18 @@ namespace NzbDrone.Core.Indexers
             return ParseUrl((string)item.Element("comments"));
         }
 
+        protected virtual List<Language> GetLanguages(XElement item)
+        {
+            return new List<Language>();
+        }
+
         protected virtual long GetSize(XElement item)
         {
             if (UseEnclosureLength)
             {
                 return GetEnclosureLength(item);
             }
+
             if (ParseSizeInDescription && item.Element("description") != null)
             {
                 return ParseSize(item.Element("description").Value, true);
@@ -258,11 +267,11 @@ namespace NzbDrone.Core.Indexers
                                      try
                                      {
                                          return new RssEnclosure
-                                                {
-                                                    Url = v.Attribute("url")?.Value,
-                                                    Type = v.Attribute("type")?.Value,
-                                                    Length = v.Attribute("length")?.Value?.ParseInt64() ?? 0
-                                                };
+                                         {
+                                             Url = v.Attribute("url")?.Value,
+                                             Type = v.Attribute("type")?.Value,
+                                             Length = v.Attribute("length")?.Value?.ParseInt64() ?? 0
+                                         };
                                      }
                                      catch (Exception e)
                                      {
@@ -392,6 +401,7 @@ namespace NzbDrone.Core.Indexers
                         return (long)value;
                 }
             }
+
             return 0;
         }
 

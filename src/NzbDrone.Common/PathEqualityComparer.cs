@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 
@@ -10,7 +10,6 @@ namespace NzbDrone.Common
 
         private PathEqualityComparer()
         {
-
         }
 
         public bool Equals(string x, string y)

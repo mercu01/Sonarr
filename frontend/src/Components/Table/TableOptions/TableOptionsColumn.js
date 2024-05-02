@@ -1,9 +1,9 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
-import { icons } from 'Helpers/Props';
-import Icon from 'Components/Icon';
 import CheckInput from 'Components/Form/CheckInput';
+import Icon from 'Components/Icon';
+import { icons } from 'Helpers/Props';
 import styles from './TableOptionsColumn.css';
 
 function TableOptionsColumn(props) {
@@ -35,7 +35,7 @@ function TableOptionsColumn(props) {
             isDisabled={isModifiable === false}
             onChange={onVisibleChange}
           />
-          {label}
+          {typeof label === 'function' ? label() : label}
         </label>
 
         {
@@ -56,7 +56,7 @@ function TableOptionsColumn(props) {
 
 TableOptionsColumn.propTypes = {
   name: PropTypes.string.isRequired,
-  label: PropTypes.string.isRequired,
+  label: PropTypes.oneOfType([PropTypes.string, PropTypes.func]).isRequired,
   isVisible: PropTypes.bool.isRequired,
   isModifiable: PropTypes.bool.isRequired,
   index: PropTypes.number.isRequired,

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using Dapper;
 using FluentMigrator;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore.Migration.Framework;
@@ -58,21 +59,17 @@ namespace NzbDrone.Core.Datastore.Migration
 
         public void Commit()
         {
-            foreach (var profile in _changedProfiles)
+            var profilesToUpdate = _changedProfiles.Select(p => new
             {
-                using (var updateProfileCmd = _connection.CreateCommand())
-                {
-                    updateProfileCmd.Transaction = _transaction;
-                    updateProfileCmd.CommandText = "UPDATE Profiles SET Name = ?, Cutoff = ?, Items = ?, Language = ? WHERE Id = ?";
-                    updateProfileCmd.AddParameter(profile.Name);
-                    updateProfileCmd.AddParameter(profile.Cutoff);
-                    updateProfileCmd.AddParameter(profile.Items.ToJson());
-                    updateProfileCmd.AddParameter(profile.Language);
-                    updateProfileCmd.AddParameter(profile.Id);
+                Id = p.Id,
+                Name = p.Name,
+                Cutoff = p.Cutoff,
+                Language = p.Language,
+                Items = p.Items.ToJson()
+            });
 
-                    updateProfileCmd.ExecuteNonQuery();
-                }
-            }
+            var updateSql = $"UPDATE \"Profiles\" SET \"Name\" = @Name, \"Cutoff\" = @Cutoff, \"Language\" = @Language, \"Items\" = @Items WHERE \"Id\" = @Id";
+            _connection.Execute(updateSql, profilesToUpdate, transaction: _transaction);
 
             _changedProfiles.Clear();
         }
@@ -81,7 +78,10 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             foreach (var profile in _profiles)
             {
-                if (profile.Items.Any(v => v.Quality == quality)) continue;
+                if (profile.Items.Any(v => v.Quality == quality))
+                {
+                    continue;
+                }
 
                 profile.Items.Insert(0, new ProfileItem71
                 {
@@ -97,7 +97,10 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             foreach (var profile in _profiles)
             {
-                if (profile.Items.Any(v => v.Quality == quality)) continue;
+                if (profile.Items.Any(v => v.Quality == quality))
+                {
+                    continue;
+                }
 
                 profile.Items.Add(new ProfileItem71
                 {
@@ -113,7 +116,10 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             foreach (var profile in _profiles)
             {
-                if (profile.Items.Any(v => v.Quality == quality)) continue;
+                if (profile.Items.Any(v => v.Quality == quality))
+                {
+                    continue;
+                }
 
                 var findIndex = profile.Items.FindIndex(v => v.Quality == find);
 
@@ -136,7 +142,10 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             foreach (var profile in _profiles)
             {
-                if (profile.Items.Any(v => v.Quality == quality)) continue;
+                if (profile.Items.Any(v => v.Quality == quality))
+                {
+                    continue;
+                }
 
                 var findIndex = profile.Items.FindIndex(v => v.Quality == find);
 
@@ -157,7 +166,7 @@ namespace NzbDrone.Core.Datastore.Migration
             using (var getProfilesCmd = _connection.CreateCommand())
             {
                 getProfilesCmd.Transaction = _transaction;
-                getProfilesCmd.CommandText = @"SELECT Id, Name, Cutoff, Items, Language FROM Profiles";
+                getProfilesCmd.CommandText = "SELECT \"Id\", \"Name\", \"Cutoff\", \"Items\", \"Language\" FROM \"Profiles\"";
 
                 using (var profileReader = getProfilesCmd.ExecuteReader())
                 {

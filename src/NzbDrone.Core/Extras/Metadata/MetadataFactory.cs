@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
-using NzbDrone.Common.Composition;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.ThingiProvider;
 
@@ -17,7 +16,7 @@ namespace NzbDrone.Core.Extras.Metadata
     {
         private readonly IMetadataRepository _providerRepository;
 
-        public MetadataFactory(IMetadataRepository providerRepository, IEnumerable<IMetadata> providers, IContainer container, IEventAggregator eventAggregator, Logger logger)
+        public MetadataFactory(IMetadataRepository providerRepository, IEnumerable<IMetadata> providers, IServiceProvider container, IEventAggregator eventAggregator, Logger logger)
             : base(providerRepository, providers, container, eventAggregator, logger)
         {
             _providerRepository = providerRepository;

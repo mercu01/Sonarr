@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import MenuContent from './MenuContent';
+import translate from 'Utilities/String/translate';
 import FilterMenuItem from './FilterMenuItem';
+import MenuContent from './MenuContent';
 import MenuItem from './MenuItem';
 import MenuItemSeparator from './MenuItemSeparator';
 
@@ -32,25 +33,33 @@ class FilterMenuContent extends Component {
                 selectedFilterKey={selectedFilterKey}
                 onPress={onFilterSelect}
               >
-                {filter.label}
+                {typeof filter.label === 'function' ? filter.label() : filter.label}
               </FilterMenuItem>
             );
           })
         }
 
         {
-          customFilters.map((filter) => {
-            return (
-              <FilterMenuItem
-                key={filter.id}
-                filterKey={filter.id}
-                selectedFilterKey={selectedFilterKey}
-                onPress={onFilterSelect}
-              >
-                {filter.label}
-              </FilterMenuItem>
-            );
-          })
+          customFilters.length > 0 ?
+            <MenuItemSeparator /> :
+            null
+        }
+
+        {
+          customFilters
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map((filter) => {
+              return (
+                <FilterMenuItem
+                  key={filter.id}
+                  filterKey={filter.id}
+                  selectedFilterKey={selectedFilterKey}
+                  onPress={onFilterSelect}
+                >
+                  {filter.label}
+                </FilterMenuItem>
+              );
+            })
         }
 
         {
@@ -61,7 +70,7 @@ class FilterMenuContent extends Component {
         {
           showCustomFilters &&
             <MenuItem onPress={onCustomFiltersPress}>
-              Custom Filters
+              {translate('CustomFilters')}
             </MenuItem>
         }
       </MenuContent>

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.MediaFiles;
@@ -16,8 +16,7 @@ namespace NzbDrone.Core.Notifications.Emby
         }
 
         public override string Link => "https://emby.media/";
-        public override string Name => "Emby";
-
+        public override string Name => "Emby / Jellyfin";
 
         public override void OnGrab(GrabMessage grabMessage)
         {
@@ -61,6 +60,19 @@ namespace NzbDrone.Core.Notifications.Emby
             }
         }
 
+        public override void OnSeriesAdd(SeriesAddMessage message)
+        {
+            if (Settings.Notify)
+            {
+                _mediaBrowserService.Notify(Settings, SERIES_ADDED_TITLE_BRANDED, message.Message);
+            }
+
+            if (Settings.UpdateLibrary)
+            {
+                _mediaBrowserService.Update(Settings, message.Series, "Created");
+            }
+        }
+
         public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
         {
             if (Settings.Notify)
@@ -79,6 +91,14 @@ namespace NzbDrone.Core.Notifications.Emby
             if (Settings.Notify)
             {
                 _mediaBrowserService.Notify(Settings, HEALTH_ISSUE_TITLE_BRANDED, message.Message);
+            }
+        }
+
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousMessage)
+        {
+            if (Settings.Notify)
+            {
+                _mediaBrowserService.Notify(Settings, HEALTH_RESTORED_TITLE_BRANDED, $"The following issue is now resolved: {previousMessage.Message}");
             }
         }
 

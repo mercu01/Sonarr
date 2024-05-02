@@ -1,151 +1,114 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using Nancy;
-using NzbDrone.Common.Extensions;
+using Microsoft.AspNetCore.Http;
+using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Core.Datastore;
 
 namespace Sonarr.Http.Extensions
 {
     public static class RequestExtensions
     {
-        public static bool IsApiRequest(this Request request)
+        // See src/Readarr.Api.V1/Queue/QueueModule.cs
+        private static readonly HashSet<string> VALID_SORT_KEYS = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            return request.Path.CleanRequestPath().StartsWith("/api/", StringComparison.InvariantCultureIgnoreCase);
+            "series.sortname", // Workaround authors table properties not being added on isValidSortKey call
+            "episode.title", // Deprecated
+            "episode.airDateUtc", // Deprecated
+            "episode.language", // Deprecated
+            "timeleft",
+            "estimatedCompletionTime",
+            "protocol",
+            "episode",
+            "indexer",
+            "downloadClient",
+            "quality",
+            "status",
+            "title",
+            "progress"
+        };
+
+        private static readonly HashSet<string> EXCLUDED_KEYS = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
+        {
+            "page",
+            "pageSize",
+            "sortKey",
+            "sortDirection",
+            "filterKey",
+            "filterValue",
+        };
+
+        public static bool IsApiRequest(this HttpRequest request)
+        {
+            return request.Path.StartsWithSegments("/api", StringComparison.InvariantCultureIgnoreCase);
         }
 
-        public static bool IsFeedRequest(this Request request)
+        public static bool IsFavIconRequest(this HttpRequest request)
         {
-            return request.Path.CleanRequestPath().StartsWith("/feed/", StringComparison.InvariantCultureIgnoreCase);
+            return request.Path.Equals("/favicon.ico", StringComparison.InvariantCultureIgnoreCase);
         }
 
-        public static bool IsPingRequest(this Request request)
-        {
-            return request.Path.CleanRequestPath().StartsWith("/ping", StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        public static bool IsSignalRRequest(this Request request)
-        {
-            return request.Path.CleanRequestPath().StartsWith("/signalr/", StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        public static bool IsLocalRequest(this Request request)
-        {
-            return (request.UserHostAddress.Equals("localhost") ||
-                    request.UserHostAddress.Equals("127.0.0.1") ||
-                    request.UserHostAddress.Equals("::1"));
-        }
-
-        public static bool IsLoginRequest(this Request request)
-        {
-            return request.Path.CleanRequestPath().Equals("/login", StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        public static bool IsContentRequest(this Request request)
-        {
-            return request.Path.CleanRequestPath().StartsWith("/Content/", StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        public static bool IsBundledJsRequest(this Request request)
-        {
-            return !request.Path.CleanRequestPath().EqualsIgnoreCase("/initialize.js") && request.Path.EndsWith(".js", StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        public static bool IsFavIconRequest(this Request request)
-        {
-            return request.Path.CleanRequestPath().EqualsIgnoreCase("/favicon.ico");
-        }
-
-        public static bool IsSharedContentRequest(this Request request)
-        {
-            return request.Path.CleanRequestPath().StartsWith("/MediaCover/", StringComparison.InvariantCultureIgnoreCase) ||
-                   request.Path.CleanRequestPath().StartsWith("/Content/Images/", StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        public static bool GetBooleanQueryParameter(this Request request, string parameter, bool defaultValue = false)
+        public static bool GetBooleanQueryParameter(this HttpRequest request, string parameter, bool defaultValue = false)
         {
             var parameterValue = request.Query[parameter];
 
-            if (parameterValue.HasValue)
+            if (parameterValue.Any())
             {
-                return bool.Parse(parameterValue.Value);
+                return bool.Parse(parameterValue.ToString());
             }
 
             return defaultValue;
         }
 
-        public static int GetIntegerQueryParameter(this Request request, string parameter, int defaultValue = 0)
+        public static PagingResource<TResource> ApplyToPage<TResource, TModel>(this PagingSpec<TModel> pagingSpec, Func<PagingSpec<TModel>, PagingSpec<TModel>> function, Converter<TModel, TResource> mapper)
         {
-            var parameterValue = request.Query[parameter];
+            pagingSpec = function(pagingSpec);
 
-            if (parameterValue.HasValue)
+            return new PagingResource<TResource>
             {
-                return int.Parse(parameterValue.Value);
-            }
-
-            return defaultValue;
+                Page = pagingSpec.Page,
+                PageSize = pagingSpec.PageSize,
+                SortDirection = pagingSpec.SortDirection,
+                SortKey = pagingSpec.SortKey,
+                TotalRecords = pagingSpec.TotalRecords,
+                Records = pagingSpec.Records.ConvertAll(mapper)
+            };
         }
 
-        public static int? GetNullableIntegerQueryParameter(this Request request, string parameter, int? defaultValue = null)
+        public static string GetRemoteIP(this HttpContext context)
         {
-            var parameterValue = request.Query[parameter];
-
-            if (parameterValue.HasValue)
-            {
-                return int.Parse(parameterValue.Value);
-            }
-
-            return defaultValue;
+            return context?.Request?.GetRemoteIP() ?? "Unknown";
         }
 
-        public static string GetRemoteIP(this NancyContext context)
+        public static string GetRemoteIP(this HttpRequest request)
         {
-            if (context == null || context.Request == null)
+            if (request == null)
             {
                 return "Unknown";
             }
 
-            var remoteAddress = context.Request.UserHostAddress;
-            IPAddress remoteIP;
+            var remoteIP = request.HttpContext.Connection.RemoteIpAddress;
 
-            // Only check if forwarded by a local network reverse proxy
-            if (IPAddress.TryParse(remoteAddress, out remoteIP) && remoteIP.IsLocalAddress())
+            if (remoteIP.IsIPv4MappedToIPv6)
             {
-                var realIPHeader = context.Request.Headers["X-Real-IP"];
-                if (realIPHeader.Any())
-                {
-                    return realIPHeader.First().ToString();
-                }
-
-                var forwardedForHeader = context.Request.Headers["X-Forwarded-For"];
-                if (forwardedForHeader.Any())
-                {
-                    // Get the first address that was forwarded by a local IP to prevent remote clients faking another proxy
-                    foreach (var forwardedForAddress in forwardedForHeader.SelectMany(v => v.Split(',')).Select(v => v.Trim()).Reverse())
-                    {
-                        if (!IPAddress.TryParse(forwardedForAddress, out remoteIP))
-                        {
-                            return remoteAddress;
-                        }
-
-                        if (!remoteIP.IsLocalAddress())
-                        {
-                            return forwardedForAddress;
-                        }
-
-                        remoteAddress = forwardedForAddress;
-                    }
-                }
+                remoteIP = remoteIP.MapToIPv4();
             }
 
-            return remoteAddress;
+            return remoteIP.ToString();
         }
 
-        private static string CleanRequestPath(this string path)
+        public static void DisableCache(this IHeaderDictionary headers)
         {
-            // When running under mono the path is not stripped of extraneous leading slashes which can break our IXRequest
-            // path detection, this will remove all leading slashes and replace them with a single slash.
+            headers.Remove("Last-Modified");
+            headers["Cache-Control"] = "no-cache, no-store";
+            headers["Expires"] = "-1";
+            headers["Pragma"] = "no-cache";
+        }
 
-            return $"/{path.TrimStart('/')}";
+        public static void EnableCache(this IHeaderDictionary headers)
+        {
+            headers["Cache-Control"] = "max-age=31536000, public";
+            headers["Last-Modified"] = BuildInfo.BuildDateTime.ToString("r");
         }
     }
 }

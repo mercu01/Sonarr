@@ -23,8 +23,7 @@ namespace NzbDrone.Test.Common
             {
                 LogManager.Configuration = new LoggingConfiguration();
 
-                var logOutput = TestLogOutput.Console;
-                Enum.TryParse<TestLogOutput>(Environment.GetEnvironmentVariable("SONARR_TESTS_LOG_OUTPUT"), out logOutput);
+                Enum.TryParse<TestLogOutput>(Environment.GetEnvironmentVariable("SONARR_TESTS_LOG_OUTPUT"), out var logOutput);
 
                 RegisterSentryLogger();
 
@@ -95,8 +94,8 @@ namespace NzbDrone.Test.Common
         [TearDown]
         public void LoggingDownBase()
         {
-            //can't use because of a bug in mono with 2.6.2,
-            //https://bugs.launchpad.net/nunitv2/+bug/1076932
+            // can't use because of a bug in mono with 2.6.2,
+            // https://bugs.launchpad.net/nunitv2/+bug/1076932
             if (BuildInfo.IsDebug && TestContext.CurrentContext.Result.Outcome == ResultState.Success)
             {
                 ExceptionVerification.AssertNoUnexpectedLogs();

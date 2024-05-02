@@ -33,10 +33,16 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         public float RatioLimit { get; set; } = -2;
 
         [JsonProperty(PropertyName = "seeding_time")]
-        public long? SeedingTime { get; set; } // Torrent seeding time (not provided by the list api)
+        public long? SeedingTime { get; set; } // Torrent seeding time (in seconds, not provided by the list api)
 
         [JsonProperty(PropertyName = "seeding_time_limit")] // Per torrent seeding time limit (-2 = use global, -1 = unlimited)
         public long SeedingTimeLimit { get; set; } = -2;
+
+        [JsonProperty(PropertyName = "inactive_seeding_time_limit")] // Per torrent inactive seeding time limit (-2 = use global, -1 = unlimited)
+        public long InactiveSeedingTimeLimit { get; set; } = -2;
+
+        [JsonProperty(PropertyName = "last_activity")] // Timestamp in unix seconds when a chunk was last downloaded/uploaded
+        public long LastActivity { get; set; }
     }
 
     public class QBittorrentTorrentProperties
@@ -47,7 +53,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         public string SavePath { get; set; }
 
         [JsonProperty(PropertyName = "seeding_time")]
-        public long SeedingTime { get; set; } // Torrent seeding time
+        public long SeedingTime { get; set; } // Torrent seeding time (in seconds)
     }
 
     public class QBittorrentTorrentFile

@@ -1,125 +1,59 @@
-#! /bin/bash
-msBuildVersion='15.0'
-outputFolder='./_output'
-outputFolderWindows='./_output_windows'
-outputFolderLinux='./_output_linux'
-outputFolderMacOS='./_output_macos'
-outputFolderMacOSApp='./_output_macos_app'
-testPackageFolder='./_tests'
-testPackageFolderWindows='./_tests_windows'
-testPackageFolderLinux='./_tests_linux'
-sourceFolder='./src'
-slnFile=$sourceFolder/Sonarr.sln
-updateSubFolder=Sonarr.Update
+#! /usr/bin/env bash
+set -e
 
-sqlitePackageDir="$HOME/.nuget/packages/system.data.sqlite.core.servarr/1.0.115.5-18"
-
-nuget='tools/nuget/nuget.exe';
-vswhere='tools/vswhere/vswhere.exe';
-macho='tools/macho/MachOConverter.exe';
-
-. ./version.sh
-
-CheckExitCode()
-{
-    "$@"
-    local status=$?
-    if [ $status -ne 0 ]; then
-        echo "error with $1" >&2
-        exit 1
-    fi
-    return $status
-}
+outputFolder='_output'
+testPackageFolder='_tests'
+artifactsFolder="_artifacts";
+framework="${FRAMEWORK:=net6.0}"
 
 ProgressStart()
 {
-    echo "##teamcity[blockOpened name='$1']"
-    echo "##teamcity[progressStart '$1']"
+    echo "::group::$1"
+    echo "Start '$1'"
 }
 
 ProgressEnd()
 {
-    echo "##teamcity[progressFinish '$1']"
-    echo "##teamcity[blockClosed name='$1']"
+    echo "Finish '$1'"
+    echo "::endgroup::"
 }
 
 UpdateVersionNumber()
 {
-    if [ "$BUILD_NUMBER" != "" ]; then
-        echo "Updating Version Info"
-        verMajorMinorRevision=`echo "$buildVersion" | cut -d. -f1,2,3`
-        verBuild=`echo "${BUILD_NUMBER}" | cut -d. -f4`
-        BUILD_NUMBER=$verMajorMinorRevision.$verBuild
-        echo "##teamcity[buildNumber '$BUILD_NUMBER']"
-        sed -i "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$BUILD_NUMBER<\/AssemblyVersion>/g" ./src/Directory.Build.props
-        sed -i "s/<AssemblyConfiguration>[\$()A-Za-z-]\+<\/AssemblyConfiguration>/<AssemblyConfiguration>${BRANCH:-dev}<\/AssemblyConfiguration>/g" ./src/Directory.Build.props
+    if [ "$SONARR_VERSION" != "" ]; then
+        echo "Updating version info to: $SONARR_VERSION"
+        sed -i'' -e "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$SONARR_VERSION<\/AssemblyVersion>/g" src/Directory.Build.props
+        sed -i'' -e "s/<AssemblyConfiguration>[\$()A-Za-z-]\+<\/AssemblyConfiguration>/<AssemblyConfiguration>${BRANCH}<\/AssemblyConfiguration>/g" src/Directory.Build.props
+        sed -i'' -e "s/<string>10.0.0.0<\/string>/<string>$SONARR_VERSION<\/string>/g" distribution/macOS/Sonarr.app/Contents/Info.plist
     fi
 }
 
-CreateReleaseInfo()
+EnableExtraPlatformsInSDK()
 {
-    if [ "$BUILD_NUMBER" != "" ]; then
-        echo "Create Release Info"
-        echo -e "# Do Not Edit\nReleaseVersion=$BUILD_NUMBER\nBranch=${BRANCH:-dev}" > $outputFolder/release_info
+    BUNDLEDVERSIONS="${SDK_PATH}/Microsoft.NETCoreSdk.BundledVersions.props"
+    if grep -q freebsd-x64 "$BUNDLEDVERSIONS"; then
+        echo "Extra platforms already enabled"
+    else
+        echo "Enabling extra platform support"
+        sed -i.ORI 's/osx-x64/osx-x64;freebsd-x64/' "$BUNDLEDVERSIONS"
     fi
 }
 
-CleanFolder()
+EnableExtraPlatforms()
 {
-    local path=$1
-    local keepConfigFiles=$2
-
-    find $path -name "*.transform" -exec rm "{}" \;
-
-    if [ $keepConfigFiles != true ] ; then
-        find $path -name "*.dll.config" -exec rm "{}" \;
+    if grep -qv freebsd-x64 src/Directory.Build.props; then
+        sed -i'' -e "s^<RuntimeIdentifiers>\(.*\)</RuntimeIdentifiers>^<RuntimeIdentifiers>\1;freebsd-x64</RuntimeIdentifiers>^g" src/Directory.Build.props
     fi
-
-    echo "Removing FluentValidation.Resources files"
-    find $path -name "FluentValidation.resources.dll" -exec rm "{}" \;
-    find $path -name "App.config" -exec rm "{}" \;
-
-    echo "Removing vshost files"
-    find $path -name "*.vshost.exe" -exec rm "{}" \;
-
-    echo "Removing dylib files"
-    find $path -name "*.dylib" -exec rm "{}" \;
-
-    echo "Removing Empty folders"
-    find $path -depth -empty -type d -exec rm -r "{}" \;
-}
-
-BuildWithMSBuild()
-{
-    msBuildPath=`$vswhere -latest -products \* -requires Microsoft.Component.MSBuild -find MSBuild\\\\\*\*\\\\Bin\\\\MSBuild.exe`
-    msBuildPath=${msBuildPath/C:\\/\/c\/}
-    msBuildPath=${msBuildPath//\\/\/}
-    msBuildDir=$(dirname "$msBuildPath")
-
-    echo $msBuildDir
-
-    export PATH=$msBuildDir:$PATH
-    CheckExitCode MSBuild.exe $slnFile //p:Configuration=Release //p:Platform=x86 //t:Clean //m
-    $nuget restore $slnFile
-    CheckExitCode MSBuild.exe $slnFile //p:Configuration=Release //p:Platform=x86 //t:Build //m //p:AllowedReferenceRelatedFileExtensions=.pdb
-}
-
-BuildWithXbuild()
-{
-    export MONO_IOMAP=case
-    CheckExitCode msbuild /t:Clean $slnFile
-    mono $nuget restore $slnFile
-    CheckExitCode msbuild /p:Configuration=Release /p:Platform=x86 /t:Build /p:AllowedReferenceRelatedFileExtensions=.pdb $slnFile
 }
 
 LintUI()
 {
     ProgressStart 'ESLint'
-    CheckExitCode yarn lint
+    yarn lint
     ProgressEnd 'ESLint'
 
     ProgressStart 'Stylelint'
-    CheckExitCode yarn stylelint
+    yarn stylelint
     ProgressEnd 'Stylelint'
 }
 
@@ -130,348 +64,392 @@ Build()
     rm -rf $outputFolder
     rm -rf $testPackageFolder
 
-    if [ $runtime = "dotnet" ] ; then
-        BuildWithMSBuild
+    slnFile=src/Sonarr.sln
+
+    if [ $os = "windows" ]; then
+        platform=Windows
     else
-        BuildWithXbuild
+        platform=Posix
     fi
 
-    CleanFolder $outputFolder false
+    dotnet clean $slnFile -c Debug
+    dotnet clean $slnFile -c Release
 
-    echo "Removing Sonarr.Update/sqlite3.dll"
-    rm $outputFolder/Sonarr.Update/sqlite3.dll
-
-    echo "Removing Mono.Posix.dll"
-    rm $outputFolder/Mono.Posix.dll
+    if [[ -z "$RID" || -z "$FRAMEWORK" ]];
+    then
+        dotnet msbuild -restore $slnFile -p:Configuration=Release -p:Platform=$platform -t:PublishAllRids
+    else
+        dotnet msbuild -restore $slnFile -p:Configuration=Release -p:Platform=$platform -p:RuntimeIdentifiers=$RID -t:PublishAllRids
+    fi
 
     ProgressEnd 'Build'
 }
 
-RunWebpack()
+YarnInstall()
 {
     ProgressStart 'yarn install'
-    yarn install
+    yarn install --frozen-lockfile --network-timeout 120000
     ProgressEnd 'yarn install'
+}
 
-    LintUI
-
+RunWebpack()
+{
     ProgressStart 'Running webpack'
-    CheckExitCode yarn run build --env production
+    yarn run build --env production
     ProgressEnd 'Running webpack'
 }
 
-CreateMdbs()
+PackageFiles()
 {
-    local path=$1
-    if [ $runtime = "dotnet" ] ; then
-        local pdbFiles=( $(find $path -name "*.pdb") )
-        for filename in "${pdbFiles[@]}"
-        do
-          if [ -e ${filename%.pdb}.dll ]  ; then
-            tools/pdb2mdb/pdb2mdb.exe ${filename%.pdb}.dll
-          fi
-          if [ -e ${filename%.pdb}.exe ]  ; then
-            tools/pdb2mdb/pdb2mdb.exe ${filename%.pdb}.exe
-          fi
-        done
+    local folder="$1"
+    local framework="$2"
+    local runtime="$3"
+
+    rm -rf $folder
+    mkdir -p $folder
+    cp -r $outputFolder/$framework/$runtime/publish/* $folder
+    cp -r $outputFolder/Sonarr.Update/$framework/$runtime/publish $folder/Sonarr.Update
+    
+    if [ "$FRONTEND" = "YES" ];
+    then
+        cp -r $outputFolder/UI $folder
     fi
+
+    echo "Adding LICENSE"
+    cp LICENSE.md $folder
 }
 
-PatchMono()
+PackageLinux()
 {
-    local path=$1
+    local framework="$1"
+    local runtime="$2"
 
-    # Below we deal with some mono incompatibilities with windows-only dotnet core/standard libs    
-    # See: https://github.com/mono/mono/blob/master/tools/nuget-hash-extractor/download.sh
-    # That list defines assemblies that are prohibited from being loaded from the appdir, instead loading from mono GAC.
+    ProgressStart "Creating $runtime Package for $framework"
 
-    # We have debian dependencies to get these installed or facades from mono 5.10+
-    for assembly in System.IO.Compression System.Runtime.InteropServices.RuntimeInformation System.Net.Http System.Globalization.Extensions System.Text.Encoding.CodePages System.Threading.Overlapped
-    do
-        if [ -e $path/$assembly.dll ]; then
-            if [ -e $sourceFolder/Libraries/Mono/$assembly.dll ]; then
-                echo "Copy Mono-specific facade $assembly.dll (uses win32 interop)"
-                cp $sourceFolder/Libraries/Mono/$assembly.dll $path/$assembly.dll
-            else
-                echo "Remove $assembly.dll (uses win32 interop)"
-                rm $path/$assembly.dll
-            fi
-            
-        fi
-    done
+    local folder=$artifactsFolder/$runtime/$framework/Sonarr
 
-    # Copy more stable version of Vectors for mono <5.12
-    if [ -e $path/System.Numerics.Vectors.dll ]; then
-        packageDir="$HOME/.nuget/packages/system.numerics.vectors/4.5.0"
-
-        if [ ! -d "$HOME/.nuget/packages/system.numerics.vectors/4.5.0" ]; then
-            # May reside in the NuGetFallback folder, which is harder to find
-            # Download somewhere to get the real cache populated
-            if [ $runtime = "dotnet" ] ; then
-                $nuget install System.Numerics.Vectors -Version 4.5.0 -Output ./_temp/System.Numerics.Vectors
-            else
-                mono $nuget install System.Numerics.Vectors -Version 4.5.0 -Output ./_temp/System.Numerics.Vectors
-            fi
-            rm -rf ./_temp/System.Numerics.Vectors
-        fi
-        # Copy the netstandard2.0 version rather than net46
-        cp "$packageDir/lib/netstandard2.0/System.Numerics.Vectors.dll" $path/
-    fi
-}
-
-PackageMono()
-{
-    ProgressStart 'Creating Mono Package'
-
-    rm -rf $outputFolderLinux
-
-    echo "Copying Binaries"
-    cp -r $outputFolder $outputFolderLinux
-
-    echo "Creating MDBs"
-    CreateMdbs $outputFolderLinux
-
-    echo "Removing PDBs"
-    find $outputFolderLinux -name "*.pdb" -exec rm "{}" \;
+    PackageFiles "$folder" "$framework" "$runtime"
 
     echo "Removing Service helpers"
-    rm -f $outputFolderLinux/ServiceUninstall.*
-    rm -f $outputFolderLinux/ServiceInstall.*
-
-    echo "Removing native windows binaries Sqlite, MediaInfo"
-    rm -f $outputFolderLinux/sqlite3.*
-    rm -f $outputFolderLinux/Sonarr.Update/sqlite3.*
-    rm -f $outputFolderLinux/MediaInfo.*
-
-    PatchMono $outputFolderLinux
-
-    echo "Adding Sonarr.Core.dll.config (for dllmap)"
-    cp $sourceFolder/NzbDrone.Core/Sonarr.Core.dll.config $outputFolderLinux
-
-    # Remove Http binding redirect by renaming it
-    # We don't need this anymore once our minimum mono version is 5.10
-    sed -i "s/System.Net.Http/System.Net.Http.Mono/g" $outputFolderLinux/Sonarr.Console.exe.config
-
-    echo "Renaming Sonarr.Console.exe to Sonarr.exe"
-    rm $outputFolderLinux/Sonarr.exe*
-    for file in $outputFolderLinux/Sonarr.Console.exe*; do
-        mv "$file" "${file//.Console/}"
-    done
+    rm -f $folder/ServiceUninstall.*
+    rm -f $folder/ServiceInstall.*
 
     echo "Removing Sonarr.Windows"
-    rm $outputFolderLinux/Sonarr.Windows.*
+    rm $folder/Sonarr.Windows.*
 
     echo "Adding Sonarr.Mono to UpdatePackage"
-    cp $outputFolderLinux/Sonarr.Mono.* $outputFolderLinux/$updateSubFolder/
+    cp $folder/Sonarr.Mono.* $folder/Sonarr.Update
+    if [ "$framework" = "$framework" ]; then
+        cp $folder/Mono.Posix.NETStandard.* $folder/Sonarr.Update
+        cp $folder/libMonoPosixHelper.* $folder/Sonarr.Update
+    fi
 
-    ProgressEnd 'Creating Mono Package'
+    ProgressEnd "Creating $runtime Package for $framework"
 }
 
 PackageMacOS()
 {
-    ProgressStart 'Creating MacOS Package'
+    local framework="$1"
+    local runtime="$2"
 
-    rm -rf $outputFolderMacOS
-    mkdir $outputFolderMacOS
-    
-    echo "Copying Binaries"
-    cp -r $outputFolderLinux/* $outputFolderMacOS
+    ProgressStart "Creating $runtime Package for $framework"
 
-    echo "Adding Sonarr Launcher"
-    cp ./distribution/osx/Launcher/dist/Launcher $outputFolderMacOS/
-    mv $outputFolderMacOS/Sonarr.exe $outputFolderMacOS/Sonarr.exe.bak
-    mv $outputFolderMacOS/Launcher $outputFolderMacOS/Sonarr
-    mv $outputFolderMacOS/Sonarr.exe.bak $outputFolderMacOS/Sonarr.exe
-    chmod +x $outputFolderMacOS/Sonarr
+    local folder=$artifactsFolder/$runtime/$framework/Sonarr
 
-    echo "Adding Sonarr.Update Launcher"
-    CheckExitCode cp ./distribution/osx/Launcher/dist/Launcher $outputFolderMacOS/Sonarr.Update/
-    CheckExitCode mv $outputFolderMacOS/Sonarr.Update/Sonarr.Update.exe $outputFolderMacOS/Sonarr.Update/Sonarr.Update.exe.bak
-    CheckExitCode mv $outputFolderMacOS/Sonarr.Update/Launcher $outputFolderMacOS/Sonarr.Update/Sonarr.Update
-    CheckExitCode mv $outputFolderMacOS/Sonarr.Update/Sonarr.Update.exe.bak $outputFolderMacOS/Sonarr.Update/Sonarr.Update.exe
-    chmod +x $outputFolderMacOS/Sonarr.Update/Sonarr.Update
+    PackageFiles "$folder" "$framework" "$runtime"
 
-    echo "Adding sqlite dylib"
-    CheckExitCode cp "$sqlitePackageDir/runtimes/osx-x64/native/net46"/*.config $outputFolderMacOS/
-    if [ $runtime = "dotnet" ] ; then
-        CheckExitCode $macho merge $outputFolderMacOS "$sqlitePackageDir/runtimes/osx-x64/native/net46"/*.dylib "$sqlitePackageDir/runtimes/osx-arm64/native/net46"/*.dylib
-    else
-        CheckExitCode mono $macho merge $outputFolderMacOS "$sqlitePackageDir/runtimes/osx-x64/native/net46"/*.dylib "$sqlitePackageDir/runtimes/osx-arm64/native/net46"/*.dylib
+    echo "Removing Service helpers"
+    rm -f $folder/ServiceUninstall.*
+    rm -f $folder/ServiceInstall.*
+
+    echo "Removing Sonarr.Windows"
+    rm $folder/Sonarr.Windows.*
+
+    echo "Adding Sonarr.Mono to UpdatePackage"
+    cp $folder/Sonarr.Mono.* $folder/Sonarr.Update
+    if [ "$framework" = "$framework" ]; then
+        cp $folder/Mono.Posix.NETStandard.* $folder/Sonarr.Update
+        cp $folder/libMonoPosixHelper.* $folder/Sonarr.Update
     fi
 
-    echo "Adding MediaInfo dylib"
-    CheckExitCode cp $sourceFolder/Libraries/MediaInfo/x64/*.dylib $outputFolderMacOS/
-
-    ProgressEnd 'Creating MacOS Package'
+    ProgressEnd "Creating $runtime Package for $framework"
 }
 
 PackageMacOSApp()
 {
-    ProgressStart 'Creating macOS App Package'
+    local framework="$1"
+    local runtime="$2"
 
-    outputFolderMacOSAppBase=$outputFolderMacOSApp/Sonarr.app/Contents/MacOS
-    outputFolderMacOSAppBin=$outputFolderMacOSAppBase/bin
+    ProgressStart "Creating $runtime App Package for $framework"
 
-    rm -rf $outputFolderMacOSApp
-    mkdir $outputFolderMacOSApp
-    cp -r ./distribution/osx/Sonarr.app $outputFolderMacOSApp
-    mkdir -p $outputFolderMacOSAppBase
+    local folder=$artifactsFolder/$runtime-app/$framework
 
-    echo "Adding Sonarr Launcher"
-    CheckExitCode cp ./distribution/osx/Launcher/dist/Launcher $outputFolderMacOSAppBase/
-    CheckExitCode mv $outputFolderMacOSAppBase/Launcher $outputFolderMacOSAppBase/Sonarr
-    chmod +x $outputFolderMacOSAppBase/Sonarr
+    rm -rf $folder
+    mkdir -p $folder
+    cp -r distribution/macOS/Sonarr.app $folder
+    mkdir -p $folder/Sonarr.app/Contents/MacOS
 
     echo "Copying Binaries"
-    mkdir -p $outputFolderMacOSAppBin
-    CheckExitCode cp -r $outputFolderLinux/* $outputFolderMacOSAppBin
-
-    echo "Adding sqlite dylib"
-    if [ $runtime = "dotnet" ] ; then
-        CheckExitCode $macho merge $outputFolderMacOSAppBin "$sqlitePackageDir/runtimes/osx-x64/native/net46" "$sqlitePackageDir/runtimes/osx-arm64/native/net46"
-    else
-        CheckExitCode mono $macho merge $outputFolderMacOSAppBin "$sqlitePackageDir/runtimes/osx-x64/native/net46" "$sqlitePackageDir/runtimes/osx-arm64/native/net46"
-    fi
-
-
-    echo "Adding MediaInfo dylib"
-    CheckExitCode cp $sourceFolder/Libraries/MediaInfo/x64/*.dylib $outputFolderMacOSAppBin/
+    cp -r $artifactsFolder/$runtime/$framework/Sonarr/* $folder/Sonarr.app/Contents/MacOS
 
     echo "Removing Update Folder"
-    rm -r $outputFolderMacOSAppBin/Sonarr.Update
-    echo "# Do Not Edit\nPackageVersion=${BUILD_NUMBER}\nPackageAuthor=[Team Sonarr](https://sonarr.tv)\nReleaseVersion=${BUILD_NUMBER}\nUpdateMethod=$PackageUpdater\nBranch=${Branch:-master}" > $outputFolderMacOSAppBase/package_info
+    rm -r $folder/Sonarr.app/Contents/MacOS/Sonarr.Update
 
-    ProgressEnd 'Creating macOS App Package'
-}
-
-PackageTestsMono()
-{
-    ProgressStart 'Creating Mono Test Package'
-
-    rm -rf $testPackageFolderLinux
-
-    echo "Copying Binaries"
-    cp -r $testPackageFolder $testPackageFolderLinux
-
-    if [ $runtime = "dotnet" ] ; then
-        $nuget install NUnit.ConsoleRunner -Version 3.10.0 -Output $testPackageFolderLinux
-    else
-        mono $nuget install NUnit.ConsoleRunner -Version 3.10.0 -Output $testPackageFolderLinux
-    fi
-
-    echo "Creating MDBs"
-    CreateMdbs $testPackageFolderLinux
-
-    echo "Removing PDBs"
-    find $testPackageFolderLinux -name "*.pdb" -exec rm "{}" \;
-
-    PatchMono $testPackageFolderLinux
-
-    echo "Adding Sonarr.Core.dll.config (for dllmap)"
-    cp $sourceFolder/NzbDrone.Core/Sonarr.Core.dll.config $testPackageFolderLinux
-
-    # Remove Http binding redirect by renaming it
-    # We don't need this anymore once our minimum mono version is 5.10
-    sed -i "s/System.Net.Http/System.Net.Http.Mono/g" $testPackageFolderLinux/Sonarr.Common.Test.dll.config
-
-    cp ./test.sh $testPackageFolderLinux/
-    dos2unix $testPackageFolderLinux/test.sh
-
-    echo "Removing Sonarr.Windows"
-    rm $testPackageFolderLinux/Sonarr.Windows.*
-
-    rm -f $testPackageFolderLinux/*.log.config
-
-    CleanFolder $testPackageFolderLinux true
-
-    ProgressEnd 'Creating Linux Test Package'
-}
-
-PackageTestsWindows()
-{
-    ProgressStart 'Creating Windows Test Package'
-
-    rm -rf $testPackageFolderWindows
-
-    echo "Copying Binaries"
-    cp -r $testPackageFolder $testPackageFolderWindows
-
-    if [ $runtime = "dotnet" ] ; then
-        $nuget install NUnit.ConsoleRunner -Version 3.10.0 -Output $testPackageFolderWindows
-    else
-        mono $nuget install NUnit.ConsoleRunner -Version 3.10.0 -Output $testPackageFolderWindows
-    fi
-
-    cp ./test.sh $testPackageFolderWindows
-
-    echo "Removing Sonarr.Mono"
-    rm -f $testPackageFolderWindows/Sonarr.Mono.*
-
-    rm -f $testPackageFolderWindows/*.log.config
-
-    CleanFolder $testPackageFolderWindows true
-
-    ProgressEnd 'Creating Windows Test Package'
+    ProgressEnd "Creating $runtime App Package for $framework"
 }
 
 PackageWindows()
 {
-    ProgressStart 'Creating Windows Package'
+    local framework="$1"
+    local runtime="$2"
 
-    rm -rf $outputFolderWindows
-    
-    echo "Copying Binaries"
-    cp -r $outputFolder $outputFolderWindows
+    ProgressStart "Creating Windows Package for $framework"
+
+    local folder=$artifactsFolder/$runtime/$framework/Sonarr
+
+    PackageFiles "$folder" "$framework" "$runtime"
+    cp -r $outputFolder/$framework-windows/$runtime/publish/* $folder
 
     echo "Removing Sonarr.Mono"
-    rm -f $outputFolderWindows/Sonarr.Mono.*
+    rm -f $folder/Sonarr.Mono.*
+    rm -f $folder/Mono.Posix.NETStandard.*
+    rm -f $folder/libMonoPosixHelper.*
 
     echo "Adding Sonarr.Windows to UpdatePackage"
-    cp $outputFolderWindows/Sonarr.Windows.* $outputFolderWindows/$updateSubFolder/
+    cp $folder/Sonarr.Windows.* $folder/Sonarr.Update
 
-    ProgressEnd 'Creating Windows Package'
+    ProgressEnd "Creating Windows Package for $framework"
 }
 
-PublishArtifacts()
+Package()
 {
-    ProgressStart 'Publishing Artifacts'
+    local framework="$1"
+    local runtime="$2"
+    local SPLIT
+
+    IFS='-' read -ra SPLIT <<< "$runtime"
+
+    case "${SPLIT[0]}" in
+        linux|freebsd*)
+            PackageLinux "$framework" "$runtime"
+            ;;
+        win)
+            PackageWindows "$framework" "$runtime"
+            ;;
+        osx)
+            PackageMacOS "$framework" "$runtime"
+            ;;
+    esac
+}
+
+PackageTests()
+{
+    local framework="$1"
+    local runtime="$2"
+
+    ProgressStart "Creating $runtime Test Package for $framework"
+
+    cp test.sh "$testPackageFolder/$framework/$runtime/publish"
+
+    rm -f $testPackageFolder/$framework/$runtime/*.log.config
+
+    ProgressEnd "Creating $runtime Test Package for $framework"
+}
+
+UploadTestArtifacts()
+{
+    local framework="$1"
+
+    ProgressStart 'Publishing Test Artifacts'
 
     # Tests
-    echo "##teamcity[publishArtifacts '$testPackageFolderWindows/** => tests.windows.zip']"
-    echo "##teamcity[publishArtifacts '$testPackageFolderLinux/** => tests.linux.zip']"
+    for dir in $testPackageFolder/$framework/*
+    do
+        local runtime=$(basename "$dir")
+        echo "##teamcity[publishArtifacts '$testPackageFolder/$framework/$runtime/publish/** => tests.$runtime.zip']"
+    done
+
+    ProgressEnd 'Publishing Test Artifacts'
+}
+
+UploadArtifacts()
+{
+    local framework="$1"
+
+    ProgressStart 'Publishing Artifacts'
 
     # Releases
-    echo "##teamcity[publishArtifacts '$outputFolderWindows/** => Sonarr.$BRANCH.$BUILD_NUMBER.windows.zip!Sonarr']"
-    echo "##teamcity[publishArtifacts '$outputFolderLinux/** => Sonarr.$BRANCH.$BUILD_NUMBER.linux.tar.gz!Sonarr']"
-    echo "##teamcity[publishArtifacts '$outputFolderMacOS/** => Sonarr.$BRANCH.$BUILD_NUMBER.macos.tar.gz!Sonarr']"
-    echo "##teamcity[publishArtifacts '$outputFolderMacOSApp/** => Sonarr.$BRANCH.$BUILD_NUMBER.macos.zip']"
-    
-    # Debian Package
+    for dir in $artifactsFolder/*
+    do
+        local runtime=$(basename "$dir")
+
+        echo "##teamcity[publishArtifacts '$artifactsFolder/$runtime/$framework/** => Sonarr.$BRANCH.$SONARR_VERSION.$runtime.zip']"
+    done
+
+    # Debian Package / Windows installer / macOS app
     echo "##teamcity[publishArtifacts 'distribution/** => distribution.zip']"
-    
+
     ProgressEnd 'Publishing Artifacts'
+}
+
+UploadUIArtifacts()
+{
+    local framework="$1"
+
+    ProgressStart 'Publishing UI Artifacts'
+
+    # UI folder
+    echo "##teamcity[publishArtifacts '$outputFolder/UI/** => UI.zip']"
+
+    ProgressEnd 'Publishing UI Artifacts'
 }
 
 # Use mono or .net depending on OS
 case "$(uname -s)" in
     CYGWIN*|MINGW32*|MINGW64*|MSYS*)
         # on windows, use dotnet
-        runtime="dotnet"
+        os="windows"
         ;;
     *)
         # otherwise use mono
-        runtime="mono"
+        os="posix"
         ;;
 esac
 
-UpdateVersionNumber
-Build
-CreateReleaseInfo
-RunWebpack
-PackageMono
-PackageMacOS
-PackageMacOSApp
-PackageTestsMono
-PackageTestsWindows
-PackageWindows
-PublishArtifacts
+POSITIONAL=()
+
+if [ $# -eq 0 ]; then
+    echo "No arguments provided, building everything"
+    BACKEND=YES
+    FRONTEND=YES
+    PACKAGES=YES
+    LINT=YES
+    ENABLE_EXTRA_PLATFORMS=NO
+    ENABLE_EXTRA_PLATFORMS_IN_SDK=NO
+fi
+
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    --backend)
+        BACKEND=YES
+        shift # past argument
+        ;;
+    --enable-bsd|--enable-extra-platforms)
+        ENABLE_EXTRA_PLATFORMS=YES
+        shift # past argument
+        ;;
+    --enable-extra-platforms-in-sdk)
+        ENABLE_EXTRA_PLATFORMS_IN_SDK=YES
+        shift # past argument
+        ;;
+    -r|--runtime)
+        RID="$2"
+        shift # past argument
+        shift # past value
+        ;;
+    -f|--framework)
+        FRAMEWORK="$2"
+        shift # past argument
+        shift # past value
+        ;;
+    --frontend)
+        FRONTEND=YES
+        shift # past argument
+        ;;
+    --packages)
+        PACKAGES=YES
+        shift # past argument
+        ;;
+    --lint)
+        LINT=YES
+        shift # past argument
+        ;;
+    --all)
+        BACKEND=YES
+        FRONTEND=YES
+        PACKAGES=YES
+        LINT=YES
+        shift # past argument
+        ;;
+    *)    # unknown option
+        POSITIONAL+=("$1") # save it in an array for later
+        shift # past argument
+        ;;
+esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+if [ "$ENABLE_EXTRA_PLATFORMS_IN_SDK" = "YES" ];
+then
+    EnableExtraPlatformsInSDK
+fi
+
+if [ "$BACKEND" = "YES" ];
+then
+    UpdateVersionNumber
+    if [ "$ENABLE_EXTRA_PLATFORMS" = "YES" ];
+    then
+        EnableExtraPlatforms
+    fi
+
+    Build
+
+    if [[ -z "$RID" || -z "$FRAMEWORK" ]];
+    then
+        PackageTests "$framework" "win-x64"
+        PackageTests "$framework" "win-x86"
+        PackageTests "$framework" "linux-x64"
+        PackageTests "$framework" "linux-musl-x64"
+        PackageTests "$framework" "osx-x64"
+        if [ "$ENABLE_EXTRA_PLATFORMS" = "YES" ];
+        then
+            PackageTests "$framework" "freebsd-x64"
+        fi
+    else
+        PackageTests "$FRAMEWORK" "$RID"
+    fi
+
+    UploadTestArtifacts "$framework"
+fi
+
+if [ "$FRONTEND" = "YES" ];
+then
+    YarnInstall
+
+    if [ "$LINT" = "YES" ];
+    then
+        LintUI
+    fi
+
+    RunWebpack
+    UploadUIArtifacts
+fi
+
+if [ "$PACKAGES" = "YES" ];
+then
+    UpdateVersionNumber
+
+    if [[ -z "$RID" || -z "$FRAMEWORK" ]];
+    then
+        Package "$framework" "win-x64"
+        Package "$framework" "win-x86"
+        Package "$framework" "linux-x64"
+        Package "$framework" "linux-musl-x64"
+        Package "$framework" "linux-arm64"
+        Package "$framework" "linux-musl-arm64"
+        Package "$framework" "linux-arm"
+        Package "$framework" "osx-x64"
+        Package "$framework" "osx-arm64"
+        if [ "$ENABLE_EXTRA_PLATFORMS" = "YES" ];
+        then
+            Package "$framework" "freebsd-x64"
+        fi
+    else
+        Package "$FRAMEWORK" "$RID"
+    fi
+
+    UploadArtifacts "$framework"
+fi

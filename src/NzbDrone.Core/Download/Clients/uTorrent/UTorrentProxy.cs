@@ -107,7 +107,10 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
         public void SetTorrentSeedingConfiguration(string hash, TorrentSeedConfiguration seedConfiguration, UTorrentSettings settings)
         {
-            if (seedConfiguration == null) return;
+            if (seedConfiguration == null)
+            {
+                return;
+            }
 
             var requestBuilder = BuildRequest(settings)
                 .AddQueryParam("action", "setprops")
@@ -193,7 +196,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                 .Accept(HttpAccept.Json);
 
             requestBuilder.LogResponseContent = true;
-            requestBuilder.NetworkCredential = new NetworkCredential(settings.Username, settings.Password);
+            requestBuilder.NetworkCredential = new BasicNetworkCredential(settings.Username, settings.Password);
 
             return requestBuilder;
         }

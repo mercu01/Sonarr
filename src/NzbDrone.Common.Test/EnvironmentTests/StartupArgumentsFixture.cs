@@ -1,3 +1,4 @@
+using System;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.EnvironmentInfo;
@@ -11,7 +12,7 @@ namespace NzbDrone.Common.Test.EnvironmentTests
         [Test]
         public void empty_array_should_return_empty_flags()
         {
-            var args = new StartupContext(new string[0]);
+            var args = new StartupContext(Array.Empty<string>());
             args.Flags.Should().BeEmpty();
         }
 
@@ -26,7 +27,6 @@ namespace NzbDrone.Common.Test.EnvironmentTests
             args.Flags.Contains("t").Should().BeTrue();
         }
 
-
         [TestCase("/key=value")]
         [TestCase("/KEY=value")]
         [TestCase(" /key=\"value\"")]
@@ -36,7 +36,6 @@ namespace NzbDrone.Common.Test.EnvironmentTests
             args.Args.Should().HaveCount(1);
             args.Args["key"].Should().Be("value");
         }
-
 
         [TestCase("/data=test", "/data=test")]
         [TestCase("/Data=/a/b/c", "/data=/a/b/c")]
@@ -55,7 +54,6 @@ namespace NzbDrone.Common.Test.EnvironmentTests
             args.PreservedArguments.Should().Be(preserved);
         }
 
-     
         [Test]
         public void should_preserver_both()
         {

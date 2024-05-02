@@ -1,11 +1,12 @@
+import { push } from 'connected-react-router';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { push } from 'connected-react-router';
-import createAllSeriesSelector from 'Store/Selectors/createAllSeriesSelector';
 import NotFound from 'Components/NotFound';
+import createAllSeriesSelector from 'Store/Selectors/createAllSeriesSelector';
+import translate from 'Utilities/String/translate';
 import SeriesDetailsConnector from './SeriesDetailsConnector';
 
 function createMapStateToProps() {
@@ -54,7 +55,7 @@ class SeriesDetailsPageConnector extends Component {
     if (!titleSlug) {
       return (
         <NotFound
-          message="Sorry, that series cannot be found."
+          message={translate('SeriesCannotBeFound')}
         />
       );
     }

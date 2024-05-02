@@ -1,17 +1,18 @@
 import _ from 'lodash';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import sortByName from 'Utilities/Array/sortByName';
-import dateFilterPredicate from 'Utilities/Date/dateFilterPredicate';
 import { filterBuilderTypes, filterBuilderValueTypes, filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
-import createSetSettingValueReducer from './Creators/Reducers/createSetSettingValueReducer';
+import sortByName from 'Utilities/Array/sortByName';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import dateFilterPredicate from 'Utilities/Date/dateFilterPredicate';
+import translate from 'Utilities/String/translate';
+import { set, updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
-import createSaveProviderHandler from './Creators/createSaveProviderHandler';
-import createRemoveItemHandler from './Creators/createRemoveItemHandler';
 import createHandleActions from './Creators/createHandleActions';
-import { updateItem, set } from './baseActions';
+import createRemoveItemHandler from './Creators/createRemoveItemHandler';
+import createSaveProviderHandler from './Creators/createSaveProviderHandler';
+import createSetSettingValueReducer from './Creators/Reducers/createSetSettingValueReducer';
 import { fetchEpisodes } from './episodeActions';
 
 //
@@ -29,12 +30,12 @@ export const section = 'series';
 export const filters = [
   {
     key: 'all',
-    label: 'All',
+    label: () => translate('All'),
     filters: []
   },
   {
     key: 'monitored',
-    label: 'Monitored Only',
+    label: () => translate('MonitoredOnly'),
     filters: [
       {
         key: 'monitored',
@@ -45,7 +46,7 @@ export const filters = [
   },
   {
     key: 'unmonitored',
-    label: 'Unmonitored Only',
+    label: () => translate('UnmonitoredOnly'),
     filters: [
       {
         key: 'monitored',
@@ -56,7 +57,7 @@ export const filters = [
   },
   {
     key: 'continuing',
-    label: 'Continuing Only',
+    label: () => translate('ContinuingOnly'),
     filters: [
       {
         key: 'status',
@@ -67,7 +68,7 @@ export const filters = [
   },
   {
     key: 'ended',
-    label: 'Ended Only',
+    label: () => translate('EndedOnly'),
     filters: [
       {
         key: 'status',
@@ -78,7 +79,7 @@ export const filters = [
   },
   {
     key: 'missing',
-    label: 'Missing Episodes',
+    label: () => translate('MissingEpisodes'),
     filters: [
       {
         key: 'missing',
@@ -131,6 +132,13 @@ export const filterPredicates = {
     return predicate(item.ratings.value * 10, filterValue);
   },
 
+  originalLanguage: function(item, filterValue, type) {
+    const predicate = filterTypePredicates[type];
+    const { originalLanguage } = item;
+
+    return predicate(originalLanguage ? originalLanguage.name : '', filterValue);
+  },
+
   releaseGroups: function(item, filterValue, type) {
     const { statistics = {} } = item;
 
@@ -157,32 +165,59 @@ export const filterPredicates = {
       0;
 
     return predicate(sizeOnDisk, filterValue);
+  },
+
+  hasMissingSeason: function(item, filterValue, type) {
+    const predicate = filterTypePredicates[type];
+    const { seasons = [] } = item;
+
+    const hasMissingSeason = seasons.some((season) => {
+      const {
+        seasonNumber,
+        statistics = {}
+      } = season;
+
+      const {
+        episodeFileCount = 0,
+        episodeCount = 0,
+        totalEpisodeCount = 0
+      } = statistics;
+
+      return (
+        seasonNumber > 0 &&
+        totalEpisodeCount > 0 &&
+        episodeCount === totalEpisodeCount &&
+        episodeFileCount === 0
+      );
+    });
+
+    return predicate(hasMissingSeason, filterValue);
   }
 };
 
 export const filterBuilderProps = [
   {
     name: 'monitored',
-    label: 'Monitored',
+    label: () => translate('Monitored'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.BOOL
   },
   {
     name: 'status',
-    label: 'Status',
+    label: () => translate('Status'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.SERIES_STATUS
   },
   {
     name: 'seriesType',
-    label: 'Type',
+    label: () => translate('Type'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.SERIES_TYPES
   },
   {
     name: 'network',
-    label: 'Network',
-    type: filterBuilderTypes.STRING,
+    label: () => translate('Network'),
+    type: filterBuilderTypes.ARRAY,
     optionsSelector: function(items) {
       const tagList = items.reduce((acc, series) => {
         if (series.network) {
@@ -200,63 +235,57 @@ export const filterBuilderProps = [
   },
   {
     name: 'qualityProfileId',
-    label: 'Quality Profile',
+    label: () => translate('QualityProfile'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.QUALITY_PROFILE
   },
   {
-    name: 'languageProfileId',
-    label: 'Language Profile',
-    type: filterBuilderTypes.EXACT,
-    valueType: filterBuilderValueTypes.LANGUAGE_PROFILE
-  },
-  {
     name: 'nextAiring',
-    label: 'Next Airing',
+    label: () => translate('NextAiring'),
     type: filterBuilderTypes.DATE,
     valueType: filterBuilderValueTypes.DATE
   },
   {
     name: 'previousAiring',
-    label: 'Previous Airing',
+    label: () => translate('PreviousAiring'),
     type: filterBuilderTypes.DATE,
     valueType: filterBuilderValueTypes.DATE
   },
   {
     name: 'added',
-    label: 'Added',
+    label: () => translate('Added'),
     type: filterBuilderTypes.DATE,
     valueType: filterBuilderValueTypes.DATE
   },
   {
     name: 'seasonCount',
-    label: 'Season Count',
+    label: () => translate('SeasonCount'),
     type: filterBuilderTypes.NUMBER
   },
   {
     name: 'episodeProgress',
-    label: 'Episode Progress',
+    label: () => translate('EpisodeProgress'),
     type: filterBuilderTypes.NUMBER
   },
   {
     name: 'path',
-    label: 'Path',
+    label: () => translate('Path'),
     type: filterBuilderTypes.STRING
   },
   {
     name: 'rootFolderPath',
-    label: 'Root Folder Path',
+    label: () => translate('RootFolderPath'),
     type: filterBuilderTypes.EXACT
   },
   {
     name: 'sizeOnDisk',
-    label: 'Size on Disk',
+    label: () => translate('SizeOnDisk'),
     type: filterBuilderTypes.NUMBER,
     valueType: filterBuilderValueTypes.BYTES
   },
   {
     name: 'genres',
-    label: 'Genres',
+    label: () => translate('Genres'),
     type: filterBuilderTypes.ARRAY,
     optionsSelector: function(items) {
       const tagList = items.reduce((acc, series) => {
@@ -274,30 +303,60 @@ export const filterBuilderProps = [
     }
   },
   {
+    name: 'originalLanguage',
+    label: () => translate('OriginalLanguage'),
+    type: filterBuilderTypes.EXACT,
+    optionsSelector: function(items) {
+      const languageList = items.reduce((acc, series) => {
+        if (series.originalLanguage) {
+          acc.push({
+            id: series.originalLanguage.name,
+            name: series.originalLanguage.name
+          });
+        }
+
+        return acc;
+      }, []);
+
+      return languageList.sort(sortByName);
+    }
+  },
+  {
     name: 'releaseGroups',
-    label: 'Release Groups',
+    label: () => translate('ReleaseGroups'),
     type: filterBuilderTypes.ARRAY
   },
   {
     name: 'ratings',
-    label: 'Rating',
+    label: () => translate('Rating'),
     type: filterBuilderTypes.NUMBER
   },
   {
     name: 'certification',
-    label: 'Certification',
+    label: () => translate('Certification'),
     type: filterBuilderTypes.EXACT
   },
   {
     name: 'tags',
-    label: 'Tags',
+    label: () => translate('Tags'),
     type: filterBuilderTypes.ARRAY,
     valueType: filterBuilderValueTypes.TAG
   },
   {
     name: 'useSceneNumbering',
-    label: 'Scene Numbering',
+    label: () => translate('SceneNumbering'),
     type: filterBuilderTypes.EXACT
+  },
+  {
+    name: 'hasMissingSeason',
+    label: () => translate('HasMissingSeason'),
+    type: filterBuilderTypes.EXACT,
+    valueType: filterBuilderValueTypes.BOOL
+  },
+  {
+    name: 'year',
+    label: () => translate('Year'),
+    type: filterBuilderTypes.NUMBER
   }
 ];
 
@@ -332,11 +391,20 @@ export const defaultState = {
   error: null,
   isSaving: false,
   saveError: null,
+  isDeleting: false,
+  deleteError: null,
   items: [],
   sortKey: 'sortTitle',
   sortDirection: sortDirections.ASCENDING,
-  pendingChanges: {}
+  pendingChanges: {},
+  deleteOptions: {
+    addImportListExclusion: false
+  }
 };
+
+export const persistState = [
+  'series.deleteOptions'
+];
 
 //
 // Actions Types
@@ -349,6 +417,10 @@ export const DELETE_SERIES = 'series/deleteSeries';
 export const TOGGLE_SERIES_MONITORED = 'series/toggleSeriesMonitored';
 export const TOGGLE_SEASON_MONITORED = 'series/toggleSeasonMonitored';
 export const UPDATE_SERIES_MONITOR = 'series/updateSeriesMonitor';
+export const SAVE_SERIES_EDITOR = 'series/saveSeriesEditor';
+export const BULK_DELETE_SERIES = 'series/bulkDeleteSeries';
+
+export const SET_DELETE_OPTION = 'series/setDeleteOption';
 
 //
 // Action Creators
@@ -383,6 +455,8 @@ export const deleteSeries = createThunk(DELETE_SERIES, (payload) => {
 export const toggleSeriesMonitored = createThunk(TOGGLE_SERIES_MONITORED);
 export const toggleSeasonMonitored = createThunk(TOGGLE_SEASON_MONITORED);
 export const updateSeriesMonitor = createThunk(UPDATE_SERIES_MONITOR);
+export const saveSeriesEditor = createThunk(SAVE_SERIES_EDITOR);
+export const bulkDeleteSeries = createThunk(BULK_DELETE_SERIES);
 
 export const setSeriesValue = createAction(SET_SERIES_VALUE, (payload) => {
   return {
@@ -390,6 +464,8 @@ export const setSeriesValue = createAction(SET_SERIES_VALUE, (payload) => {
     ...payload
   };
 });
+
+export const setDeleteOption = createAction(SET_DELETE_OPTION);
 
 //
 // Helpers
@@ -555,15 +631,23 @@ export const actionHandlers = handleThunks({
 
   [UPDATE_SERIES_MONITOR]: function(getState, payload, dispatch) {
     const {
-      id,
-      monitor
+      seriesIds,
+      monitor,
+      monitored,
+      shouldFetchEpisodesAfterUpdate = false
     } = payload;
 
-    const seriesToUpdate = { id };
+    const series = [];
 
-    if (monitor !== 'None') {
-      seriesToUpdate.monitored = true;
-    }
+    seriesIds.forEach((id) => {
+      const seriesToUpdate = { id };
+
+      if (monitored != null) {
+        seriesToUpdate.monitored = monitored;
+      }
+
+      series.push(seriesToUpdate);
+    });
 
     dispatch(set({
       section,
@@ -574,15 +658,16 @@ export const actionHandlers = handleThunks({
       url: '/seasonPass',
       method: 'POST',
       data: JSON.stringify({
-        series: [
-          seriesToUpdate
-        ],
+        series,
         monitoringOptions: { monitor }
       }),
       dataType: 'json'
     }).request;
+
     promise.done((data) => {
-      dispatch(fetchEpisodes({ seriesId: id }));
+      if (shouldFetchEpisodesAfterUpdate) {
+        dispatch(fetchEpisodes({ seriesId: seriesIds[0] }));
+      }
 
       dispatch(set({
         section,
@@ -598,6 +683,87 @@ export const actionHandlers = handleThunks({
         saveError: xhr
       }));
     });
+  },
+
+  [SAVE_SERIES_EDITOR]: function(getState, payload, dispatch) {
+    dispatch(set({
+      section,
+      isSaving: true
+    }));
+
+    const promise = createAjaxRequest({
+      url: '/series/editor',
+      method: 'PUT',
+      data: JSON.stringify(payload),
+      dataType: 'json'
+    }).request;
+
+    promise.done((data) => {
+      dispatch(batchActions([
+        ...data.map((series) => {
+
+          const {
+            alternateTitles,
+            images,
+            rootFolderPath,
+            statistics,
+            ...propsToUpdate
+          } = series;
+
+          return updateItem({
+            id: series.id,
+            section: 'series',
+            ...propsToUpdate
+          });
+        }),
+
+        set({
+          section,
+          isSaving: false,
+          saveError: null
+        })
+      ]));
+    });
+
+    promise.fail((xhr) => {
+      dispatch(set({
+        section,
+        isSaving: false,
+        saveError: xhr
+      }));
+    });
+  },
+
+  [BULK_DELETE_SERIES]: function(getState, payload, dispatch) {
+    dispatch(set({
+      section,
+      isDeleting: true
+    }));
+
+    const promise = createAjaxRequest({
+      url: '/series/editor',
+      method: 'DELETE',
+      data: JSON.stringify(payload),
+      dataType: 'json'
+    }).request;
+
+    promise.done(() => {
+      // SignaR will take care of removing the series from the collection
+
+      dispatch(set({
+        section,
+        isDeleting: false,
+        deleteError: null
+      }));
+    });
+
+    promise.fail((xhr) => {
+      dispatch(set({
+        section,
+        isDeleting: false,
+        deleteError: xhr
+      }));
+    });
   }
 });
 
@@ -606,6 +772,15 @@ export const actionHandlers = handleThunks({
 
 export const reducers = createHandleActions({
 
-  [SET_SERIES_VALUE]: createSetSettingValueReducer(section)
+  [SET_SERIES_VALUE]: createSetSettingValueReducer(section),
+
+  [SET_DELETE_OPTION]: (state, { payload }) => {
+    return {
+      ...state,
+      deleteOptions: {
+        ...payload
+      }
+    };
+  }
 
 }, defaultState, section);

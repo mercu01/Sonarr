@@ -1,5 +1,11 @@
-.tableContainer {
-  composes: tableContainer from '~Components/Table/VirtualTable.css';
+.tableScroller {
+  position: relative;
+}
 
-  flex: 1 0 auto;
+.row {
+  transition: background-color 500ms;
+
+  &:hover {
+    background-color: var(--tableRowHoverBackgroundColor);
+  }
 }

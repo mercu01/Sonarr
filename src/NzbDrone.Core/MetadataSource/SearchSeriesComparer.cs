@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using NzbDrone.Common.Extensions;
@@ -20,7 +20,7 @@ namespace NzbDrone.Core.MetadataSource
         public SearchSeriesComparer(string searchQuery)
         {
             SearchQuery = searchQuery;
-            
+
             var match = Regex.Match(SearchQuery, @"^(?<query>.+)\s+(?:\((?<year>\d{4})\)|(?<year>\d{4}))$");
             if (match.Success)
             {
@@ -35,32 +35,47 @@ namespace NzbDrone.Core.MetadataSource
 
         public int Compare(Series x, Series y)
         {
-            int result = 0;
+            var result = 0;
 
             // Prefer exact matches
             result = Compare(x, y, s => CleanPunctuation(s.Title).Equals(CleanPunctuation(SearchQuery)));
-            if (result != 0) return -result;
+            if (result != 0)
+            {
+                return -result;
+            }
 
             // Remove Articles (a/an/the)
             result = Compare(x, y, s => CleanArticles(s.Title).Equals(CleanArticles(SearchQuery)));
-            if (result != 0) return -result;
+            if (result != 0)
+            {
+                return -result;
+            }
 
             // Prefer close matches
             result = Compare(x, y, s => CleanPunctuation(s.Title).LevenshteinDistance(CleanPunctuation(SearchQuery)) <= 1);
-            if (result != 0) return -result;
+            if (result != 0)
+            {
+                return -result;
+            }
 
             // Compare clean matches by year "Battlestar Galactica 1978"
             result = CompareWithYear(x, y, s => CleanTitle(s.Title).LevenshteinDistance(_searchQueryWithoutYear) <= 1);
-            if (result != 0) return -result;
+            if (result != 0)
+            {
+                return -result;
+            }
 
             // Compare prefix matches by year "(CSI: ..."
             result = CompareWithYear(x, y, s => s.Title.ToLowerInvariant().StartsWith(_searchQueryWithoutYear + ":"));
-            if (result != 0) return -result;
-         
+            if (result != 0)
+            {
+                return -result;
+            }
+
             return Compare(x, y, s => SearchQuery.LevenshteinDistanceClean(s.Title) - GetYearFactor(s));
         }
-        
-        public int Compare<T>(Series x, Series y, Func<Series,T> keySelector)
+
+        public int Compare<T>(Series x, Series y, Func<Series, T> keySelector)
             where T : IComparable<T>
         {
             var keyX = keySelector(x);
@@ -79,7 +94,10 @@ namespace NzbDrone.Core.MetadataSource
                 if (_year.HasValue)
                 {
                     var result = Compare(x, y, s => s.Year == _year.Value);
-                    if (result != 0) return result;
+                    if (result != 0)
+                    {
+                        return result;
+                    }
                 }
 
                 return Compare(x, y, s => s.Year);
@@ -117,7 +135,7 @@ namespace NzbDrone.Core.MetadataSource
                 var offset = Math.Abs(series.Year - _year.Value);
                 if (offset <= 1)
                 {
-                    return 20 - 10 * offset;
+                    return 20 - (10 * offset);
                 }
             }
 

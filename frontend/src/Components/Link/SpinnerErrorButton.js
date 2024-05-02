@@ -1,9 +1,9 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import SpinnerButton from 'Components/Link/SpinnerButton';
+import { icons, kinds } from 'Helpers/Props';
 import styles from './SpinnerErrorButton.css';
 
 function getTestResult(error) {
@@ -90,13 +90,14 @@ class SpinnerErrorButton extends Component {
       hasWarning: false,
       hasError: false
     });
-  }
+  };
 
   //
   // Render
 
   render() {
     const {
+      kind,
       isSpinning,
       error,
       children,
@@ -112,7 +113,7 @@ class SpinnerErrorButton extends Component {
     const showIcon = wasSuccessful || hasWarning || hasError;
 
     let iconName = icons.CHECK;
-    let iconKind = kinds.SUCCESS;
+    let iconKind = kind === kinds.PRIMARY ? kinds.DEFAULT : kinds.SUCCESS;
 
     if (hasWarning) {
       iconName = icons.WARNING;
@@ -126,6 +127,7 @@ class SpinnerErrorButton extends Component {
 
     return (
       <SpinnerButton
+        kind={kind}
         isSpinning={isSpinning}
         {...otherProps}
       >
@@ -154,6 +156,7 @@ class SpinnerErrorButton extends Component {
 }
 
 SpinnerErrorButton.propTypes = {
+  kind: PropTypes.oneOf(kinds.all),
   isSpinning: PropTypes.bool.isRequired,
   error: PropTypes.object,
   children: PropTypes.node.isRequired

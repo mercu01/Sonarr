@@ -29,7 +29,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
                 .Returns(new[] { targetDir });
 
             Mocker.GetMock<IDiskProvider>()
-                .Setup(c => c.GetFiles(targetDir, SearchOption.AllDirectories))
+                .Setup(c => c.GetFiles(targetDir, true))
                 .Returns(new[] { Path.Combine(targetDir, "somefile.mkv") });
 
             Mocker.GetMock<IDiskProvider>()
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
             VerifySingleItem(DownloadItemStatus.Downloading);
 
             // If we keep changing the file every 20ms we should stay Downloading.
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 TestLogger.Info("Iteration {0}", i);
 

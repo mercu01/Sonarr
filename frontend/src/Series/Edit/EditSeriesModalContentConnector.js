@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import selectSettings from 'Store/Selectors/selectSettings';
+import { saveSeries, setSeriesValue } from 'Store/Actions/seriesActions';
 import createSeriesSelector from 'Store/Selectors/createSeriesSelector';
-import { setSeriesValue, saveSeries } from 'Store/Actions/seriesActions';
+import selectSettings from 'Store/Selectors/selectSettings';
 import EditSeriesModalContent from './EditSeriesModalContent';
 
 function createIsPathChangingSelector() {
@@ -27,10 +27,9 @@ function createIsPathChangingSelector() {
 function createMapStateToProps() {
   return createSelector(
     (state) => state.series,
-    (state) => state.settings.languageProfiles,
     createSeriesSelector(),
     createIsPathChangingSelector(),
-    (seriesState, languageProfiles, series, isPathChanging) => {
+    (seriesState, series, isPathChanging) => {
       const {
         isSaving,
         saveError,
@@ -39,9 +38,9 @@ function createMapStateToProps() {
 
       const seriesSettings = _.pick(series, [
         'monitored',
+        'monitorNewItems',
         'seasonFolder',
         'qualityProfileId',
-        'languageProfileId',
         'seriesType',
         'path',
         'tags',
@@ -66,7 +65,6 @@ function createMapStateToProps() {
         isPathChanging,
         originalPath: series.path,
         item: settings.settings,
-        showLanguageProfile: languageProfiles.items.length > 1,
         ...settings
       };
     }
@@ -94,14 +92,14 @@ class EditSeriesModalContentConnector extends Component {
 
   onInputChange = ({ name, value }) => {
     this.props.dispatchSetSeriesValue({ name, value });
-  }
+  };
 
   onSavePress = (moveFiles) => {
     this.props.dispatchSaveSeries({
       id: this.props.seriesId,
       moveFiles
     });
-  }
+  };
 
   //
   // Render

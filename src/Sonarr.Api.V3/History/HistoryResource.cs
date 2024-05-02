@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Qualities;
+using Sonarr.Api.V3.CustomFormats;
 using Sonarr.Api.V3.Episodes;
 using Sonarr.Api.V3.Series;
 using Sonarr.Http.REST;
@@ -14,10 +16,11 @@ namespace Sonarr.Api.V3.History
         public int EpisodeId { get; set; }
         public int SeriesId { get; set; }
         public string SourceTitle { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
         public QualityModel Quality { get; set; }
+        public List<CustomFormatResource> CustomFormats { get; set; }
+        public int CustomFormatScore { get; set; }
         public bool QualityCutoffNotMet { get; set; }
-        public bool LanguageCutoffNotMet { get; set; }
         public DateTime Date { get; set; }
         public string DownloadId { get; set; }
 
@@ -31,9 +34,15 @@ namespace Sonarr.Api.V3.History
 
     public static class HistoryResourceMapper
     {
-        public static HistoryResource ToResource(this EpisodeHistory model)
+        public static HistoryResource ToResource(this EpisodeHistory model, ICustomFormatCalculationService formatCalculator)
         {
-            if (model == null) return null;
+            if (model == null)
+            {
+                return null;
+            }
+
+            var customFormats = formatCalculator.ParseCustomFormat(model, model.Series);
+            var customFormatScore = model.Series.QualityProfile.Value.CalculateCustomFormatScore(customFormats);
 
             return new HistoryResource
             {
@@ -42,17 +51,21 @@ namespace Sonarr.Api.V3.History
                 EpisodeId = model.EpisodeId,
                 SeriesId = model.SeriesId,
                 SourceTitle = model.SourceTitle,
-                Language = model.Language,
+                Languages = model.Languages,
                 Quality = model.Quality,
-                //QualityCutoffNotMet
+                CustomFormats = customFormats.ToResource(false),
+                CustomFormatScore = customFormatScore,
+
+                // QualityCutoffNotMet
                 Date = model.Date,
                 DownloadId = model.DownloadId,
 
                 EventType = model.EventType,
 
                 Data = model.Data
-                //Episode
-                //Series
+
+                // Episode
+                // Series
             };
         }
     }

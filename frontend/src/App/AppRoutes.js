@@ -1,39 +1,39 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Route, Redirect } from 'react-router-dom';
-import getPathWithUrlBase from 'Utilities/getPathWithUrlBase';
-import NotFound from 'Components/NotFound';
-import Switch from 'Components/Router/Switch';
-import SeriesIndexConnector from 'Series/Index/SeriesIndexConnector';
-import AddNewSeriesConnector from 'AddSeries/AddNewSeries/AddNewSeriesConnector';
-import ImportSeries from 'AddSeries/ImportSeries/ImportSeries';
-import SeriesEditorConnector from 'Series/Editor/SeriesEditorConnector';
-import SeasonPassConnector from 'SeasonPass/SeasonPassConnector';
-import SeriesDetailsPageConnector from 'Series/Details/SeriesDetailsPageConnector';
-import CalendarPageConnector from 'Calendar/CalendarPageConnector';
+import { Redirect, Route } from 'react-router-dom';
+import BlocklistConnector from 'Activity/Blocklist/BlocklistConnector';
 import HistoryConnector from 'Activity/History/HistoryConnector';
 import QueueConnector from 'Activity/Queue/QueueConnector';
-import BlocklistConnector from 'Activity/Blocklist/BlocklistConnector';
-import MissingConnector from 'Wanted/Missing/MissingConnector';
-import CutoffUnmetConnector from 'Wanted/CutoffUnmet/CutoffUnmetConnector';
-import Settings from 'Settings/Settings';
+import AddNewSeriesConnector from 'AddSeries/AddNewSeries/AddNewSeriesConnector';
+import ImportSeries from 'AddSeries/ImportSeries/ImportSeries';
+import CalendarPageConnector from 'Calendar/CalendarPageConnector';
+import NotFound from 'Components/NotFound';
+import Switch from 'Components/Router/Switch';
+import SeriesDetailsPageConnector from 'Series/Details/SeriesDetailsPageConnector';
+import SeriesIndex from 'Series/Index/SeriesIndex';
+import CustomFormatSettingsPage from 'Settings/CustomFormats/CustomFormatSettingsPage';
+import DownloadClientSettingsConnector from 'Settings/DownloadClients/DownloadClientSettingsConnector';
+import GeneralSettingsConnector from 'Settings/General/GeneralSettingsConnector';
+import ImportListSettingsConnector from 'Settings/ImportLists/ImportListSettingsConnector';
+import IndexerSettingsConnector from 'Settings/Indexers/IndexerSettingsConnector';
 import MediaManagementConnector from 'Settings/MediaManagement/MediaManagementConnector';
+import MetadataSettings from 'Settings/Metadata/MetadataSettings';
+import MetadataSourceSettings from 'Settings/MetadataSource/MetadataSourceSettings';
+import NotificationSettings from 'Settings/Notifications/NotificationSettings';
 import Profiles from 'Settings/Profiles/Profiles';
 import QualityConnector from 'Settings/Quality/QualityConnector';
-import IndexerSettingsConnector from 'Settings/Indexers/IndexerSettingsConnector';
-import ImportListSettingsConnector from 'Settings/ImportLists/ImportListSettingsConnector';
-import DownloadClientSettingsConnector from 'Settings/DownloadClients/DownloadClientSettingsConnector';
-import NotificationSettings from 'Settings/Notifications/NotificationSettings';
-import MetadataSettings from 'Settings/Metadata/MetadataSettings';
+import Settings from 'Settings/Settings';
 import TagSettings from 'Settings/Tags/TagSettings';
-import GeneralSettingsConnector from 'Settings/General/GeneralSettingsConnector';
 import UISettingsConnector from 'Settings/UI/UISettingsConnector';
-import Status from 'System/Status/Status';
-import Tasks from 'System/Tasks/Tasks';
 import BackupsConnector from 'System/Backup/BackupsConnector';
-import UpdatesConnector from 'System/Updates/UpdatesConnector';
 import LogsTableConnector from 'System/Events/LogsTableConnector';
 import Logs from 'System/Logs/Logs';
+import Status from 'System/Status/Status';
+import Tasks from 'System/Tasks/Tasks';
+import UpdatesConnector from 'System/Updates/UpdatesConnector';
+import getPathWithUrlBase from 'Utilities/getPathWithUrlBase';
+import CutoffUnmetConnector from 'Wanted/CutoffUnmet/CutoffUnmetConnector';
+import MissingConnector from 'Wanted/Missing/MissingConnector';
 
 function AppRoutes(props) {
   const {
@@ -49,24 +49,24 @@ function AppRoutes(props) {
       <Route
         exact={true}
         path="/"
-        component={SeriesIndexConnector}
+        component={SeriesIndex}
       />
 
       {
         window.Sonarr.urlBase &&
-        <Route
-          exact={true}
-          path="/"
-          addUrlBase={false}
-          render={() => {
-            return (
-              <Redirect
-                to={getPathWithUrlBase('/')}
-                component={app}
-              />
-            );
-          }}
-        />
+          <Route
+            exact={true}
+            path="/"
+            addUrlBase={false}
+            render={() => {
+              return (
+                <Redirect
+                  to={getPathWithUrlBase('/')}
+                  component={app}
+                />
+              );
+            }}
+          />
       }
 
       <Route
@@ -81,12 +81,28 @@ function AppRoutes(props) {
 
       <Route
         path="/serieseditor"
-        component={SeriesEditorConnector}
+        exact={true}
+        render={() => {
+          return (
+            <Redirect
+              to={getPathWithUrlBase('/')}
+              component={app}
+            />
+          );
+        }}
       />
 
       <Route
         path="/seasonpass"
-        component={SeasonPassConnector}
+        exact={true}
+        render={() => {
+          return (
+            <Redirect
+              to={getPathWithUrlBase('/')}
+              component={app}
+            />
+          );
+        }}
       />
 
       <Route
@@ -162,6 +178,11 @@ function AppRoutes(props) {
       />
 
       <Route
+        path="/settings/customformats"
+        component={CustomFormatSettingsPage}
+      />
+
+      <Route
         path="/settings/indexers"
         component={IndexerSettingsConnector}
       />
@@ -184,6 +205,11 @@ function AppRoutes(props) {
       <Route
         path="/settings/metadata"
         component={MetadataSettings}
+      />
+
+      <Route
+        path="/settings/metadatasource"
+        component={MetadataSourceSettings}
       />
 
       <Route

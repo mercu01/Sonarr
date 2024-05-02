@@ -1,25 +1,28 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import FilterMenu from 'Components/Menu/FilterMenu';
+import ConfirmModal from 'Components/Modal/ConfirmModal';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
+import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
+import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
+import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
+import Table from 'Components/Table/Table';
+import TableBody from 'Components/Table/TableBody';
+import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
+import TablePager from 'Components/Table/TablePager';
+import { align, icons, kinds } from 'Helpers/Props';
+import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import getFilterValue from 'Utilities/Filter/getFilterValue';
 import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
+import translate from 'Utilities/String/translate';
 import getSelectedIds from 'Utilities/Table/getSelectedIds';
 import removeOldSelectedState from 'Utilities/Table/removeOldSelectedState';
 import selectAll from 'Utilities/Table/selectAll';
 import toggleSelected from 'Utilities/Table/toggleSelected';
-import { align, icons, kinds } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import Table from 'Components/Table/Table';
-import TableBody from 'Components/Table/TableBody';
-import TablePager from 'Components/Table/TablePager';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBody from 'Components/Page/PageContentBody';
-import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
-import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
-import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
-import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
-import FilterMenu from 'Components/Menu/FilterMenu';
-import ConfirmModal from 'Components/Modal/ConfirmModal';
-import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import MissingRowConnector from './MissingRowConnector';
 
 function getMonitoredValue(props) {
@@ -62,26 +65,26 @@ class Missing extends Component {
 
   getSelectedIds = () => {
     return getSelectedIds(this.state.selectedState);
-  }
+  };
 
   //
   // Listeners
 
   onSelectAllChange = ({ value }) => {
     this.setState(selectAll(this.state.selectedState, value));
-  }
+  };
 
   onSelectedChange = ({ id, value, shiftKey = false }) => {
     this.setState((state) => {
       return toggleSelected(state, this.props.items, id, value, shiftKey);
     });
-  }
+  };
 
   onSearchSelectedPress = () => {
     const selected = this.getSelectedIds();
 
     this.props.onSearchSelectedPress(selected);
-  }
+  };
 
   onToggleSelectedPress = () => {
     const episodeIds = this.getSelectedIds();
@@ -90,11 +93,11 @@ class Missing extends Component {
       episodeIds,
       monitored: !getMonitoredValue(this.props)
     });
-  }
+  };
 
   onSearchAllMissingPress = () => {
     this.setState({ isConfirmSearchAllMissingModalOpen: true });
-  }
+  };
 
   onSearchAllMissingConfirmed = () => {
     const {
@@ -107,19 +110,19 @@ class Missing extends Component {
 
     onSearchAllMissingPress(selectedFilterKey === 'monitored');
     this.setState({ isConfirmSearchAllMissingModalOpen: false });
-  }
+  };
 
   onConfirmSearchAllMissingModalClose = () => {
     this.setState({ isConfirmSearchAllMissingModalOpen: false });
-  }
+  };
 
   onInteractiveImportPress = () => {
     this.setState({ isInteractiveImportModalOpen: true });
-  }
+  };
 
   onInteractiveImportModalClose = () => {
     this.setState({ isInteractiveImportModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -152,18 +155,18 @@ class Missing extends Component {
     const isShowingMonitored = getMonitoredValue(this.props);
 
     return (
-      <PageContent title="Missing">
+      <PageContent title={translate('Missing')}>
         <PageToolbar>
           <PageToolbarSection>
             <PageToolbarButton
-              label="Search Selected"
+              label={translate('SearchSelected')}
               iconName={icons.SEARCH}
               isDisabled={!itemsSelected || isSearchingForMissingEpisodes}
               onPress={this.onSearchSelectedPress}
             />
 
             <PageToolbarButton
-              label={isShowingMonitored ? 'Unmonitor Selected' : 'Monitor Selected'}
+              label={isShowingMonitored ? translate('UnmonitorSelected') : translate('MonitorSelected')}
               iconName={icons.MONITORED}
               isDisabled={!itemsSelected}
               isSpinning={isSaving}
@@ -173,7 +176,7 @@ class Missing extends Component {
             <PageToolbarSeparator />
 
             <PageToolbarButton
-              label="Search All"
+              label={translate('SearchAll')}
               iconName={icons.SEARCH}
               isDisabled={!items.length}
               isSpinning={isSearchingForMissingEpisodes}
@@ -183,7 +186,7 @@ class Missing extends Component {
             <PageToolbarSeparator />
 
             <PageToolbarButton
-              label="Manual Import"
+              label={translate('ManualImport')}
               iconName={icons.INTERACTIVE}
               onPress={this.onInteractiveImportPress}
             />
@@ -191,6 +194,16 @@ class Missing extends Component {
           </PageToolbarSection>
 
           <PageToolbarSection alignContent={align.RIGHT}>
+            <TableOptionsModalWrapper
+              {...otherProps}
+              columns={columns}
+            >
+              <PageToolbarButton
+                label={translate('Options')}
+                iconName={icons.TABLE}
+              />
+            </TableOptionsModalWrapper>
+
             <FilterMenu
               alignMenu={align.RIGHT}
               selectedFilterKey={selectedFilterKey}
@@ -209,16 +222,16 @@ class Missing extends Component {
 
           {
             !isFetching && error &&
-              <div>
-                Error fetching missing items
-              </div>
+              <Alert kind={kinds.DANGER}>
+                {translate('MissingLoadError')}
+              </Alert>
           }
 
           {
             isPopulated && !error && !items.length &&
-              <div>
-                No missing items
-              </div>
+              <Alert kind={kinds.INFO}>
+                {translate('MissingNoItems')}
+              </Alert>
           }
 
           {
@@ -258,18 +271,18 @@ class Missing extends Component {
                 <ConfirmModal
                   isOpen={isConfirmSearchAllMissingModalOpen}
                   kind={kinds.DANGER}
-                  title="Search for all missing episodes"
+                  title={translate('SearchForAllMissingEpisodes')}
                   message={
                     <div>
                       <div>
-                        Are you sure you want to search for all {totalRecords} missing episodes?
+                        {translate('SearchForAllMissingEpisodesConfirmationCount', { totalRecords })}
                       </div>
                       <div>
-                        This cannot be cancelled once started without restarting Sonarr.
+                        {translate('MassSearchCancelWarning')}
                       </div>
                     </div>
                   }
-                  confirmLabel="Search"
+                  confirmLabel={translate('Search')}
                   onConfirm={this.onSearchAllMissingConfirmed}
                   onCancel={this.onConfirmSearchAllMissingModalClose}
                 />

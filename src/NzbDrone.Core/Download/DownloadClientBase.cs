@@ -1,14 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
+using Polly;
+using Polly.Retry;
 
 namespace NzbDrone.Core.Download
 {
@@ -19,6 +25,39 @@ namespace NzbDrone.Core.Download
         protected readonly IDiskProvider _diskProvider;
         protected readonly IRemotePathMappingService _remotePathMappingService;
         protected readonly Logger _logger;
+        protected readonly ILocalizationService _localizationService;
+
+        protected ResiliencePipeline<HttpResponse> RetryStrategy => new ResiliencePipelineBuilder<HttpResponse>()
+            .AddRetry(new RetryStrategyOptions<HttpResponse>
+            {
+                ShouldHandle = static args => args.Outcome switch
+                {
+                    { Result.HasHttpServerError: true } => PredicateResult.True(),
+                    { Result.StatusCode: HttpStatusCode.RequestTimeout } => PredicateResult.True(),
+                    { Exception: HttpException { Response.HasHttpServerError: true } } => PredicateResult.True(),
+                    _ => PredicateResult.False()
+                },
+                Delay = TimeSpan.FromSeconds(3),
+                MaxRetryAttempts = 2,
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
+                OnRetry = args =>
+                {
+                    var exception = args.Outcome.Exception;
+
+                    if (exception is not null)
+                    {
+                        _logger.Info(exception, "Request for {0} failed with exception '{1}'. Retrying in {2}s.", Definition.Name, exception.Message, args.RetryDelay.TotalSeconds);
+                    }
+                    else
+                    {
+                        _logger.Info("Request for {0} failed with status {1}. Retrying in {2}s.", Definition.Name, args.Outcome.Result?.StatusCode, args.RetryDelay.TotalSeconds);
+                    }
+
+                    return default;
+                }
+            })
+            .Build();
 
         public abstract string Name { get; }
 
@@ -30,19 +69,24 @@ namespace NzbDrone.Core.Download
 
         public ProviderDefinition Definition { get; set; }
 
-        public virtual object RequestAction(string action, IDictionary<string, string> query) { return null; }
+        public virtual object RequestAction(string action, IDictionary<string, string> query)
+        {
+            return null;
+        }
 
         protected TSettings Settings => (TSettings)Definition.Settings;
 
-        protected DownloadClientBase(IConfigService configService, 
-            IDiskProvider diskProvider, 
+        protected DownloadClientBase(IConfigService configService,
+            IDiskProvider diskProvider,
             IRemotePathMappingService remotePathMappingService,
-            Logger logger)
+            Logger logger,
+            ILocalizationService localizationService)
         {
             _configService = configService;
             _diskProvider = diskProvider;
             _remotePathMappingService = remotePathMappingService;
             _logger = logger;
+            _localizationService = localizationService;
         }
 
         public override string ToString()
@@ -50,12 +94,9 @@ namespace NzbDrone.Core.Download
             return GetType().Name;
         }
 
-        public abstract DownloadProtocol Protocol
-        {
-            get;
-        }
+        public abstract DownloadProtocol Protocol { get; }
 
-        public abstract string Download(RemoteEpisode remoteEpisode);
+        public abstract Task<string> Download(RemoteEpisode remoteEpisode, IIndexer indexer);
         public abstract IEnumerable<DownloadClientItem> GetItems();
 
         public virtual DownloadClientItem GetImportItem(DownloadClientItem item, DownloadClientItem previousImportAttempt)

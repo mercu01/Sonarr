@@ -4,8 +4,8 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.ImportLists.Trakt
@@ -14,12 +14,12 @@ namespace NzbDrone.Core.ImportLists.Trakt
     where TSettings : TraktSettingsBase<TSettings>, new()
     {
         public override ImportListType ListType => ImportListType.Trakt;
+        public override TimeSpan MinRefreshInterval => TimeSpan.FromHours(12);
 
         public const string OAuthUrl = "https://trakt.tv/oauth/authorize";
         public const string RedirectUri = "https://auth.servarr.com/v1/trakt_sonarr/auth";
         public const string RenewUri = "https://auth.servarr.com/v1/trakt_sonarr/renew";
         public const string ClientId = "d44ba57cab40c31eb3f797dcfccd203500796539125b333883ec1d94aa62ed4c";
-
 
         private IImportListRepository _importListRepository;
 
@@ -28,13 +28,14 @@ namespace NzbDrone.Core.ImportLists.Trakt
                            IImportListStatusService importListStatusService,
                            IConfigService configService,
                            IParsingService parsingService,
+                           ILocalizationService localizationService,
                            Logger logger)
-            : base(httpClient, importListStatusService, configService, parsingService, logger)
+            : base(httpClient, importListStatusService, configService, parsingService, localizationService, logger)
         {
             _importListRepository = netImportRepository;
         }
 
-        public override IList<ImportListItemInfo> Fetch()
+        public override ImportListFetchResult Fetch()
         {
             Settings.Validate().Filter("AccessToken", "RefreshToken").ThrowOnError();
             _logger.Trace($"Access token expires at {Settings.Expires}");
@@ -45,6 +46,7 @@ namespace NzbDrone.Core.ImportLists.Trakt
             }
 
             var generator = GetRequestGenerator();
+
             return FetchItems(g => g.GetListItems(), true);
         }
 
@@ -132,7 +134,7 @@ namespace NzbDrone.Core.ImportLists.Trakt
                     var token = response.Resource;
                     Settings.AccessToken = token.AccessToken;
                     Settings.Expires = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
-                    Settings.RefreshToken = token.RefreshToken != null ? token.RefreshToken : Settings.RefreshToken;
+                    Settings.RefreshToken = token.RefreshToken ?? Settings.RefreshToken;
 
                     if (Definition.Id > 0)
                     {

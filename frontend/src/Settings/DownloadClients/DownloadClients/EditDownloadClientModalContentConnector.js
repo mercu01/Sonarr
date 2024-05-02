@@ -2,8 +2,14 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
+import {
+  saveDownloadClient,
+  setDownloadClientFieldValue,
+  setDownloadClientValue,
+  testDownloadClient,
+  toggleAdvancedSettings
+} from 'Store/Actions/settingsActions';
 import createProviderSettingsSelector from 'Store/Selectors/createProviderSettingsSelector';
-import { setDownloadClientValue, setDownloadClientFieldValue, saveDownloadClient, testDownloadClient } from 'Store/Actions/settingsActions';
 import EditDownloadClientModalContent from './EditDownloadClientModalContent';
 
 function createMapStateToProps() {
@@ -23,7 +29,8 @@ const mapDispatchToProps = {
   setDownloadClientValue,
   setDownloadClientFieldValue,
   saveDownloadClient,
-  testDownloadClient
+  testDownloadClient,
+  toggleAdvancedSettings
 };
 
 class EditDownloadClientModalContentConnector extends Component {
@@ -42,19 +49,23 @@ class EditDownloadClientModalContentConnector extends Component {
 
   onInputChange = ({ name, value }) => {
     this.props.setDownloadClientValue({ name, value });
-  }
+  };
 
   onFieldChange = ({ name, value }) => {
     this.props.setDownloadClientFieldValue({ name, value });
-  }
+  };
 
   onSavePress = () => {
     this.props.saveDownloadClient({ id: this.props.id });
-  }
+  };
 
   onTestPress = () => {
     this.props.testDownloadClient({ id: this.props.id });
-  }
+  };
+
+  onAdvancedSettingsPress = () => {
+    this.props.toggleAdvancedSettings();
+  };
 
   //
   // Render
@@ -65,6 +76,7 @@ class EditDownloadClientModalContentConnector extends Component {
         {...this.props}
         onSavePress={this.onSavePress}
         onTestPress={this.onTestPress}
+        onAdvancedSettingsPress={this.onAdvancedSettingsPress}
         onInputChange={this.onInputChange}
         onFieldChange={this.onFieldChange}
       />
@@ -82,6 +94,7 @@ EditDownloadClientModalContentConnector.propTypes = {
   setDownloadClientFieldValue: PropTypes.func.isRequired,
   saveDownloadClient: PropTypes.func.isRequired,
   testDownloadClient: PropTypes.func.isRequired,
+  toggleAdvancedSettings: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };
 

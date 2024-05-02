@@ -1,14 +1,15 @@
-﻿using Moq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Hadouken;
 using NzbDrone.Core.Download.Clients.Hadouken.Models;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using FluentAssertions;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
@@ -81,12 +82,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
             };
 
             Mocker.GetMock<ITorrentFileInfoReader>()
-                  .Setup(s => s.GetHashFromTorrentFile(It.IsAny<Byte[]>()))
+                  .Setup(s => s.GetHashFromTorrentFile(It.IsAny<byte[]>()))
                   .Returns("CBC2F069FE8BB2F544EAE707D75BCD3DE9DCF951");
 
             Mocker.GetMock<IHttpClient>()
                   .Setup(s => s.Get(It.IsAny<HttpRequest>()))
-                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), new byte[0]));
+                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), Array.Empty<byte>()));
         }
 
         protected void GivenFailedDownload()
@@ -103,8 +104,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
         protected void GivenSuccessfulDownload()
         {
             Mocker.GetMock<IHttpClient>()
-                  .Setup(s => s.Get(It.IsAny<HttpRequest>()))
-                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), new byte[1000]));
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>()))
+                  .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), new byte[1000])));
 
             Mocker.GetMock<IHadoukenProxy>()
                 .Setup(s => s.AddTorrentUri(It.IsAny<HadoukenSettings>(), It.IsAny<string>()))
@@ -196,13 +197,13 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
         }
 
         [Test]
-        public void Download_should_return_unique_id()
+        public async Task Download_should_return_unique_id()
         {
             GivenSuccessfulDownload();
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().NotBeNullOrEmpty();
         }
@@ -210,7 +211,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
         [Test]
         public void should_return_status_with_outputdirs()
         {
-            var configItems = new Dictionary<String, Object>();
+            var configItems = new Dictionary<string, object>();
 
             configItems.Add("bittorrent.defaultSavePath", @"C:\Downloads\Downloading\deluge".AsOsAgnostic());
 
@@ -277,7 +278,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
         }
 
         [Test]
-        public void Download_from_magnet_link_should_return_hash_uppercase()
+        public async Task Download_from_magnet_link_should_return_hash_uppercase()
         {
             var remoteEpisode = CreateRemoteEpisode();
 
@@ -286,13 +287,13 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
             Mocker.GetMock<IHadoukenProxy>()
                .Setup(v => v.AddTorrentUri(It.IsAny<HadoukenSettings>(), It.IsAny<string>()));
 
-            var result = Subject.Download(remoteEpisode);
+            var result = await Subject.Download(remoteEpisode, CreateIndexer());
 
             Assert.IsFalse(result.Any(c => char.IsLower(c)));
         }
 
         [Test]
-        public void Download_from_torrent_file_should_return_hash_uppercase()
+        public async Task Download_from_torrent_file_should_return_hash_uppercase()
         {
             var remoteEpisode = CreateRemoteEpisode();
 
@@ -300,7 +301,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
                .Setup(v => v.AddTorrentFile(It.IsAny<HadoukenSettings>(), It.IsAny<byte[]>()))
                .Returns("hash");
 
-            var result = Subject.Download(remoteEpisode);
+            var result = await Subject.Download(remoteEpisode, CreateIndexer());
 
             Assert.IsFalse(result.Any(c => char.IsLower(c)));
         }
@@ -319,7 +320,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
 
             var result = Subject.Test();
 
-            result.Errors.First().ErrorMessage.Should().Be("Old Hadouken client with unsupported API, need 5.1 or higher");
+            result.Errors.Count.Should().Be(1);
         }
     }
 }

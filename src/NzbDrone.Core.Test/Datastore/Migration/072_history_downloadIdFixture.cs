@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
-using FluentMigrator;
 using NUnit.Framework;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore.Migration;
+using NzbDrone.Core.Datastore.Migration.Framework;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Datastore.Migration
@@ -20,26 +20,24 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             {
                 InsertHistory(c, new Dictionary<string, string>
                 {
-                    {"indexer","test"},
-                    {"downloadClientId","123"}
+                    { "indexer", "test" },
+                    { "downloadClientId", "123" }
                 });
 
                 InsertHistory(c, new Dictionary<string, string>
                 {
-                    {"indexer","test"},
-                    {"downloadClientId","abc"}
+                    { "indexer", "test" },
+                    { "downloadClientId", "abc" }
                 });
-
             });
 
-            var history = db.Query<History72>("SELECT DownloadId, Data FROM History");
+            var history = db.Query<History72>("SELECT \"DownloadId\", \"Data\" FROM \"History\"");
 
             history.Should().HaveCount(2);
             history.Should().NotContain(c => c.Data.ContainsKey("downloadClientId"));
             history.Should().Contain(c => c.DownloadId == "123");
             history.Should().Contain(c => c.DownloadId == "abc");
         }
-
 
         [Test]
         public void should_leave_items_with_no_grabid()
@@ -48,18 +46,17 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             {
                 InsertHistory(c, new Dictionary<string, string>
                 {
-                    {"indexer","test"},
-                    {"downloadClientId","123"}
+                    { "indexer", "test" },
+                    { "downloadClientId", "123" }
                 });
 
                 InsertHistory(c, new Dictionary<string, string>
                 {
-                    {"indexer","test"}
+                    { "indexer", "test" }
                 });
-
             });
 
-            var history = db.Query<History72>("SELECT DownloadId, Data FROM History");
+            var history = db.Query<History72>("SELECT \"DownloadId\", \"Data\" FROM \"History\"");
 
             history.Should().HaveCount(2);
             history.Should().NotContain(c => c.Data.ContainsKey("downloadClientId"));
@@ -74,13 +71,13 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             {
                 InsertHistory(c, new Dictionary<string, string>
                 {
-                    {"indexer","test"},
-                    {"group","test2"},
-                    {"downloadClientId","123"}
+                    { "indexer", "test" },
+                    { "group", "test2" },
+                    { "downloadClientId", "123" }
                 });
             });
 
-            var history = db.Query<History72>("SELECT DownloadId, Data FROM History").Single();
+            var history = db.Query<History72>("SELECT \"DownloadId\", \"Data\" FROM \"History\"").Single();
 
             history.Data.Should().NotContainKey("downloadClientId");
             history.Data.Should().Contain(new KeyValuePair<string, string>("indexer", "test"));
@@ -89,9 +86,9 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             history.DownloadId.Should().Be("123");
         }
 
-        private void InsertHistory(MigrationBase migrationBase, Dictionary<string, string> data)
+        private void InsertHistory(NzbDroneMigrationBase migration, Dictionary<string, string> data)
         {
-            migrationBase.Insert.IntoTable("History").Row(new
+            migration.Insert.IntoTable("History").Row(new
             {
                 EpisodeId = 1,
                 SeriesId = 1,
