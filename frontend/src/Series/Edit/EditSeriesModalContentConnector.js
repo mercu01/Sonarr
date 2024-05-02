@@ -48,18 +48,18 @@ function createMapStateToProps() {
       ]);
 
       const settings = selectSettings(seriesSettings, pendingChanges, saveError);
-      var alternateTitlesLinks = series.alternateTitles.map(function(item, key) {
-        var url = "https://docs.google.com/forms/d/e/1FAIpQLSdn_l_RvNCAPdL-ahVV0Z9hHw1swcxMLrEPY3pJE9qa7IR3tw/viewform?usp=pp_url" + "&entry.2173272=" + series.tvdbId + "&entry.826062213=" + item.title + "&entry.474981866=" + series.title + "&entry.1231195804=Spanish%20translate";
+      const alternateTitlesLinks = series.alternateTitles.map((item, key) => {
+        const url = `https://docs.google.com/forms/d/e/1FAIpQLSdn_l_RvNCAPdL-ahVV0Z9hHw1swcxMLrEPY3pJE9qa7IR3tw/viewform?usp=pp_url'&entry.2173272=${series.tvdbId}&entry.826062213=${item.title}&entry.474981866=${series.title}&entry.1231195804=Spanish%20translate`;
         return {
-            key: key,
-            url: url,
-            name: item.title
+          key,
+          url,
+          name: item.title
         };
-      }, "");
+      }, '');
       return {
         title: series.title,
         tvdbId: series.tvdbId,
-        alternateTitlesLinks: alternateTitlesLinks,
+        alternateTitlesLinks,
         isSaving,
         saveError,
         isPathChanging,
