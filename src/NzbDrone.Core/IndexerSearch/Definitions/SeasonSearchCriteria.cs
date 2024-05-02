@@ -5,7 +5,8 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     public class SeasonSearchCriteria : SearchCriteriaBase
     {
-        public readonly List<string> ModesSearchSpanish = new List<string>(){
+        public readonly List<string> ModesSearchSpanish = new List<string>()
+        {
             "S{1:00}",
             "T{1:0}",
             "T {1:0}",
@@ -16,7 +17,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            StringBuilder searchTerms = new StringBuilder();
+            var searchTerms = new StringBuilder();
 
             searchTerms.AppendFormat($"[{Series.Title}]. Search term: ").AppendLine();
             foreach (var mode in ModesSearchSpanish)
@@ -26,6 +27,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
                     searchTerms.AppendFormat($"[{translate} {mode}]", "fakeparam", SeasonNumber).AppendLine();
                 }
             }
+
             return searchTerms.ToString();
         }
     }

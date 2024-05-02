@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -123,11 +123,13 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         {
             return FindSceneMapping(seriesTitle, releaseTitle, -1)?.SceneSeasonNumber;
         }
+
         public void Add(SceneMapping scene)
         {
             _repository.Insert(scene);
             UpdateMappings();
         }
+
         private void UpdateMappings()
         {
             _logger.Info("Updating Scene mappings");

@@ -91,7 +91,7 @@ namespace NzbDrone.Core.Jobs
                         Interval = 3 * 60,
                         TypeName = typeof(UpdateSceneMappingCommand).FullName
                     },
-                    
+
                     new ScheduledTask
                     {
                         Interval = 6 * 60,
