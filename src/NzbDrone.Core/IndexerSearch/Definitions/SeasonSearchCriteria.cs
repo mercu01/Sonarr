@@ -7,11 +7,12 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
     {
         public readonly List<string> ModesSearchSpanish = new List<string>()
         {
-            "S{1:00}",
-            "T{1:0}",
-            "T {1:0}",
-            "T{1:00}",
-            "T {1:00}"
+            "Temporada {0:0}",
+            "S{0:00}",
+            "T{0:0}",
+            "T {0:0}",
+            "T{0:00}",
+            "T {0:00}"
         };
         public int SeasonNumber { get; set; }
 
@@ -24,7 +25,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
             {
                 foreach (var translate in SceneTitles)
                 {
-                    searchTerms.AppendFormat($"[{translate} {mode}]", "fakeparam", SeasonNumber).AppendLine();
+                    searchTerms.AppendFormat($"[{translate} {mode}]", SeasonNumber).AppendLine();
                 }
             }
 

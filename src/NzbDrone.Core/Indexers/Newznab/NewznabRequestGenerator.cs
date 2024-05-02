@@ -284,13 +284,10 @@ namespace NzbDrone.Core.Indexers.Newznab
 
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
-                foreach (var mode in searchCriteria.ModesSearchSpanish)
-                {
-                    AddTitlePageableRequests(pageableRequests,
-                        Settings.Categories,
-                        searchCriteria,
-                        $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&fakeparam={mode}");
-                }
+                AddTitlePageableRequests(pageableRequests,
+                    Settings.Categories,
+                    searchCriteria,
+                    $"");
             }
 
             return pageableRequests;
@@ -548,10 +545,24 @@ namespace NzbDrone.Core.Indexers.Newznab
                 var queryTitles = TvTextSearchEngine == "raw" ? searchCriteria.SceneTitles : searchCriteria.CleanSceneTitles;
                 foreach (var queryTitle in queryTitles)
                 {
-                    chain.Add(GetPagedRequests(MaxPages,
+                    if (searchCriteria is SeasonSearchCriteria)
+                    {
+                        foreach (var mode in (searchCriteria as SeasonSearchCriteria).ModesSearchSpanish)
+                        {
+                            var seasonFormated = string.Format(mode, (searchCriteria as SeasonSearchCriteria).SeasonNumber);
+                            chain.Add(GetPagedRequests(MaxPages,
+                            Settings.Categories,
+                            "tvsearch",
+                            $"&q={NewsnabifyTitle(queryTitle + " " + seasonFormated)}{parameters}"));
+                        }
+                    }
+                    else
+                    {
+                        chain.Add(GetPagedRequests(MaxPages,
                         Settings.Categories,
                         "tvsearch",
                         $"&q={NewsnabifyTitle(queryTitle)}{parameters}"));
+                    }
                 }
             }
         }
