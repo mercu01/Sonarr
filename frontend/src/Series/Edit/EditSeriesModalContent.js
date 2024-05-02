@@ -96,7 +96,7 @@ class EditSeriesModalContent extends Component {
               <FormLabel>Title</FormLabel>
               <FormInputGroup
                 type={inputTypes.TEXT}
-                value= {otherProps.title}
+                value={otherProps.title}
                 name="title"
                 helpText="You can add translations(Scene Naming Exceptions) in this entry, if your translation did not exist in sonarr, send it to the sonar community with the google form!"
                 {...title}
@@ -105,7 +105,7 @@ class EditSeriesModalContent extends Component {
 
             </FormGroup>
             <FormGroup>
-              <FormLabel>Sonarr Scene Naming Exceptions + link to add google forms</FormLabel>
+              <FormLabel>Sonarr Scene Naming Exceptions and link to add google forms</FormLabel>
               {otherProps.alternateTitlesLinks.map((object, i) => <div key={object.key}><span>{object.name} </span><a href={object.url} target="_blank">[link google form]</a></div>)}
 
               <div>
