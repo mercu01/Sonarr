@@ -1,35 +1,34 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.AspNet.SignalR.Client;
-using Microsoft.AspNet.SignalR.Client.Transports;
+using Microsoft.AspNetCore.SignalR.Client;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
 using NUnit.Framework;
-using NzbDrone.Api.Blocklist;
-using NzbDrone.Api.Commands;
-using NzbDrone.Api.Config;
-using NzbDrone.Api.DownloadClient;
-using NzbDrone.Api.EpisodeFiles;
-using NzbDrone.Api.Episodes;
-using NzbDrone.Api.History;
-using NzbDrone.Api.Profiles;
-using NzbDrone.Api.RootFolders;
-using NzbDrone.Api.Series;
-using NzbDrone.Api.Tags;
 using NzbDrone.Common.EnvironmentInfo;
-using NzbDrone.Common.Serializer;
+using NzbDrone.Common.Processes;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv.Commands;
 using NzbDrone.Integration.Test.Client;
 using NzbDrone.SignalR;
 using NzbDrone.Test.Common.Categories;
 using RestSharp;
+using Sonarr.Api.V3.Blocklist;
+using Sonarr.Api.V3.Config;
+using Sonarr.Api.V3.DownloadClient;
+using Sonarr.Api.V3.EpisodeFiles;
+using Sonarr.Api.V3.Episodes;
+using Sonarr.Api.V3.History;
+using Sonarr.Api.V3.Profiles.Quality;
+using Sonarr.Api.V3.RootFolders;
+using Sonarr.Api.V3.Series;
+using Sonarr.Api.V3.System.Tasks;
+using Sonarr.Api.V3.Tags;
 
 namespace NzbDrone.Integration.Test
 {
@@ -37,10 +36,10 @@ namespace NzbDrone.Integration.Test
     public abstract class IntegrationTestBase
     {
         protected RestClient RestClient { get; private set; }
-        protected RestClient RestClientv3 { get; private set; }
 
         public ClientBase<BlocklistResource> Blocklist;
         public CommandClient Commands;
+        public ClientBase<TaskResource> Tasks;
         public DownloadClientClient DownloadClients;
         public EpisodeClient Episodes;
         public ClientBase<HistoryResource> History;
@@ -50,7 +49,7 @@ namespace NzbDrone.Integration.Test
         public LogsClient Logs;
         public ClientBase<NamingConfigResource> NamingConfig;
         public NotificationClient Notifications;
-        public ClientBase<ProfileResource> Profiles;
+        public ClientBase<QualityProfileResource> QualityProfiles;
         public ReleaseClient Releases;
         public ReleasePushClient ReleasePush;
         public ClientBase<RootFolderResource> RootFolders;
@@ -60,7 +59,8 @@ namespace NzbDrone.Integration.Test
         public ClientBase<EpisodeResource> WantedCutoffUnmet;
 
         private List<SignalRMessage> _signalRReceived;
-        private Connection _signalrConnection;
+
+        private HubConnection _signalrConnection;
 
         protected IEnumerable<SignalRMessage> SignalRMessages => _signalRReceived;
 
@@ -98,26 +98,22 @@ namespace NzbDrone.Integration.Test
 
         protected virtual void InitRestClients()
         {
-            RestClient = new RestClient(RootUrl + "api/");
+            RestClient = new RestClient(RootUrl + "api/v3/");
             RestClient.AddDefaultHeader("Authentication", ApiKey);
             RestClient.AddDefaultHeader("X-Api-Key", ApiKey);
 
-            RestClientv3 = new RestClient(RootUrl + "api/v3/");
-            RestClientv3.AddDefaultHeader("Authentication", ApiKey);
-            RestClientv3.AddDefaultHeader("X-Api-Key", ApiKey);
-
             Blocklist = new ClientBase<BlocklistResource>(RestClient, ApiKey);
             Commands = new CommandClient(RestClient, ApiKey);
+            Tasks = new ClientBase<TaskResource>(RestClient, ApiKey, "system/task");
             DownloadClients = new DownloadClientClient(RestClient, ApiKey);
             Episodes = new EpisodeClient(RestClient, ApiKey);
             History = new ClientBase<HistoryResource>(RestClient, ApiKey);
             HostConfig = new ClientBase<HostConfigResource>(RestClient, ApiKey, "config/host");
             Indexers = new IndexerClient(RestClient, ApiKey);
-            Indexersv3 = new IndexerClient(RestClientv3, ApiKey);
             Logs = new LogsClient(RestClient, ApiKey);
             NamingConfig = new ClientBase<NamingConfigResource>(RestClient, ApiKey, "config/naming");
             Notifications = new NotificationClient(RestClient, ApiKey);
-            Profiles = new ClientBase<ProfileResource>(RestClient, ApiKey);
+            QualityProfiles = new ClientBase<QualityProfileResource>(RestClient, ApiKey);
             Releases = new ReleaseClient(RestClient, ApiKey);
             ReleasePush = new ReleasePushClient(RestClient, ApiKey);
             RootFolders = new ClientBase<RootFolderResource>(RestClient, ApiKey);
@@ -136,26 +132,18 @@ namespace NzbDrone.Integration.Test
         [SetUp]
         public void IntegrationSetUp()
         {
-            TempDirectory = Path.Combine(TestContext.CurrentContext.TestDirectory, "_test_" + Process.GetCurrentProcess().Id + "_" + DateTime.UtcNow.Ticks);
+            TempDirectory = Path.Combine(TestContext.CurrentContext.TestDirectory, "_test_" + ProcessProvider.GetCurrentProcessId() + "_" + DateTime.UtcNow.Ticks);
 
             // Wait for things to get quiet, otherwise the previous test might influence the current one.
             Commands.WaitAll();
         }
 
         [TearDown]
-        public void IntegrationTearDown()
+        public async Task IntegrationTearDown()
         {
             if (_signalrConnection != null)
             {
-                switch (_signalrConnection.State)
-                {
-                    case ConnectionState.Connected:
-                    case ConnectionState.Connecting:
-                        {
-                            _signalrConnection.Stop();
-                            break;
-                        }
-                }
+                await _signalrConnection.StopAsync();
 
                 _signalrConnection = null;
                 _signalRReceived = new List<SignalRMessage>();
@@ -182,33 +170,48 @@ namespace NzbDrone.Integration.Test
             return path;
         }
 
-        protected void ConnectSignalR()
+        protected async Task ConnectSignalR()
         {
             _signalRReceived = new List<SignalRMessage>();
-            _signalrConnection = new Connection("http://localhost:8989/signalr");
-            _signalrConnection.Start(new LongPollingTransport()).ContinueWith(task =>
+            _signalrConnection = new HubConnectionBuilder().WithUrl("http://localhost:8989/signalr/messages").Build();
+
+            var cts = new CancellationTokenSource();
+
+            _signalrConnection.Closed += e =>
             {
-                if (task.IsFaulted)
-                {
-                    Assert.Fail("SignalrConnection failed. {0}", task.Exception.GetBaseException());
-                }
+                cts.Cancel();
+                return Task.CompletedTask;
+            };
+
+            _signalrConnection.On<SignalRMessage>("receiveMessage", (message) =>
+            {
+                _signalRReceived.Add(message);
             });
 
+            var connected = false;
             var retryCount = 0;
 
-            while (_signalrConnection.State != ConnectionState.Connected)
+            while (!connected)
             {
-                if (retryCount > 25)
+                try
                 {
-                    Assert.Fail("Couldn't establish signalr connection. State: {0}", _signalrConnection.State);
+                    Console.WriteLine("Connecting to signalR");
+
+                    await _signalrConnection.StartAsync();
+                    connected = true;
+                    break;
+                }
+                catch (Exception)
+                {
+                    if (retryCount > 25)
+                    {
+                        Assert.Fail("Couldn't establish signalR connection");
+                    }
                 }
 
                 retryCount++;
-                Console.WriteLine("Connecting to signalR" + _signalrConnection.State);
                 Thread.Sleep(200);
             }
-
-            _signalrConnection.Received += json => _signalRReceived.Add(Json.Deserialize<SignalRMessage>(json)); ;
         }
 
         public static void WaitForCompletion(Func<bool> predicate, int timeout = 10000, int interval = 500)
@@ -217,13 +220,17 @@ namespace NzbDrone.Integration.Test
             for (var i = 0; i < count; i++)
             {
                 if (predicate())
+                {
                     return;
+                }
 
                 Thread.Sleep(interval);
             }
 
             if (predicate())
+            {
                 return;
+            }
 
             Assert.Fail("Timed on wait");
         }
@@ -236,8 +243,7 @@ namespace NzbDrone.Integration.Test
             {
                 var lookup = Series.Lookup("tvdb:" + tvdbId);
                 var series = lookup.First();
-                series.ProfileId = 1;
-                series.LanguageProfileId = 1;
+                series.QualityProfileId = 1;
                 series.Path = Path.Combine(SeriesRootFolder, series.Title);
                 series.Monitored = true;
                 series.Seasons.ForEach(v => v.Monitored = true);
@@ -273,6 +279,8 @@ namespace NzbDrone.Integration.Test
                 }
             }
 
+            Commands.WaitAll();
+
             return result;
         }
 
@@ -297,25 +305,26 @@ namespace NzbDrone.Integration.Test
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, "Fake Episode");
 
-                Commands.PostAndWait(new CommandResource { Name = "refreshseries", Body = new RefreshSeriesCommand(series.Id) });
+                Commands.PostAndWait(new RefreshSeriesCommand(new List<int> { series.Id }));
+
                 Commands.WaitAll();
 
                 result = Episodes.GetEpisodesInSeries(series.Id).Single(v => v.SeasonNumber == season && v.EpisodeNumber == episode);
 
-                result.EpisodeFile.Should().NotBeNull();
+                result.EpisodeFileId.Should().NotBe(0);
             }
 
             return result.EpisodeFile;
         }
 
-        public ProfileResource EnsureProfileCutoff(int profileId, Quality cutoff, bool upgradeAllowed)
+        public QualityProfileResource EnsureQualityProfileCutoff(int profileId, Quality cutoff, bool upgradeAllowed)
         {
             var needsUpdate = false;
-            var profile = Profiles.Get(profileId);
+            var profile = QualityProfiles.Get(profileId);
 
-            if (profile.Cutoff != cutoff)
+            if (profile.Cutoff != cutoff.Id)
             {
-                profile.Cutoff = cutoff;
+                profile.Cutoff = cutoff.Id;
                 needsUpdate = true;
             }
 
@@ -327,7 +336,7 @@ namespace NzbDrone.Integration.Test
 
             if (needsUpdate)
             {
-                profile = Profiles.Put(profile);
+                profile = QualityProfiles.Put(profile);
             }
 
             return profile;

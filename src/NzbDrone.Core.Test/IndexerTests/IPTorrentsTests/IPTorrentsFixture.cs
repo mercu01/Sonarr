@@ -1,3 +1,8 @@
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
@@ -5,9 +10,6 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.IPTorrents;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using System;
-using System.Linq;
-using FluentAssertions;
 
 namespace NzbDrone.Core.Test.IndexerTests.IPTorrentsTests
 {
@@ -83,15 +85,15 @@ namespace NzbDrone.Core.Test.IndexerTests.IPTorrentsTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_IPTorrents()
+        public async Task should_parse_recent_feed_from_IPTorrents()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/IPTorrents/IPTorrents.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(5);
             releases.First().Should().BeOfType<TorrentInfo>();

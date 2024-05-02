@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import DescriptionListItemTitle from './DescriptionListItemTitle';
 import DescriptionListItemDescription from './DescriptionListItemDescription';
+import DescriptionListItemTitle from './DescriptionListItemTitle';
 
 class DescriptionListItem extends Component {
 
@@ -10,6 +10,7 @@ class DescriptionListItem extends Component {
 
   render() {
     const {
+      className,
       titleClassName,
       descriptionClassName,
       title,
@@ -17,7 +18,7 @@ class DescriptionListItem extends Component {
     } = this.props;
 
     return (
-      <span>
+      <div className={className}>
         <DescriptionListItemTitle
           className={titleClassName}
         >
@@ -29,12 +30,13 @@ class DescriptionListItem extends Component {
         >
           {data}
         </DescriptionListItemDescription>
-      </span>
+      </div>
     );
   }
 }
 
 DescriptionListItem.propTypes = {
+  className: PropTypes.string,
   titleClassName: PropTypes.string,
   descriptionClassName: PropTypes.string,
   title: PropTypes.string,

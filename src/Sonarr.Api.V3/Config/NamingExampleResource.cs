@@ -1,4 +1,4 @@
-﻿using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Organizer;
 
 namespace Sonarr.Api.V3.Config
 {
@@ -24,30 +24,15 @@ namespace Sonarr.Api.V3.Config
 
                 RenameEpisodes = model.RenameEpisodes,
                 ReplaceIllegalCharacters = model.ReplaceIllegalCharacters,
-                MultiEpisodeStyle = model.MultiEpisodeStyle,
+                ColonReplacementFormat = (int)model.ColonReplacementFormat,
+                MultiEpisodeStyle = (int)model.MultiEpisodeStyle,
                 StandardEpisodeFormat = model.StandardEpisodeFormat,
                 DailyEpisodeFormat = model.DailyEpisodeFormat,
                 AnimeEpisodeFormat = model.AnimeEpisodeFormat,
                 SeriesFolderFormat = model.SeriesFolderFormat,
                 SeasonFolderFormat = model.SeasonFolderFormat,
                 SpecialsFolderFormat = model.SpecialsFolderFormat
-                //IncludeSeriesTitle
-                //IncludeEpisodeTitle
-                //IncludeQuality
-                //ReplaceSpaces
-                //Separator
-                //NumberStyle
             };
-        }
-
-        public static void AddToResource(this BasicNamingConfig basicNamingConfig, NamingConfigResource resource)
-        {
-            resource.IncludeSeriesTitle = basicNamingConfig.IncludeSeriesTitle;
-            resource.IncludeEpisodeTitle = basicNamingConfig.IncludeEpisodeTitle;
-            resource.IncludeQuality = basicNamingConfig.IncludeQuality;
-            resource.ReplaceSpaces = basicNamingConfig.ReplaceSpaces;
-            resource.Separator = basicNamingConfig.Separator;
-            resource.NumberStyle = basicNamingConfig.NumberStyle;
         }
 
         public static NamingConfig ToModel(this NamingConfigResource resource)
@@ -58,7 +43,8 @@ namespace Sonarr.Api.V3.Config
 
                 RenameEpisodes = resource.RenameEpisodes,
                 ReplaceIllegalCharacters = resource.ReplaceIllegalCharacters,
-                MultiEpisodeStyle = resource.MultiEpisodeStyle,
+                MultiEpisodeStyle = (MultiEpisodeStyle)resource.MultiEpisodeStyle,
+                ColonReplacementFormat = (ColonReplacementFormat)resource.ColonReplacementFormat,
                 StandardEpisodeFormat = resource.StandardEpisodeFormat,
                 DailyEpisodeFormat = resource.DailyEpisodeFormat,
                 AnimeEpisodeFormat = resource.AnimeEpisodeFormat,

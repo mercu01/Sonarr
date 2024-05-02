@@ -1,16 +1,18 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
+import Alert from 'Components/Alert';
+import Icon from 'Components/Icon';
+import Label from 'Components/Label';
+import SpinnerButton from 'Components/Link/SpinnerButton';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
 import { icons, kinds } from 'Helpers/Props';
 import formatDate from 'Utilities/Date/formatDate';
 import formatDateTime from 'Utilities/Date/formatDateTime';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import SpinnerButton from 'Components/Link/SpinnerButton';
-import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
-import Icon from 'Components/Icon';
-import Label from 'Components/Label';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBody from 'Components/Page/PageContentBody';
+import translate from 'Utilities/String/translate';
 import UpdateChanges from './UpdateChanges';
 import styles from './Updates.css';
 
@@ -42,15 +44,15 @@ class Updates extends Component {
     const hasUpdateToInstall = hasUpdates && _.some(items, { installable: true, latest: true });
     const noUpdateToInstall = hasUpdates && !hasUpdateToInstall;
 
-    const externalUpdaterPrefix = 'Unable to update Sonarr directly,';
+    const externalUpdaterPrefix = translate('UpdateSonarrDirectlyLoadError');
     const externalUpdaterMessages = {
-      external: 'Sonarr is configured to use an external update mechanism',
-      apt: 'use apt to install the update',
-      docker: 'update the docker container to receive the update'
+      external: translate('ExternalUpdater'),
+      apt: translate('AptUpdater'),
+      docker: translate('DockerUpdater')
     };
 
     return (
-      <PageContent title="Updates">
+      <PageContent title={translate('Updates')}>
         <PageContentBody>
           {
             !isPopulated && !hasError &&
@@ -59,7 +61,9 @@ class Updates extends Component {
 
           {
             noUpdates &&
-              <div>No updates are available</div>
+              <Alert kind={kinds.INFO}>
+                {translate('NoUpdatesAreAvailable')}
+              </Alert>
           }
 
           {
@@ -73,7 +77,7 @@ class Updates extends Component {
                       isSpinning={isInstallingUpdate}
                       onPress={onInstallLatestPress}
                     >
-                      Install Latest
+                      {translate('InstallLatest')}
                     </SpinnerButton> :
 
                     <Fragment>
@@ -107,9 +111,8 @@ class Updates extends Component {
                   name={icons.CHECK_CIRCLE}
                   size={30}
                 />
-
                 <div className={styles.message}>
-                  The latest version of Sonarr is already installed
+                  {translate('OnLatestVersion')}
                 </div>
 
                 {
@@ -145,8 +148,8 @@ class Updates extends Component {
                           </div>
 
                           {
-                            update.branch === 'master' ?
-                              null:
+                            update.branch === 'main' ?
+                              null :
                               <Label
                                 className={styles.label}
                               >
@@ -161,7 +164,7 @@ class Updates extends Component {
                                 kind={kinds.SUCCESS}
                                 title={formatDateTime(update.installedOn, longDateFormat, timeFormat)}
                               >
-                                Currently Installed
+                                {translate('CurrentlyInstalled')}
                               </Label> :
                               null
                           }
@@ -173,7 +176,7 @@ class Updates extends Component {
                                 kind={kinds.INVERSE}
                                 title={formatDateTime(update.installedOn, longDateFormat, timeFormat)}
                               >
-                                Previously Installed
+                                {translate('PreviouslyInstalled')}
                               </Label> :
                               null
                           }
@@ -181,19 +184,21 @@ class Updates extends Component {
 
                         {
                           !hasChanges &&
-                            <div>Maintenance release</div>
+                            <div>
+                              {translate('MaintenanceRelease')}
+                            </div>
                         }
 
                         {
                           hasChanges &&
                             <div className={styles.changes}>
                               <UpdateChanges
-                                title="New"
+                                title={translate('New')}
                                 changes={update.changes.new}
                               />
 
                               <UpdateChanges
-                                title="Fixed"
+                                title={translate('Fixed')}
                                 changes={update.changes.fixed}
                               />
                             </div>
@@ -208,14 +213,14 @@ class Updates extends Component {
           {
             !!updatesError &&
               <div>
-                Failed to fetch updates
+                {translate('FailedToFetchUpdates')}
               </div>
           }
 
           {
             !!generalSettingsError &&
               <div>
-                Failed to update settings
+                {translate('FailedToUpdateSettings')}
               </div>
           }
         </PageContentBody>

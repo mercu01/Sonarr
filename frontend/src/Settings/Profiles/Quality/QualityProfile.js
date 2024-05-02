@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import Card from 'Components/Card';
 import Label from 'Components/Label';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import Tooltip from 'Components/Tooltip/Tooltip';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import EditQualityProfileModalConnector from './EditQualityProfileModalConnector';
 import styles from './QualityProfile.css';
 
@@ -28,26 +29,26 @@ class QualityProfile extends Component {
 
   onEditQualityProfilePress = () => {
     this.setState({ isEditQualityProfileModalOpen: true });
-  }
+  };
 
   onEditQualityProfileModalClose = () => {
     this.setState({ isEditQualityProfileModalOpen: false });
-  }
+  };
 
   onDeleteQualityProfilePress = () => {
     this.setState({
       isEditQualityProfileModalOpen: false,
       isDeleteQualityProfileModalOpen: true
     });
-  }
+  };
 
   onDeleteQualityProfileModalClose = () => {
     this.setState({ isDeleteQualityProfileModalOpen: false });
-  }
+  };
 
   onConfirmDeleteQualityProfile = () => {
     this.props.onConfirmDeleteQualityProfile(this.props.id);
-  }
+  };
 
   onCloneQualityProfilePress = () => {
     const {
@@ -56,7 +57,7 @@ class QualityProfile extends Component {
     } = this.props;
 
     onCloneQualityProfilePress(id);
-  }
+  };
 
   //
   // Render
@@ -84,7 +85,7 @@ class QualityProfile extends Component {
 
           <IconButton
             className={styles.cloneButton}
-            title="Clone Profile"
+            title={translate('CloneProfile')}
             name={icons.CLONE}
             onPress={this.onCloneQualityProfilePress}
           />
@@ -104,7 +105,7 @@ class QualityProfile extends Component {
                   <Label
                     key={item.quality.id}
                     kind={isCutoff ? kinds.INFO : kinds.DEFAULT}
-                    title={isCutoff ? 'Upgrade until this quality is met or exceeded' : null}
+                    title={isCutoff ? translate('UpgradeUntilThisQualityIsMetOrExceeded') : null}
                   >
                     {item.quality.name}
                   </Label>
@@ -120,7 +121,7 @@ class QualityProfile extends Component {
                   anchor={
                     <Label
                       kind={isCutoff ? kinds.INFO : kinds.DEFAULT}
-                      title={isCutoff ? 'Cutoff' : null}
+                      title={isCutoff ? translate('Cutoff') : null}
                     >
                       {item.name}
                     </Label>
@@ -133,7 +134,7 @@ class QualityProfile extends Component {
                             <Label
                               key={groupItem.quality.id}
                               kind={isCutoff ? kinds.INFO : kinds.DEFAULT}
-                              title={isCutoff ? 'Cutoff' : null}
+                              title={isCutoff ? translate('Cutoff') : null}
                             >
                               {groupItem.quality.name}
                             </Label>
@@ -160,9 +161,9 @@ class QualityProfile extends Component {
         <ConfirmModal
           isOpen={this.state.isDeleteQualityProfileModalOpen}
           kind={kinds.DANGER}
-          title="Delete Quality Profile"
-          message={`Are you sure you want to delete the quality profile '${name}'?`}
-          confirmLabel="Delete"
+          title={translate('DeleteQualityProfile')}
+          message={translate('DeleteQualityProfileMessageText', { name })}
+          confirmLabel={translate('Delete')}
           isSpinning={isDeleting}
           onConfirm={this.onConfirmDeleteQualityProfile}
           onCancel={this.onDeleteQualityProfileModalClose}

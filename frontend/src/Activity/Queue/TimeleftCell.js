@@ -1,10 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import Icon from 'Components/Icon';
+import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import Tooltip from 'Components/Tooltip/Tooltip';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import formatTime from 'Utilities/Date/formatTime';
 import formatTimeSpan from 'Utilities/Date/formatTimeSpan';
 import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import formatBytes from 'Utilities/Number/formatBytes';
-import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import translate from 'Utilities/String/translate';
 import styles from './TimeleftCell.css';
 
 function TimeleftCell(props) {
@@ -24,11 +28,13 @@ function TimeleftCell(props) {
     const time = formatTime(estimatedCompletionTime, timeFormat, { includeMinuteZero: true });
 
     return (
-      <TableRowCell
-        className={styles.timeleft}
-        title={`Delaying download until ${date} at ${time}`}
-      >
-        -
+      <TableRowCell className={styles.timeleft}>
+        <Tooltip
+          anchor={<Icon name={icons.INFO} />}
+          tooltip={translate('DelayingDownloadUntil', { date, time })}
+          kind={kinds.INVERSE}
+          position={tooltipPositions.TOP}
+        />
       </TableRowCell>
     );
   }
@@ -38,11 +44,13 @@ function TimeleftCell(props) {
     const time = formatTime(estimatedCompletionTime, timeFormat, { includeMinuteZero: true });
 
     return (
-      <TableRowCell
-        className={styles.timeleft}
-        title={`Retrying download ${date} at ${time}`}
-      >
-        -
+      <TableRowCell className={styles.timeleft}>
+        <Tooltip
+          anchor={<Icon name={icons.INFO} />}
+          tooltip={translate('RetryingDownloadOn', { date, time })}
+          kind={kinds.INVERSE}
+          position={tooltipPositions.TOP}
+        />
       </TableRowCell>
     );
   }

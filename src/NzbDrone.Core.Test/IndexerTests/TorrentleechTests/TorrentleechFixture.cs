@@ -1,13 +1,15 @@
-﻿using Moq;
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Torrentleech;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using System;
-using System.Linq;
-using FluentAssertions;
 
 namespace NzbDrone.Core.Test.IndexerTests.TorrentleechTests
 {
@@ -25,15 +27,15 @@ namespace NzbDrone.Core.Test.IndexerTests.TorrentleechTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_Torrentleech()
+        public async Task should_parse_recent_feed_from_Torrentleech()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torrentleech/Torrentleech.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(5);
             releases.First().Should().BeOfType<TorrentInfo>();
@@ -50,7 +52,7 @@ namespace NzbDrone.Core.Test.IndexerTests.TorrentleechTests
             torrentInfo.Size.Should().Be(0);
             torrentInfo.InfoHash.Should().Be(null);
             torrentInfo.MagnetUrl.Should().Be(null);
-            torrentInfo.Peers.Should().Be(7+1);
+            torrentInfo.Peers.Should().Be(7 + 1);
             torrentInfo.Seeders.Should().Be(1);
         }
     }

@@ -12,15 +12,14 @@ import {
   faFileArchive as farFileArchive,
   faFileVideo as farFileVideo,
   faFolder as farFolder,
-  faObjectGroup as farObjectGroup,
   faHdd as farHdd,
   faKeyboard as farKeyboard,
-  faObjectUngroup as farObjectUngroup
+  faObjectGroup as farObjectGroup,
+  faObjectUngroup as farObjectUngroup,
+  faSquare as farSquare
 } from '@fortawesome/free-regular-svg-icons';
-
 //
 // Solid
-
 import {
   faArrowCircleLeft as fasArrowCircleLeft,
   faArrowCircleRight as fasArrowCircleRight,
@@ -30,18 +29,23 @@ import {
   faBolt as fasBolt,
   faBookmark as fasBookmark,
   faBookReader as fasBookReader,
-  faBug as fasBug,
   faBroadcastTower as fasBroadcastTower,
+  faBug as fasBug,
+  faCalculator as fasCalculator,
   faCalendarAlt as fasCalendarAlt,
   faCaretDown as fasCaretDown,
   faCheck as fasCheck,
+  faCheckCircle as fasCheckCircle,
   faChevronCircleDown as fasChevronCircleDown,
   faChevronCircleRight as fasChevronCircleRight,
   faChevronCircleUp as fasChevronCircleUp,
-  faCheckCircle as fasCheckCircle,
   faCircle as fasCircle,
-  faCloudDownloadAlt as fasCloudDownloadAlt,
+  faCircleDown as fasCircleDown,
+  faCirclePause as fasCirclePause,
+  faCirclePlay as fasCirclePlay,
+  faCircleStop as fasCircleStop,
   faCloud as fasCloud,
+  faCloudDownloadAlt as fasCloudDownloadAlt,
   faCog as fasCog,
   faCogs as fasCogs,
   faCopy as fasCopy,
@@ -54,8 +58,11 @@ import {
   faEye as fasEye,
   faFastBackward as fasFastBackward,
   faFastForward as fasFastForward,
+  faFileCircleQuestion as fasFileCircleQuestion,
+  faFileExport as fasFileExport,
   faFileInvoice as farFileInvoice,
   faFilter as fasFilter,
+  faFlag as fasFlag,
   faFolderOpen as fasFolderOpen,
   faForward as fasForward,
   faHeart as fasHeart,
@@ -64,6 +71,7 @@ import {
   faInfoCircle as fasInfoCircle,
   faLaptop as fasLaptop,
   faLevelUpAlt as fasLevelUpAlt,
+  faListCheck as fasListCheck,
   faMedkit as fasMedkit,
   faMinus as fasMinus,
   faPause as fasPause,
@@ -74,25 +82,27 @@ import {
   faQuestionCircle as fasQuestionCircle,
   faRedoAlt as fasRedoAlt,
   faRetweet as fasRetweet,
-  faRss as fasRss,
   faRocket as fasRocket,
+  faRss as fasRss,
   faSave as fasSave,
   faSearch as fasSearch,
   faSignOutAlt as fasSignOutAlt,
   faSitemap as fasSitemap,
-  faSpinner as fasSpinner,
   faSort as fasSort,
   faSortDown as fasSortDown,
   faSortUp as fasSortUp,
+  faSpinner as fasSpinner,
+  faSquareCheck as fasSquareCheck,
+  faSquareMinus as fasSquareMinus,
   faStop as fasStop,
   faSync as fasSync,
-  faTags as fasTags,
   faTable as fasTable,
+  faTags as fasTags,
   faTh as fasTh,
   faThList as fasThList,
-  faTrashAlt as fasTrashAlt,
   faTimes as fasTimes,
   faTimesCircle as fasTimesCircle,
+  faTrashAlt as fasTrashAlt,
   faUser as fasUser,
   faUserPlus as fasUserPlus,
   faVial as fasVial,
@@ -117,7 +127,9 @@ export const CARET_DOWN = fasCaretDown;
 export const CHECK = fasCheck;
 export const CHECK_INDETERMINATE = fasMinus;
 export const CHECK_CIRCLE = fasCheckCircle;
+export const CHECK_SQUARE = fasSquareCheck;
 export const CIRCLE = fasCircle;
+export const CIRCLE_DOWN = fasCircleDown;
 export const CIRCLE_OUTLINE = farCircle;
 export const CLEAR = fasTrashAlt;
 export const CLIPBOARD = fasCopy;
@@ -135,10 +147,15 @@ export const EDIT = fasWrench;
 export const EPISODE_FILE = farFileVideo;
 export const EXPAND = fasChevronCircleDown;
 export const EXPAND_INDETERMINATE = fasChevronCircleRight;
+export const EXPORT = fasFileExport;
 export const EXTERNAL_LINK = fasExternalLinkAlt;
 export const FATAL = fasTimesCircle;
 export const FILE = farFile;
+export const FILE_MISSING = fasFileCircleQuestion;
 export const FILTER = fasFilter;
+export const FINALE_SEASON = fasCirclePause;
+export const FINALE_SERIES = fasCircleStop;
+export const FLAG = fasFlag;
 export const FOOTNOTE = fasAsterisk;
 export const FOLDER = farFolder;
 export const FOLDER_OPEN = fasFolderOpen;
@@ -152,6 +169,7 @@ export const INFO = fasInfoCircle;
 export const INTERACTIVE = fasUser;
 export const KEYBOARD = farKeyboard;
 export const LOGOUT = fasSignOutAlt;
+export const MANAGE = fasListCheck;
 export const MEDIA_INFO = farFileInvoice;
 export const MISSING = fasExclamationTriangle;
 export const MONITORED = fasBookmark;
@@ -166,8 +184,10 @@ export const PAGE_PREVIOUS = fasBackward;
 export const PAGE_NEXT = fasForward;
 export const PAGE_LAST = fasFastForward;
 export const PARENT = fasLevelUpAlt;
+export const PARSE = fasCalculator;
 export const PAUSED = fasPause;
 export const PENDING = farClock;
+export const PREMIERE = fasCirclePlay;
 export const PROFILE = fasUser;
 export const POSTER = fasTh;
 export const QUEUED = fasCloud;
@@ -192,6 +212,8 @@ export const SORT = fasSort;
 export const SORT_ASCENDING = fasSortUp;
 export const SORT_DESCENDING = fasSortDown;
 export const SPINNER = fasSpinner;
+export const SQUARE = farSquare;
+export const SQUARE_MINUS = fasSquareMinus;
 export const SUBTRACT = fasMinus;
 export const SYSTEM = fasLaptop;
 export const TABLE = fasTable;

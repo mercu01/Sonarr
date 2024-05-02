@@ -1,18 +1,21 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { align, icons } from 'Helpers/Props';
-import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
+import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import FilterMenu from 'Components/Menu/FilterMenu';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
+import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
+import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
 import TablePager from 'Components/Table/TablePager';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBody from 'Components/Page/PageContentBody';
-import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
-import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
-import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
-import FilterMenu from 'Components/Menu/FilterMenu';
+import { align, icons, kinds } from 'Helpers/Props';
+import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
+import translate from 'Utilities/String/translate';
+import HistoryFilterModal from './HistoryFilterModal';
 import HistoryRowConnector from './HistoryRowConnector';
 
 class History extends Component {
@@ -50,6 +53,7 @@ class History extends Component {
       columns,
       selectedFilterKey,
       filters,
+      customFilters,
       totalRecords,
       isEpisodesFetching,
       isEpisodesPopulated,
@@ -64,11 +68,11 @@ class History extends Component {
     const hasError = error || episodesError;
 
     return (
-      <PageContent title="History">
+      <PageContent title={translate('History')}>
         <PageToolbar>
           <PageToolbarSection>
             <PageToolbarButton
-              label="Refresh"
+              label={translate('Refresh')}
               iconName={icons.REFRESH}
               isSpinning={isFetching}
               onPress={onFirstPagePress}
@@ -81,7 +85,7 @@ class History extends Component {
               columns={columns}
             >
               <PageToolbarButton
-                label="Options"
+                label={translate('Options')}
                 iconName={icons.TABLE}
               />
             </TableOptionsModalWrapper>
@@ -90,7 +94,8 @@ class History extends Component {
               alignMenu={align.RIGHT}
               selectedFilterKey={selectedFilterKey}
               filters={filters}
-              customFilters={[]}
+              customFilters={customFilters}
+              filterModalConnectorComponent={HistoryFilterModal}
               onFilterSelect={onFilterSelect}
             />
           </PageToolbarSection>
@@ -104,7 +109,9 @@ class History extends Component {
 
           {
             !isFetchingAny && hasError &&
-              <div>Unable to load history</div>
+              <Alert kind={kinds.DANGER}>
+                {translate('HistoryLoadError')}
+              </Alert>
           }
 
           {
@@ -112,9 +119,9 @@ class History extends Component {
             // wait for the episodes to populate because they are never coming.
 
             isPopulated && !hasError && !items.length &&
-              <div>
-                No history found
-              </div>
+              <Alert kind={kinds.INFO}>
+                {translate('NoHistoryFound')}
+              </Alert>
           }
 
           {
@@ -159,8 +166,9 @@ History.propTypes = {
   error: PropTypes.object,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
-  selectedFilterKey: PropTypes.string.isRequired,
+  selectedFilterKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   filters: PropTypes.arrayOf(PropTypes.object).isRequired,
+  customFilters: PropTypes.arrayOf(PropTypes.object).isRequired,
   totalRecords: PropTypes.number,
   isEpisodesFetching: PropTypes.bool.isRequired,
   isEpisodesPopulated: PropTypes.bool.isRequired,

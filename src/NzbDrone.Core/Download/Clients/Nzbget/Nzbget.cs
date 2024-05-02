@@ -10,6 +10,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
@@ -28,8 +29,9 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
                       IDiskProvider diskProvider,
                       IRemotePathMappingService remotePathMappingService,
                       IValidateNzbs nzbValidationService,
-                      Logger logger)
-            : base(httpClient, configService, diskProvider, remotePathMappingService, nzbValidationService, logger)
+                      Logger logger,
+                      ILocalizationService localizationService)
+            : base(httpClient, configService, diskProvider, remotePathMappingService, nzbValidationService, logger, localizationService)
         {
             _proxy = proxy;
         }
@@ -71,11 +73,11 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
                 queueItem.Title = item.NzbName;
                 queueItem.TotalSize = totalSize;
                 queueItem.Category = item.Category;
-                queueItem.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                queueItem.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false);
                 queueItem.CanMoveFiles = true;
                 queueItem.CanBeRemoved = true;
 
-                if (globalStatus.DownloadPaused || remainingSize == pausedSize && remainingSize != 0)
+                if (globalStatus.DownloadPaused || (remainingSize == pausedSize && remainingSize != 0))
                 {
                     queueItem.Status = DownloadItemStatus.Paused;
                     queueItem.RemainingSize = remainingSize;
@@ -118,13 +120,19 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
                 var historyItem = new DownloadClientItem();
                 var itemDir = item.FinalDir.IsNullOrWhiteSpace() ? item.DestDir : item.FinalDir;
 
-                historyItem.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                historyItem.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false);
                 historyItem.DownloadId = droneParameter == null ? item.Id.ToString() : droneParameter.Value.ToString();
                 historyItem.Title = item.Name;
                 historyItem.TotalSize = MakeInt64(item.FileSizeHi, item.FileSizeLo);
                 historyItem.OutputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(itemDir));
                 historyItem.Category = item.Category;
-                historyItem.Message = $"PAR Status: {item.ParStatus} - Unpack Status: {item.UnpackStatus} - Move Status: {item.MoveStatus} - Script Status: {item.ScriptStatus} - Delete Status: {item.DeleteStatus} - Mark Status: {item.MarkStatus}";
+                historyItem.Message = _localizationService.GetLocalizedString("NzbgetHistoryItemMessage",
+                    new Dictionary<string, object>
+                    {
+                        { "parStatus", item.ParStatus }, { "unpackStatus", item.UnpackStatus },
+                        { "moveStatus", item.MoveStatus }, { "scriptStaus", item.ScriptStatus },
+                        { "deleteStatus", item.DeleteStatus }, { "markStatus", item.MarkStatus }
+                    });
                 historyItem.Status = DownloadItemStatus.Completed;
                 historyItem.RemainingTime = TimeSpan.Zero;
                 historyItem.CanMoveFiles = true;
@@ -222,11 +230,14 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
         protected IEnumerable<NzbgetCategory> GetCategories(Dictionary<string, string> config)
         {
-            for (int i = 1; i < 100; i++)
+            for (var i = 1; i < 100; i++)
             {
                 var name = config.GetValueOrDefault("Category" + i + ".Name");
 
-                if (name == null) yield break;
+                if (name == null)
+                {
+                    yield break;
+                }
 
                 var destDir = config.GetValueOrDefault("Category" + i + ".DestDir");
 
@@ -267,17 +278,23 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
                 if (Version.Parse(version) < Version.Parse("12.0"))
                 {
-                    return new ValidationFailure(string.Empty, "Nzbget version too low, need 12.0 or higher");
+                    return new ValidationFailure(string.Empty,
+                        _localizationService.GetLocalizedString("DownloadClientValidationErrorVersion",
+                            new Dictionary<string, object>
+                                { { "clientName", Name }, { "requiredVersion", "12.0" }, { "reportedVersion", version } }));
                 }
             }
             catch (Exception ex)
             {
                 if (ex.Message.ContainsIgnoreCase("Authentication failed"))
                 {
-                    return new ValidationFailure("Username", "Authentication failed");
+                    return new ValidationFailure("Username", _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailure"));
                 }
+
                 _logger.Error(ex, "Unable to connect to NZBGet");
-                return new ValidationFailure("Host", "Unable to connect to NZBGet");
+                return new ValidationFailure("Host",
+                    _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect",
+                        new Dictionary<string, object> { { "clientName", Name } }));
             }
 
             return null;
@@ -290,10 +307,10 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
             if (!Settings.TvCategory.IsNullOrWhiteSpace() && !categories.Any(v => v.Name == Settings.TvCategory))
             {
-                return new NzbDroneValidationFailure("TvCategory", "Category does not exist")
+                return new NzbDroneValidationFailure("TvCategory", _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissing"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings),
-                    DetailedDescription = "The Category your entered doesn't exist in NzbGet. Go to NzbGet to create it."
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissingDetail", new Dictionary<string, object> { { "clientName", Name } })
                 };
             }
 
@@ -305,21 +322,20 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
             var config = _proxy.GetConfig(Settings);
 
             var keepHistory = config.GetValueOrDefault("KeepHistory", "7");
-            int value;
-            if (!int.TryParse(keepHistory, NumberStyles.None, CultureInfo.InvariantCulture, out value) || value == 0)
+            if (!int.TryParse(keepHistory, NumberStyles.None, CultureInfo.InvariantCulture, out var value) || value == 0)
             {
-                return new NzbDroneValidationFailure(string.Empty, "NzbGet setting KeepHistory should be greater than 0")
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientNzbgetValidationKeepHistoryZero"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings),
-                    DetailedDescription = "NzbGet setting KeepHistory is set to 0. Which prevents Sonarr from seeing completed downloads."
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientNzbgetValidationKeepHistoryZeroDetail")
                 };
             }
             else if (value > 25000)
             {
-                return new NzbDroneValidationFailure(string.Empty, "NzbGet setting KeepHistory should be less than 25000")
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientNzbgetValidationKeepHistoryOverMax"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings),
-                    DetailedDescription = "NzbGet setting KeepHistory is set too high."
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientNzbgetValidationKeepHistoryOverMaxDetail")
                 };
             }
 

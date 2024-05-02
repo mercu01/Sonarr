@@ -1,16 +1,18 @@
+using System;
+using System.Collections.Generic;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.ThingiProvider.Status;
 
 namespace NzbDrone.Core.ImportLists
 {
     public interface IImportListStatusService : IProviderStatusServiceBase<ImportListStatus>
     {
-        ImportListItemInfo GetLastSyncListInfo(int importListId);
+        ImportListStatus GetListStatus(int importListId);
 
-        void UpdateListSyncStatus(int importListId, ImportListItemInfo listItemInfo);
+        void UpdateListSyncStatus(int importListId, bool removedItems);
+        void MarkListsAsCleaned();
     }
 
     public class ImportListStatusService : ProviderStatusServiceBase<IImportList, ImportListStatus>, IImportListStatusService
@@ -20,21 +22,37 @@ namespace NzbDrone.Core.ImportLists
         {
         }
 
-        public ImportListItemInfo GetLastSyncListInfo(int importListId)
+        public ImportListStatus GetListStatus(int importListId)
         {
-            return GetProviderStatus(importListId).LastSyncListInfo;
+            return GetProviderStatus(importListId);
         }
 
-
-        public void UpdateListSyncStatus(int importListId, ImportListItemInfo listItemInfo)
+        public void UpdateListSyncStatus(int importListId, bool removedItems)
         {
             lock (_syncRoot)
             {
                 var status = GetProviderStatus(importListId);
 
-                status.LastSyncListInfo = listItemInfo;
+                status.LastInfoSync = DateTime.UtcNow;
+                status.HasRemovedItemSinceLastClean |= removedItems;
 
                 _providerStatusRepository.Upsert(status);
+            }
+        }
+
+        public void MarkListsAsCleaned()
+        {
+            lock (_syncRoot)
+            {
+                var toUpdate = new List<ImportListStatus>();
+
+                foreach (var status in _providerStatusRepository.All())
+                {
+                    status.HasRemovedItemSinceLastClean = false;
+                    toUpdate.Add(status);
+                }
+
+                _providerStatusRepository.UpdateMany(toUpdate);
             }
         }
     }

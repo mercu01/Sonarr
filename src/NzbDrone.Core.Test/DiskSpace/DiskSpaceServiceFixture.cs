@@ -1,12 +1,9 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
-using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DiskSpace;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -50,8 +47,8 @@ namespace NzbDrone.Core.Test.DiskSpace
         private void GivenSeries(params string[] seriesPaths)
         {
             Mocker.GetMock<ISeriesService>()
-                  .Setup(v => v.GetAllSeriesPaths())
-                  .Returns(seriesPaths.ToList());
+                .Setup(v => v.GetAllSeriesPaths())
+                .Returns(new Dictionary<int, string>(seriesPaths.Select((value, i) => new KeyValuePair<int, string>(i, value))));
         }
 
         private void GivenExistingFolder(string folder)

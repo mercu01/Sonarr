@@ -1,8 +1,11 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.SeriesStats;
@@ -37,8 +40,8 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
             _episodeFile = Builder<EpisodeFile>.CreateNew()
                                            .With(e => e.SeriesId = _series.Id)
                                            .With(e => e.Quality = new QualityModel(Quality.HDTV720p))
+                                           .With(e => e.Languages = new List<Language> { Language.English })
                                            .BuildNew();
-
         }
 
         private void GivenEpisodeWithFile()
@@ -75,7 +78,7 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
             var stats = Subject.SeriesStatistics();
 
             stats.Should().HaveCount(1);
-            stats.First().NextAiring.Should().Be(_episode.AirDateUtc);
+            stats.First().NextAiring.Should().BeCloseTo(_episode.AirDateUtc.Value, TimeSpan.FromMilliseconds(1000));
             stats.First().PreviousAiring.Should().NotHaveValue();
         }
 
@@ -92,20 +95,6 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
         }
 
         [Test]
-        public void should_have_previous_airing_for_old_episode_with_file()
-        {
-            GivenEpisodeWithFile();
-            GivenOldEpisode();
-            GivenEpisode();
-
-            var stats = Subject.SeriesStatistics();
-
-            stats.Should().HaveCount(1);
-            stats.First().NextAiring.Should().NotHaveValue();
-            stats.First().PreviousAiring.Should().Be(_episode.AirDateUtc);
-        }
-
-        [Test]
         public void should_have_previous_airing_for_old_episode_without_file_monitored()
         {
             GivenMonitoredEpisode();
@@ -116,7 +105,7 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
 
             stats.Should().HaveCount(1);
             stats.First().NextAiring.Should().NotHaveValue();
-            stats.First().PreviousAiring.Should().Be(_episode.AirDateUtc);
+            stats.First().PreviousAiring.Should().BeCloseTo(_episode.AirDateUtc.Value, TimeSpan.FromMilliseconds(1000));
         }
 
         [Test]
@@ -169,6 +158,7 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
         [Test]
         public void should_have_size_on_disk_when_episode_file_exists()
         {
+            GivenEpisodeWithFile();
             GivenEpisode();
             GivenEpisodeFile();
 
@@ -178,5 +168,24 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
             stats.First().SizeOnDisk.Should().Be(_episodeFile.Size);
         }
 
+        [Test]
+        public void should_not_duplicate_size_for_multi_episode_files()
+        {
+            GivenEpisodeWithFile();
+            GivenEpisode();
+            GivenEpisodeFile();
+
+            var episode2 = _episode.JsonClone();
+
+            episode2.Id = 0;
+            episode2.EpisodeNumber += 1;
+
+            Db.Insert(episode2);
+
+            var stats = Subject.SeriesStatistics();
+
+            stats.Should().HaveCount(1);
+            stats.First().SizeOnDisk.Should().Be(_episodeFile.Size);
+        }
     }
 }

@@ -6,6 +6,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators
 {
     public class AggregateReleaseGroup : IAggregateLocalEpisode
     {
+        public int Order => 1;
+
         public LocalEpisode Aggregate(LocalEpisode localEpisode, DownloadClientItem downloadClientItem)
         {
             // Prefer ReleaseGroup from DownloadClient/Folder if they're not a season pack
@@ -30,7 +32,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators
             {
                 releaseGroup = GetReleaseGroup(localEpisode.FolderEpisodeInfo, false);
             }
-            
+
             localEpisode.ReleaseGroup = releaseGroup;
 
             return localEpisode;
@@ -38,7 +40,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators
 
         private string GetReleaseGroup(ParsedEpisodeInfo episodeInfo, bool skipFullSeason)
         {
-            if (episodeInfo == null || episodeInfo.FullSeason && skipFullSeason)
+            if (episodeInfo == null || (episodeInfo.FullSeason && skipFullSeason))
             {
                 return null;
             }

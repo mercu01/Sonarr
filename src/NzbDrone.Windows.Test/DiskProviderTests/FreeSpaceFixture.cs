@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Test.DiskTests;
@@ -19,10 +19,12 @@ namespace NzbDrone.Windows.Test.DiskProviderTests
         public void should_throw_if_drive_doesnt_exist()
         {
             // Find a drive that doesn't exist.
-            for (char driveletter = 'Z'; driveletter > 'D'; driveletter--)
+            for (var driveletter = 'Z'; driveletter > 'D'; driveletter--)
             {
                 if (new DriveInfo(driveletter.ToString()).IsReady)
+                {
                     continue;
+                }
 
                 Assert.Throws<DirectoryNotFoundException>(() => Subject.GetAvailableSpace(driveletter + @":\NOT_A_REAL_PATH\DOES_NOT_EXIST"));
                 return;

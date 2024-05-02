@@ -1,12 +1,12 @@
-﻿using FluentMigrator;
-using NzbDrone.Core.Datastore.Migration.Framework;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using FluentMigrator;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.Datastore.Converters;
+using NzbDrone.Core.Datastore.Migration.Framework;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
-using System.Collections.Generic;
-using NzbDrone.Core.Datastore.Converters;
 
 namespace NzbDrone.Core.Datastore.Migration
 {
@@ -23,17 +23,17 @@ namespace NzbDrone.Core.Datastore.Migration
             Execute.WithConnection(ConvertQualityProfiles);
             Execute.WithConnection(ConvertQualityModels);
         }
-        
+
         private void ConvertQualityProfiles(IDbConnection conn, IDbTransaction tran)
         {
-            var qualityProfileItemConverter = new EmbeddedDocumentConverter(new QualityIntConverter());
+            var qualityProfileItemConverter = new EmbeddedDocumentConverter<List<QualityProfileQualityItem>>(new QualityIntConverter());
 
             // Convert 'Allowed' column in QualityProfiles from Json List<object> to Json List<int> (int = Quality)
-            using (IDbCommand qualityProfileCmd = conn.CreateCommand())
+            using (var qualityProfileCmd = conn.CreateCommand())
             {
                 qualityProfileCmd.Transaction = tran;
-                qualityProfileCmd.CommandText = @"SELECT Id, Allowed FROM QualityProfiles";
-                using (IDataReader qualityProfileReader = qualityProfileCmd.ExecuteReader())
+                qualityProfileCmd.CommandText = "SELECT \"Id\", \"Allowed\" FROM \"QualityProfiles\"";
+                using (var qualityProfileReader = qualityProfileCmd.ExecuteReader())
                 {
                     while (qualityProfileReader.Read())
                     {
@@ -44,13 +44,13 @@ namespace NzbDrone.Core.Datastore.Migration
 
                         var items = Quality.DefaultQualityDefinitions.OrderBy(v => v.Weight).Select(v => new QualityProfileQualityItem { Quality = v.Quality, Allowed = allowed.Contains(v.Quality) }).ToList();
 
-                        var allowedNewJson = qualityProfileItemConverter.ToDB(items);
-
-                        using (IDbCommand updateCmd = conn.CreateCommand())
+                        using (var updateCmd = conn.CreateCommand())
                         {
                             updateCmd.Transaction = tran;
-                            updateCmd.CommandText = "UPDATE QualityProfiles SET Items = ? WHERE Id = ?";
-                            updateCmd.AddParameter(allowedNewJson);
+                            updateCmd.CommandText = "UPDATE \"QualityProfiles\" SET \"Items\" = ? WHERE \"Id\" = ?";
+                            var param = updateCmd.CreateParameter();
+                            qualityProfileItemConverter.SetValue(param, items);
+                            updateCmd.Parameters.Add(param);
                             updateCmd.AddParameter(id);
 
                             updateCmd.ExecuteNonQuery();
@@ -70,36 +70,36 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void ConvertQualityModel(IDbConnection conn, IDbTransaction tran, string tableName)
         {
-            var qualityModelConverter = new EmbeddedDocumentConverter(new QualityIntConverter());
+            var qualityModelConverter = new EmbeddedDocumentConverter<DestinationQualityModel036>(new QualityIntConverter());
 
-            using (IDbCommand qualityModelCmd = conn.CreateCommand())
+            using (var qualityModelCmd = conn.CreateCommand())
             {
                 qualityModelCmd.Transaction = tran;
-                qualityModelCmd.CommandText = @"SELECT Distinct Quality FROM " + tableName;
-                using (IDataReader qualityModelReader = qualityModelCmd.ExecuteReader())
+                qualityModelCmd.CommandText = $"SELECT Distinct \"Quality\" FROM \"{tableName}\"";
+                using (var qualityModelReader = qualityModelCmd.ExecuteReader())
                 {
                     while (qualityModelReader.Read())
                     {
                         var qualityJson = qualityModelReader.GetString(0);
 
-                        SourceQualityModel036 sourceQuality;
-
-                        if (!Json.TryDeserialize<SourceQualityModel036>(qualityJson, out sourceQuality))
+                        if (!Json.TryDeserialize<SourceQualityModel036>(qualityJson, out var sourceQuality))
                         {
                             continue;
                         }
 
-                        var qualityNewJson = qualityModelConverter.ToDB(new DestinationQualityModel036
-                                                                        {
-                                                                            Quality = sourceQuality.Quality.Id,
-                                                                            Proper = sourceQuality.Proper
-                                                                        });
+                        var qualityNew = new DestinationQualityModel036
+                        {
+                            Quality = sourceQuality.Quality.Id,
+                            Proper = sourceQuality.Proper
+                        };
 
-                        using (IDbCommand updateCmd = conn.CreateCommand())
+                        using (var updateCmd = conn.CreateCommand())
                         {
                             updateCmd.Transaction = tran;
-                            updateCmd.CommandText = "UPDATE " + tableName + " SET Quality = ? WHERE Quality = ?";
-                            updateCmd.AddParameter(qualityNewJson);
+                            updateCmd.CommandText = "UPDATE \"" + tableName + "\" SET \"Quality\" = ? WHERE \"Quality\" = ?";
+                            var param = updateCmd.CreateParameter();
+                            qualityModelConverter.SetValue(param, qualityNew);
+                            updateCmd.Parameters.Add(param);
                             updateCmd.AddParameter(qualityJson);
 
                             updateCmd.ExecuteNonQuery();

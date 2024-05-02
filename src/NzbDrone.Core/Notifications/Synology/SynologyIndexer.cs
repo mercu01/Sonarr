@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using FluentValidation.Results;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Tv;
 
@@ -11,15 +12,16 @@ namespace NzbDrone.Core.Notifications.Synology
     public class SynologyIndexer : NotificationBase<SynologyIndexerSettings>
     {
         private readonly ISynologyIndexerProxy _indexerProxy;
+        private readonly ILocalizationService _localizationService;
 
-        public SynologyIndexer(ISynologyIndexerProxy indexerProxy)
+        public SynologyIndexer(ISynologyIndexerProxy indexerProxy, ILocalizationService localizationService)
         {
             _indexerProxy = indexerProxy;
+            _localizationService = localizationService;
         }
 
         public override string Link => "https://www.synology.com";
         public override string Name => "Synology Indexer";
-
 
         public override void OnDownload(DownloadMessage message)
         {
@@ -27,7 +29,7 @@ namespace NzbDrone.Core.Notifications.Synology
             {
                 foreach (var oldFile in message.OldFiles)
                 {
-                    var fullPath = Path.Combine(message.Series.Path, oldFile.RelativePath);
+                    var fullPath = Path.Combine(message.Series.Path, oldFile.EpisodeFile.RelativePath);
 
                     _indexerProxy.DeleteFile(fullPath);
                 }
@@ -57,6 +59,14 @@ namespace NzbDrone.Core.Notifications.Synology
             }
         }
 
+        public override void OnSeriesAdd(SeriesAddMessage message)
+        {
+            if (Settings.UpdateLibrary)
+            {
+                _indexerProxy.UpdateFolder(message.Series.Path);
+            }
+        }
+
         public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
         {
             if (deleteMessage.DeletedFiles)
@@ -81,12 +91,12 @@ namespace NzbDrone.Core.Notifications.Synology
         {
             if (!OsInfo.IsLinux)
             {
-                return new ValidationFailure(null, "Must be a Synology");
+                return new ValidationFailure(string.Empty, _localizationService.GetLocalizedString("NotificationsSynologyValidationInvalidOs"));
             }
 
             if (!_indexerProxy.Test())
             {
-                return new ValidationFailure(null, "Not a Synology or synoindex not available");
+                return new ValidationFailure(string.Empty, _localizationService.GetLocalizedString("NotificationsSynologyValidationTestFailed"));
             }
 
             return null;

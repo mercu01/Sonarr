@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
             var names = mappings.Where(n => seasonNumbers.Contains(n.SeasonNumber ?? -1) ||
                                             sceneSeasonNumbers.Contains(n.SceneSeasonNumber ?? -1) ||
-                                            (n.SeasonNumber ?? -1) == -1 && (n.SceneSeasonNumber ?? -1) == -1 && n.SceneOrigin != "tvdb")
+                                            ((n.SeasonNumber ?? -1) == -1 && (n.SceneSeasonNumber ?? -1) == -1 && n.SceneOrigin != "tvdb"))
                                 .Where(n => IsEnglish(n.SearchTerm))
                                 .Select(n => n.SearchTerm).Distinct().ToList();
 
@@ -123,11 +123,13 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         {
             return FindSceneMapping(seriesTitle, releaseTitle, -1)?.SceneSeasonNumber;
         }
+
         public void Add(SceneMapping scene)
         {
             _repository.Insert(scene);
             UpdateMappings();
         }
+
         private void UpdateMappings()
         {
             _logger.Info("Updating Scene mappings");
@@ -214,7 +216,6 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                                          .ThenByDescending(v => v.SeasonNumber)
                                          .First();
 
-
             return candidates.Where(v => v.Title == closestMatch.Title).ToList();
         }
 
@@ -285,7 +286,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 UpdateMappings();
             }
         }
-                
+
         public void Handle(SeriesAddedEvent message)
         {
             if (!_updatedAfterStartup)

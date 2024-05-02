@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { fetchTagDetails } from 'Store/Actions/tagActions';
-import { fetchDelayProfiles, fetchNotifications, fetchReleaseProfiles, fetchImportLists, fetchIndexers } from 'Store/Actions/settingsActions';
+import { fetchDelayProfiles, fetchDownloadClients, fetchImportLists, fetchIndexers, fetchNotifications, fetchReleaseProfiles } from 'Store/Actions/settingsActions';
+import { fetchTagDetails, fetchTags } from 'Store/Actions/tagActions';
 import Tags from './Tags';
 
 function createMapStateToProps() {
@@ -25,12 +25,14 @@ function createMapStateToProps() {
 }
 
 const mapDispatchToProps = {
+  dispatchFetchTags: fetchTags,
   dispatchFetchTagDetails: fetchTagDetails,
   dispatchFetchDelayProfiles: fetchDelayProfiles,
   dispatchFetchImportLists: fetchImportLists,
   dispatchFetchNotifications: fetchNotifications,
   dispatchFetchReleaseProfiles: fetchReleaseProfiles,
-  dispatchFetchIndexers: fetchIndexers
+  dispatchFetchIndexers: fetchIndexers,
+  dispatchFetchDownloadClients: fetchDownloadClients
 };
 
 class MetadatasConnector extends Component {
@@ -40,20 +42,24 @@ class MetadatasConnector extends Component {
 
   componentDidMount() {
     const {
+      dispatchFetchTags,
       dispatchFetchTagDetails,
       dispatchFetchDelayProfiles,
       dispatchFetchImportLists,
       dispatchFetchNotifications,
       dispatchFetchReleaseProfiles,
-      dispatchFetchIndexers
+      dispatchFetchIndexers,
+      dispatchFetchDownloadClients
     } = this.props;
 
+    dispatchFetchTags();
     dispatchFetchTagDetails();
     dispatchFetchDelayProfiles();
     dispatchFetchImportLists();
     dispatchFetchNotifications();
     dispatchFetchReleaseProfiles();
     dispatchFetchIndexers();
+    dispatchFetchDownloadClients();
   }
 
   //
@@ -69,12 +75,14 @@ class MetadatasConnector extends Component {
 }
 
 MetadatasConnector.propTypes = {
+  dispatchFetchTags: PropTypes.func.isRequired,
   dispatchFetchTagDetails: PropTypes.func.isRequired,
   dispatchFetchDelayProfiles: PropTypes.func.isRequired,
   dispatchFetchImportLists: PropTypes.func.isRequired,
   dispatchFetchNotifications: PropTypes.func.isRequired,
   dispatchFetchReleaseProfiles: PropTypes.func.isRequired,
-  dispatchFetchIndexers: PropTypes.func.isRequired
+  dispatchFetchIndexers: PropTypes.func.isRequired,
+  dispatchFetchDownloadClients: PropTypes.func.isRequired
 };
 
 export default connect(createMapStateToProps, mapDispatchToProps)(MetadatasConnector);

@@ -1,8 +1,6 @@
-﻿using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Datastore.Migration;
-using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Datastore.Migration
@@ -15,7 +13,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         {
             var db = WithMigrationTestDb();
 
-            var items = db.QueryScalar<string>("SELECT Value FROM Config WHERE Key = 'importextrafiles'");
+            var items = db.QueryScalar<string>("SELECT \"Value\" FROM \"Config\" WHERE \"Key\" = 'importextrafiles'");
             items.Should().BeNull();
         }
 
@@ -31,7 +29,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                 });
             });
 
-            var items = db.QueryScalar<string>("SELECT Value FROM Config WHERE Key = 'importextrafiles'");
+            var items = db.QueryScalar<string>("SELECT \"Value\" FROM \"Config\" WHERE \"Key\" = 'importextrafiles'");
             items.Should().BeNull();
         }
 
@@ -47,7 +45,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                 });
             });
 
-            var items = db.QueryScalar<string>("SELECT Value FROM Config WHERE Key = 'importextrafiles'");
+            var items = db.QueryScalar<string>("SELECT \"Value\" FROM \"Config\" WHERE \"Key\" = 'importextrafiles'");
             items.Should().Be("True");
         }
     }

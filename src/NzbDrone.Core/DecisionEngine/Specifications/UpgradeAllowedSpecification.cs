@@ -1,5 +1,6 @@
 using System.Linq;
 using NLog;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 
@@ -8,11 +9,15 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
     public class UpgradeAllowedSpecification : IDecisionEngineSpecification
     {
         private readonly UpgradableSpecification _upgradableSpecification;
+        private readonly ICustomFormatCalculationService _formatService;
         private readonly Logger _logger;
 
-        public UpgradeAllowedSpecification(UpgradableSpecification upgradableSpecification, Logger logger)
+        public UpgradeAllowedSpecification(UpgradableSpecification upgradableSpecification,
+                                           ICustomFormatCalculationService formatService,
+                                           Logger logger)
         {
             _upgradableSpecification = upgradableSpecification;
+            _formatService = formatService;
             _logger = logger;
         }
 
@@ -22,7 +27,6 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public virtual Decision IsSatisfiedBy(RemoteEpisode subject, SearchCriteriaBase searchCriteria)
         {
             var qualityProfile = subject.Series.QualityProfile.Value;
-            var languageProfile = subject.Series.LanguageProfile.Value;
 
             foreach (var file in subject.Episodes.Where(c => c.EpisodeFileId != 0).Select(c => c.EpisodeFile.Value))
             {
@@ -32,18 +36,19 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     continue;
                 }
 
-                _logger.Debug("Comparing file quality and language with report. Existing file is {0} - {1}", file.Quality, file.Language);
+                var fileCustomFormats = _formatService.ParseCustomFormat(file, subject.Series);
+
+                _logger.Debug("Comparing file quality with report. Existing file is {0}", file.Quality);
 
                 if (!_upgradableSpecification.IsUpgradeAllowed(qualityProfile,
-                                                               languageProfile, 
-                                                               file.Quality, 
-                                                               file.Language,
+                                                               file.Quality,
+                                                               fileCustomFormats,
                                                                subject.ParsedEpisodeInfo.Quality,
-                                                               subject.ParsedEpisodeInfo.Language))
+                                                               subject.CustomFormats))
                 {
-                    _logger.Debug("Upgrading is not allowed by the quality or language profile");
+                    _logger.Debug("Upgrading is not allowed by the quality profile");
 
-                    return Decision.Reject("Existing file and the Quality or Language profile does not allow upgrades");
+                    return Decision.Reject("Existing file and the Quality profile does not allow upgrades");
                 }
             }
 

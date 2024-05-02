@@ -1,19 +1,21 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import formatPreferredWordScore from 'Utilities/Number/formatPreferredWordScore';
-import { icons } from 'Helpers/Props';
 import IconButton from 'Components/Link/IconButton';
 import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellConnector';
-import TableRow from 'Components/Table/TableRow';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import TableRow from 'Components/Table/TableRow';
+import Tooltip from 'Components/Tooltip/Tooltip';
 import episodeEntities from 'Episode/episodeEntities';
-import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
-import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
-import EpisodeLanguage from 'Episode/EpisodeLanguage';
+import EpisodeFormats from 'Episode/EpisodeFormats';
+import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
+import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
+import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
+import { icons, tooltipPositions } from 'Helpers/Props';
 import SeriesTitleLink from 'Series/SeriesTitleLink';
-import HistoryEventTypeCell from './HistoryEventTypeCell';
+import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import HistoryDetailsModal from './Details/HistoryDetailsModal';
+import HistoryEventTypeCell from './HistoryEventTypeCell';
 import styles from './HistoryRow.css';
 
 class HistoryRow extends Component {
@@ -44,11 +46,11 @@ class HistoryRow extends Component {
 
   onDetailsPress = () => {
     this.setState({ isDetailsModalOpen: true });
-  }
+  };
 
   onDetailsModalClose = () => {
     this.setState({ isDetailsModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -58,14 +60,16 @@ class HistoryRow extends Component {
       episodeId,
       series,
       episode,
-      language,
-      languageCutoffNotMet,
+      languages,
       quality,
+      customFormats,
+      customFormatScore,
       qualityCutoffNotMet,
       eventType,
       sourceTitle,
       date,
       data,
+      downloadId,
       isMarkingAsFailed,
       columns,
       shortDateFormat,
@@ -128,7 +132,7 @@ class HistoryRow extends Component {
               );
             }
 
-            if (name === 'episodeTitle') {
+            if (name === 'episodes.title') {
               return (
                 <TableRowCell key={name}>
                   <EpisodeTitleLink
@@ -142,13 +146,10 @@ class HistoryRow extends Component {
               );
             }
 
-            if (name === 'language') {
+            if (name === 'languages') {
               return (
                 <TableRowCell key={name}>
-                  <EpisodeLanguage
-                    language={language}
-                    isCutoffMet={languageCutoffNotMet}
-                  />
+                  <EpisodeLanguages languages={languages} />
                 </TableRowCell>
               );
             }
@@ -159,6 +160,16 @@ class HistoryRow extends Component {
                   <EpisodeQuality
                     quality={quality}
                     isCutoffMet={qualityCutoffNotMet}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'customFormats') {
+              return (
+                <TableRowCell key={name}>
+                  <EpisodeFormats
+                    formats={customFormats}
                   />
                 </TableRowCell>
               );
@@ -195,13 +206,20 @@ class HistoryRow extends Component {
               );
             }
 
-            if (name === 'preferredWordScore') {
+            if (name === 'customFormatScore') {
               return (
                 <TableRowCell
                   key={name}
-                  className={styles.preferredWordScore}
+                  className={styles.customFormatScore}
                 >
-                  {formatPreferredWordScore(data.preferredWordScore)}
+                  <Tooltip
+                    anchor={formatCustomFormatScore(
+                      customFormatScore,
+                      customFormats.length
+                    )}
+                    tooltip={<EpisodeFormats formats={customFormats} />}
+                    position={tooltipPositions.BOTTOM}
+                  />
                 </TableRowCell>
               );
             }
@@ -233,10 +251,12 @@ class HistoryRow extends Component {
                   key={name}
                   className={styles.details}
                 >
-                  <IconButton
-                    name={icons.INFO}
-                    onPress={this.onDetailsPress}
-                  />
+                  <div className={styles.actionContents}>
+                    <IconButton
+                      name={icons.INFO}
+                      onPress={this.onDetailsPress}
+                    />
+                  </div>
                 </TableRowCell>
               );
             }
@@ -250,6 +270,7 @@ class HistoryRow extends Component {
           eventType={eventType}
           sourceTitle={sourceTitle}
           data={data}
+          downloadId={downloadId}
           isMarkingAsFailed={isMarkingAsFailed}
           shortDateFormat={shortDateFormat}
           timeFormat={timeFormat}
@@ -266,20 +287,26 @@ HistoryRow.propTypes = {
   episodeId: PropTypes.number,
   series: PropTypes.object.isRequired,
   episode: PropTypes.object,
-  language: PropTypes.object.isRequired,
-  languageCutoffNotMet: PropTypes.bool.isRequired,
+  languages: PropTypes.arrayOf(PropTypes.object).isRequired,
   quality: PropTypes.object.isRequired,
+  customFormats: PropTypes.arrayOf(PropTypes.object),
+  customFormatScore: PropTypes.number.isRequired,
   qualityCutoffNotMet: PropTypes.bool.isRequired,
   eventType: PropTypes.string.isRequired,
   sourceTitle: PropTypes.string.isRequired,
   date: PropTypes.string.isRequired,
   data: PropTypes.object.isRequired,
+  downloadId: PropTypes.string,
   isMarkingAsFailed: PropTypes.bool,
   markAsFailedError: PropTypes.object,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   shortDateFormat: PropTypes.string.isRequired,
   timeFormat: PropTypes.string.isRequired,
   onMarkAsFailedPress: PropTypes.func.isRequired
+};
+
+HistoryRow.defaultProps = {
+  customFormats: []
 };
 
 export default HistoryRow;

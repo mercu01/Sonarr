@@ -1,18 +1,15 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
 {
-
     public class GetVideoFilesFixture : CoreTest<DiskScanService>
     {
         private string[] _fileNames;
@@ -40,7 +37,7 @@ namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
         {
             var filesToReturn = files.ToArray();
             Mocker.GetMock<IDiskProvider>()
-                  .Setup(s => s.GetFiles(It.IsAny<string>(), SearchOption.AllDirectories))
+                  .Setup(s => s.GetFiles(It.IsAny<string>(), true))
                   .Returns(filesToReturn);
         }
 
@@ -51,8 +48,8 @@ namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
 
             Subject.GetVideoFiles(path);
 
-            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, SearchOption.AllDirectories), Times.Once());
-            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, SearchOption.TopDirectoryOnly), Times.Never());
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, true), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, false), Times.Never());
         }
 
         [Test]
@@ -62,8 +59,8 @@ namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
 
             Subject.GetVideoFiles(path, true);
 
-            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, SearchOption.AllDirectories), Times.Once());
-            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, SearchOption.TopDirectoryOnly), Times.Never());
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, true), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, false), Times.Never());
         }
 
         [Test]
@@ -73,8 +70,8 @@ namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
 
             Subject.GetVideoFiles(path, false);
 
-            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, SearchOption.AllDirectories), Times.Never());
-            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, SearchOption.TopDirectoryOnly), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, true), Times.Never());
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(path, false), Times.Once());
         }
 
         [Test]

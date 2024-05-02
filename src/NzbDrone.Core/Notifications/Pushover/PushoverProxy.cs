@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.Notifications.Pushover
 {
@@ -14,13 +16,16 @@ namespace NzbDrone.Core.Notifications.Pushover
 
     public class PushoverProxy : IPushoverProxy
     {
-        private readonly IHttpClient _httpClient;
-        private readonly Logger _logger;
         private const string URL = "https://api.pushover.net/1/messages.json";
 
-        public PushoverProxy(IHttpClient httpClient, Logger logger)
+        private readonly IHttpClient _httpClient;
+        private readonly ILocalizationService _localizationService;
+        private readonly Logger _logger;
+
+        public PushoverProxy(IHttpClient httpClient, ILocalizationService localizationService, Logger logger)
         {
             _httpClient = httpClient;
+            _localizationService = localizationService;
             _logger = logger;
         }
 
@@ -46,7 +51,6 @@ namespace NzbDrone.Core.Notifications.Pushover
                 requestBuilder.AddFormParameter("sound", settings.Sound);
             }
 
-
             var request = requestBuilder.Build();
 
             _httpClient.Post(request);
@@ -64,7 +68,7 @@ namespace NzbDrone.Core.Notifications.Pushover
             catch (Exception ex)
             {
                 _logger.Error(ex, "Unable to send test message");
-                return new ValidationFailure("ApiKey", "Unable to send test message");
+                return new ValidationFailure("ApiKey", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;

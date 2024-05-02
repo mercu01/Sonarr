@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds } from 'Helpers/Props';
 import Card from 'Components/Card';
 import Label from 'Components/Label';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import { kinds } from 'Helpers/Props';
+import formatShortTimeSpan from 'Utilities/Date/formatShortTimeSpan';
+import translate from 'Utilities/String/translate';
 import EditImportListModalConnector from './EditImportListModalConnector';
 import styles from './ImportList.css';
 
@@ -26,26 +28,26 @@ class ImportList extends Component {
 
   onEditImportListPress = () => {
     this.setState({ isEditImportListModalOpen: true });
-  }
+  };
 
   onEditImportListModalClose = () => {
     this.setState({ isEditImportListModalOpen: false });
-  }
+  };
 
   onDeleteImportListPress = () => {
     this.setState({
       isEditImportListModalOpen: false,
       isDeleteImportListModalOpen: true
     });
-  }
+  };
 
-  onDeleteImportListModalClose= () => {
+  onDeleteImportListModalClose = () => {
     this.setState({ isDeleteImportListModalOpen: false });
-  }
+  };
 
   onConfirmDeleteImportList = () => {
     this.props.onConfirmDeleteImportList(this.props.id);
-  }
+  };
 
   //
   // Render
@@ -54,7 +56,8 @@ class ImportList extends Component {
     const {
       id,
       name,
-      enableAutomaticAdd
+      enableAutomaticAdd,
+      minRefreshInterval
     } = this.props;
 
     return (
@@ -71,10 +74,16 @@ class ImportList extends Component {
           {
             enableAutomaticAdd &&
               <Label kind={kinds.SUCCESS}>
-                Automatic Add
+                {translate('AutomaticAdd')}
               </Label>
           }
 
+        </div>
+
+        <div className={styles.enabled}>
+          <Label kind={kinds.INFO} title='List Refresh Interval'>
+            {`${translate('Refresh')}: ${formatShortTimeSpan(minRefreshInterval)}`}
+          </Label>
         </div>
 
         <EditImportListModalConnector
@@ -87,9 +96,9 @@ class ImportList extends Component {
         <ConfirmModal
           isOpen={this.state.isDeleteImportListModalOpen}
           kind={kinds.DANGER}
-          title="Delete Import List"
-          message={`Are you sure you want to delete the list '${name}'?`}
-          confirmLabel="Delete"
+          title={translate('DeleteImportList')}
+          message={translate('DeleteImportListMessageText', { name })}
+          confirmLabel={translate('Delete')}
           onConfirm={this.onConfirmDeleteImportList}
           onCancel={this.onDeleteImportListModalClose}
         />
@@ -102,6 +111,7 @@ ImportList.propTypes = {
   id: PropTypes.number.isRequired,
   name: PropTypes.string.isRequired,
   enableAutomaticAdd: PropTypes.bool.isRequired,
+  minRefreshInterval: PropTypes.string.isRequired,
   onConfirmDeleteImportList: PropTypes.func.isRequired
 };
 

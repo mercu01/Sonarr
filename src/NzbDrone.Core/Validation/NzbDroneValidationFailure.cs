@@ -11,13 +11,11 @@ namespace NzbDrone.Core.Validation
         public NzbDroneValidationFailure(string propertyName, string error)
             : base(propertyName, error)
         {
-
         }
 
         public NzbDroneValidationFailure(string propertyName, string error, object attemptedValue)
             : base(propertyName, error, attemptedValue)
         {
-
         }
 
         public NzbDroneValidationFailure(ValidationFailure validationFailure)
@@ -26,7 +24,7 @@ namespace NzbDrone.Core.Validation
             CustomState = validationFailure.CustomState;
             var state = validationFailure.CustomState as NzbDroneValidationState;
 
-            IsWarning = state != null && state.IsWarning;
+            IsWarning = state is { IsWarning: true };
         }
     }
 }

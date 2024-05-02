@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace NzbDrone.Core.SeriesStats
@@ -29,7 +29,10 @@ namespace NzbDrone.Core.SeriesStats
         {
             var stats = _seriesStatisticsRepository.SeriesStatistics(seriesId);
 
-            if (stats == null || stats.Count == 0) return new SeriesStatistics();
+            if (stats == null || stats.Count == 0)
+            {
+                return new SeriesStatistics();
+            }
 
             return MapSeriesStatistics(stats);
         }
@@ -47,16 +50,13 @@ namespace NzbDrone.Core.SeriesStats
                                        ReleaseGroups = seasonStatistics.SelectMany(s => s.ReleaseGroups).Distinct().ToList()
                                    };
 
-            var nextAiring = seasonStatistics.Where(s => s.NextAiring != null)
-                                             .OrderBy(s => s.NextAiring)
-                                             .FirstOrDefault();
+            var nextAiring = seasonStatistics.Where(s => s.NextAiring != null).MinBy(s => s.NextAiring);
+            var previousAiring = seasonStatistics.Where(s => s.PreviousAiring != null).MaxBy(s => s.PreviousAiring);
+            var lastAired = seasonStatistics.Where(s => s.SeasonNumber > 0 && s.LastAired != null).MaxBy(s => s.LastAired);
 
-            var previousAiring = seasonStatistics.Where(s => s.PreviousAiring != null)
-                                                 .OrderBy(s => s.PreviousAiring)
-                                                 .LastOrDefault();
-
-            seriesStatistics.NextAiringString = nextAiring != null ? nextAiring.NextAiringString : null;
-            seriesStatistics.PreviousAiringString = previousAiring != null ? previousAiring.PreviousAiringString : null;
+            seriesStatistics.NextAiringString = nextAiring?.NextAiringString;
+            seriesStatistics.PreviousAiringString = previousAiring?.PreviousAiringString;
+            seriesStatistics.LastAiredString = lastAired?.LastAiredString;
 
             return seriesStatistics;
         }

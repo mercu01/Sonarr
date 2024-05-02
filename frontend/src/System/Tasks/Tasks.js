@@ -1,15 +1,16 @@
 import React from 'react';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import translate from 'Utilities/String/translate';
+import QueuedTasks from './Queued/QueuedTasks';
 import ScheduledTasksConnector from './Scheduled/ScheduledTasksConnector';
-import QueuedTasksConnector from './Queued/QueuedTasksConnector';
 
 function Tasks() {
   return (
-    <PageContent title="Tasks">
+    <PageContent title={translate('Tasks')}>
       <PageContentBody>
         <ScheduledTasksConnector />
-        <QueuedTasksConnector />
+        <QueuedTasks />
       </PageContentBody>
     </PageContent>
   );

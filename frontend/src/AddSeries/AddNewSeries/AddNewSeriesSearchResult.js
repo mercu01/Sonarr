@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, sizes } from 'Helpers/Props';
 import HeartRating from 'Components/HeartRating';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
 import Link from 'Components/Link/Link';
+import MetadataAttribution from 'Components/MetadataAttribution';
+import { icons, kinds, sizes } from 'Helpers/Props';
 import SeriesPoster from 'Series/SeriesPoster';
+import translate from 'Utilities/String/translate';
 import AddNewSeriesModal from './AddNewSeriesModal';
 import styles from './AddNewSeriesSearchResult.css';
 
@@ -33,15 +35,15 @@ class AddNewSeriesSearchResult extends Component {
 
   onPress = () => {
     this.setState({ isNewAddSeriesModalOpen: true });
-  }
+  };
 
   onAddSeriesModalClose = () => {
     this.setState({ isNewAddSeriesModalOpen: false });
-  }
+  };
 
   onTVDBLinkPress = (event) => {
     event.stopPropagation();
-  }
+  };
 
   //
   // Render
@@ -71,10 +73,10 @@ class AddNewSeriesSearchResult extends Component {
     } = this.state;
 
     const linkProps = isExistingSeries ? { to: `/series/${titleSlug}` } : { onPress: this.onPress };
-    let seasons = '1 Season';
+    let seasons = translate('OneSeason');
 
     if (seasonCount > 1) {
-      seasons = `${seasonCount} Seasons`;
+      seasons = translate('CountSeasons', { count: seasonCount });
     }
 
     return (
@@ -93,6 +95,7 @@ class AddNewSeriesSearchResult extends Component {
                 images={images}
                 size={250}
                 overflow={true}
+                lazy={false}
               />
           }
 
@@ -119,14 +122,14 @@ class AddNewSeriesSearchResult extends Component {
                       className={styles.alreadyExistsIcon}
                       name={icons.CHECK_CIRCLE}
                       size={36}
-                      title="Already in your library"
+                      title={translate('AlreadyInYourLibrary')}
                     /> :
                     null
                 }
 
                 <Link
                   className={styles.tvdbLink}
-                  to={`http://www.thetvdb.com/?tab=series&id=${tvdbId}`}
+                  to={`https://www.thetvdb.com/?tab=series&id=${tvdbId}`}
                   onPress={this.onTVDBLinkPress}
                 >
                   <Icon
@@ -168,7 +171,7 @@ class AddNewSeriesSearchResult extends Component {
                     kind={kinds.DANGER}
                     size={sizes.LARGE}
                   >
-                    Ended
+                    {translate('Ended')}
                   </Label> :
                   null
               }
@@ -179,7 +182,7 @@ class AddNewSeriesSearchResult extends Component {
                     kind={kinds.INFO}
                     size={sizes.LARGE}
                   >
-                    Upcoming
+                    {translate('Upcoming')}
                   </Label> :
                   null
               }
@@ -188,6 +191,8 @@ class AddNewSeriesSearchResult extends Component {
             <div className={styles.overview}>
               {overview}
             </div>
+
+            <MetadataAttribution />
           </div>
         </div>
 

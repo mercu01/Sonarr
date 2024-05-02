@@ -4,11 +4,13 @@ using System.Globalization;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.EnsureThat;
-using NzbDrone.Core.Configuration.Events;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Common.Http.Proxy;
+using NzbDrone.Core.Configuration.Events;
+using NzbDrone.Core.ImportLists;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Security;
 
@@ -56,9 +58,11 @@ namespace NzbDrone.Core.Configuration
 
             foreach (var configValue in configValues)
             {
-                object currentValue;
-                allWithDefaults.TryGetValue(configValue.Key, out currentValue);
-                if (currentValue == null || configValue.Value == null) continue;
+                allWithDefaults.TryGetValue(configValue.Key, out var currentValue);
+                if (currentValue == null || configValue.Value == null)
+                {
+                    continue;
+                }
 
                 var equal = configValue.Value.ToString().Equals(currentValue.ToString());
 
@@ -141,6 +145,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("AutoRedownloadFailed", value); }
         }
 
+        public bool AutoRedownloadFailedFromInteractiveSearch
+        {
+            get { return GetValueBoolean("AutoRedownloadFailedFromInteractiveSearch", true); }
+
+            set { SetValue("AutoRedownloadFailedFromInteractiveSearch", value); }
+        }
+
         public bool CreateEmptySeriesFolders
         {
             get { return GetValueBoolean("CreateEmptySeriesFolders", false); }
@@ -203,6 +214,20 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EnableMediaInfo", value); }
         }
 
+        public bool UseScriptImport
+        {
+            get { return GetValueBoolean("UseScriptImport", false); }
+
+            set { SetValue("UseScriptImport", value); }
+        }
+
+        public string ScriptImportPath
+        {
+            get { return GetValue("ScriptImportPath"); }
+
+            set { SetValue("ScriptImportPath", value); }
+        }
+
         public bool ImportExtraFiles
         {
             get { return GetValueBoolean("ImportExtraFiles", false); }
@@ -250,6 +275,18 @@ namespace NzbDrone.Core.Configuration
             get { return GetValue("ChownGroup", ""); }
 
             set { SetValue("ChownGroup", value); }
+        }
+
+        public ListSyncLevelType ListSyncLevel
+        {
+            get { return GetValueEnum("ListSyncLevel", ListSyncLevelType.Disabled); }
+            set { SetValue("ListSyncLevel", value); }
+        }
+
+        public int ListSyncTag
+        {
+            get { return GetValueInt("ListSyncTag"); }
+            set { SetValue("ListSyncTag", value); }
         }
 
         public int FirstDayOfWeek
@@ -301,6 +338,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EnableColorImpairedMode", value); }
         }
 
+        public int UILanguage
+        {
+            get { return GetValueInt("UILanguage", (int)Language.English); }
+
+            set { SetValue("UILanguage", value); }
+        }
+
         public bool CleanupMetadataImages
         {
             get { return GetValueBoolean("CleanupMetadataImages", true); }
@@ -343,6 +387,8 @@ namespace NzbDrone.Core.Configuration
         public CertificateValidationType CertificateValidation =>
             GetValueEnum("CertificateValidation", CertificateValidationType.Enabled);
 
+        public string ApplicationUrl => GetValue("ApplicationUrl", string.Empty);
+
         private string GetValue(string key)
         {
             return GetValue(key, string.Empty);
@@ -370,9 +416,7 @@ namespace NzbDrone.Core.Configuration
 
             EnsureCache();
 
-            string dbValue;
-
-            if (_cache.TryGetValue(key, out dbValue) && dbValue != null && !string.IsNullOrEmpty(dbValue))
+            if (_cache.TryGetValue(key, out var dbValue) && dbValue != null && !string.IsNullOrEmpty(dbValue))
             {
                 return dbValue;
             }

@@ -1,8 +1,12 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
+import Icon from 'Components/Icon';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
+import { icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import EpisodeHistoryRow from './EpisodeHistoryRow';
 
 const columns = [
@@ -12,32 +16,41 @@ const columns = [
   },
   {
     name: 'sourceTitle',
-    label: 'Source Title',
+    label: () => translate('SourceTitle'),
     isVisible: true
   },
   {
-    name: 'language',
-    label: 'Language',
+    name: 'languages',
+    label: () => translate('Languages'),
     isVisible: true
   },
   {
     name: 'quality',
-    label: 'Quality',
+    label: () => translate('Quality'),
+    isVisible: true
+  },
+  {
+    name: 'customFormats',
+    label: () => translate('CustomFormats'),
+    isSortable: false,
+    isVisible: true
+  },
+  {
+    name: 'customFormatScore',
+    label: React.createElement(Icon, {
+      name: icons.SCORE,
+      title: () => translate('CustomFormatScore')
+    }),
+    isSortable: true,
     isVisible: true
   },
   {
     name: 'date',
-    label: 'Date',
-    isVisible: true
-  },
-  {
-    name: 'details',
-    label: 'Details',
+    label: () => translate('Date'),
     isVisible: true
   },
   {
     name: 'actions',
-    label: 'Actions',
     isVisible: true
   }
 ];
@@ -66,13 +79,13 @@ class EpisodeHistory extends Component {
 
     if (!isFetching && !!error) {
       return (
-        <div>Unable to load episode history.</div>
+        <Alert kind={kinds.DANGER}>{translate('EpisodeHistoryLoadError')}</Alert>
       );
     }
 
     if (isPopulated && !hasItems && !error) {
       return (
-        <div>No episode history.</div>
+        <Alert kind={kinds.INFO}>{translate('NoEpisodeHistory')}</Alert>
       );
     }
 

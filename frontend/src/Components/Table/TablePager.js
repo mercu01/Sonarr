@@ -1,11 +1,12 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import classNames from 'classnames';
-import { icons } from 'Helpers/Props';
+import SelectInput from 'Components/Form/SelectInput';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import SelectInput from 'Components/Form/SelectInput';
+import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './TablePager.css';
 
 class TablePager extends Component {
@@ -26,16 +27,16 @@ class TablePager extends Component {
 
   onOpenPageSelectClick = () => {
     this.setState({ isShowingPageSelect: true });
-  }
+  };
 
   onPageSelect = ({ value: page }) => {
     this.setState({ isShowingPageSelect: false });
     this.props.onPageSelect(parseInt(page));
-  }
+  };
 
   onPageSelectBlur = () => {
     this.setState({ isShowingPageSelect: false });
-  }
+  };
 
   //
   // Render
@@ -156,7 +157,7 @@ class TablePager extends Component {
 
         <div className={styles.recordsContainer}>
           <div className={styles.records}>
-            Total records: {totalRecords}
+            {translate('TotalRecords', { totalRecords })}
           </div>
         </div>
       </div>

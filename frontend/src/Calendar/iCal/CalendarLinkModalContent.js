@@ -1,18 +1,19 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, inputTypes, kinds, sizes } from 'Helpers/Props';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputButton from 'Components/Form/FormInputButton';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
 import ClipboardButton from 'Components/Link/ClipboardButton';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
-import FormInputButton from 'Components/Form/FormInputButton';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { icons, inputTypes, kinds, sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 
 function getUrls(state) {
   const {
@@ -22,7 +23,7 @@ function getUrls(state) {
     tags
   } = state;
 
-  let icalUrl = `${window.location.host}${window.Sonarr.urlBase}/feed/calendar/Sonarr.ics?`;
+  let icalUrl = `${window.location.host}${window.Sonarr.urlBase}/feed/v3/calendar/Sonarr.ics?`;
 
   if (unmonitored) {
     icalUrl += 'unmonitored=true&';
@@ -40,7 +41,7 @@ function getUrls(state) {
     icalUrl += `tags=${tags.toString()}&`;
   }
 
-  icalUrl += `apikey=${window.Sonarr.apiKey}`;
+  icalUrl += `apikey=${encodeURIComponent(window.Sonarr.apiKey)}`;
 
   const iCalHttpUrl = `${window.location.protocol}//${icalUrl}`;
   const iCalWebCalUrl = `webcal://${icalUrl}`;
@@ -89,11 +90,11 @@ class CalendarLinkModalContent extends Component {
       [name]: value,
       ...urls
     });
-  }
+  };
 
   onLinkFocus = (event) => {
     event.target.select();
-  }
+  };
 
   //
   // Render
@@ -115,55 +116,55 @@ class CalendarLinkModalContent extends Component {
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          Sonarr Calendar Feed
+          {translate('CalendarFeed')}
         </ModalHeader>
 
         <ModalBody>
           <Form>
             <FormGroup>
-              <FormLabel>Include Unmonitored</FormLabel>
+              <FormLabel>{translate('IncludeUnmonitored')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="unmonitored"
                 value={unmonitored}
-                helpText="Include unmonitored episodes in the iCal feed"
+                helpText={translate('ICalIncludeUnmonitoredEpisodesHelpText')}
                 onChange={this.onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Season Premieres Only</FormLabel>
+              <FormLabel>{translate('SeasonPremieresOnly')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="premieresOnly"
                 value={premieresOnly}
-                helpText="Only the first episode in a season will be in the feed"
+                helpText={translate('ICalSeasonPremieresOnlyHelpText')}
                 onChange={this.onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Show as All-Day Events</FormLabel>
+              <FormLabel>{translate('ICalShowAsAllDayEvents')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="asAllDay"
                 value={asAllDay}
-                helpText="Events will appear as all-day events in your calendar"
+                helpText={translate('ICalShowAsAllDayEventsHelpText')}
                 onChange={this.onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Tags</FormLabel>
+              <FormLabel>{translate('Tags')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TAG}
                 name="tags"
                 value={tags}
-                helpText="Feed will only contain series with at least one matching tag"
+                helpText={translate('ICalTagsSeriesHelpText')}
                 onChange={this.onInputChange}
               />
             </FormGroup>
@@ -171,14 +172,14 @@ class CalendarLinkModalContent extends Component {
             <FormGroup
               size={sizes.LARGE}
             >
-              <FormLabel>iCal Feed</FormLabel>
+              <FormLabel>{translate('ICalFeed')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TEXT}
                 name="iCalHttpUrl"
                 value={iCalHttpUrl}
                 readOnly={true}
-                helpText="Copy this URL to your client(s) or click to subscribe if your browser supports webcal"
+                helpText={translate('ICalFeedHelpText')}
                 buttons={[
                   <ClipboardButton
                     key="copy"
@@ -205,7 +206,7 @@ class CalendarLinkModalContent extends Component {
 
         <ModalFooter>
           <Button onPress={onModalClose}>
-            Close
+            {translate('Close')}
           </Button>
         </ModalFooter>
       </ModalContent>

@@ -1,16 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
-import Button from 'Components/Link/Button';
-import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import Button from 'Components/Link/Button';
+import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './EditReleaseProfileModalContent.css';
 
 const tagInputDelimiters = ['Tab', 'Enter'];
@@ -33,8 +34,6 @@ function EditReleaseProfileModalContent(props) {
     enabled,
     required,
     ignored,
-    preferred,
-    includePreferredWhenRenaming,
     tags,
     indexerId
   } = item;
@@ -42,47 +41,48 @@ function EditReleaseProfileModalContent(props) {
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        {id ? 'Edit Release Profile' : 'Add Release Profile'}
+        {id ? translate('EditReleaseProfile') : translate('AddReleaseProfile')}
       </ModalHeader>
 
       <ModalBody>
         <Form {...otherProps}>
 
           <FormGroup>
-            <FormLabel>Name</FormLabel>
+            <FormLabel>{translate('Name')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
               name="name"
               {...name}
-              placeholder="Optional name"
+              placeholder={translate('OptionalName')}
               canEdit={true}
               onChange={onInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>Enable Profile</FormLabel>
+            <FormLabel>{translate('EnableProfile')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
               name="enabled"
-              helpText="Check to enable release profile"
+              helpText={translate('EnableProfileHelpText')}
               {...enabled}
               onChange={onInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>Must Contain</FormLabel>
+            <FormLabel>{translate('MustContain')}</FormLabel>
 
             <FormInputGroup
               {...required}
+              inputClassName={styles.tagInternalInput}
               type={inputTypes.TEXT_TAG}
               name="required"
-              helpText="The release must contain at least one of these terms (case insensitive)"
+              helpText={translate('MustContainHelpText')}
               kind={kinds.SUCCESS}
-              placeholder="Add new restriction"
+              placeholder={translate('AddNewRestriction')}
               delimiters={tagInputDelimiters}
               canEdit={true}
               onChange={onInputChange}
@@ -90,15 +90,16 @@ function EditReleaseProfileModalContent(props) {
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>Must Not Contain</FormLabel>
+            <FormLabel>{translate('MustNotContain')}</FormLabel>
 
             <FormInputGroup
               {...ignored}
+              inputClassName={styles.tagInternalInput}
               type={inputTypes.TEXT_TAG}
               name="ignored"
-              helpText="The release will be rejected if it contains one or more of terms (case insensitive)"
+              helpText={translate('MustNotContainHelpText')}
               kind={kinds.DANGER}
-              placeholder="Add new restriction"
+              placeholder={translate('AddNewRestriction')}
               delimiters={tagInputDelimiters}
               canEdit={true}
               onChange={onInputChange}
@@ -106,44 +107,13 @@ function EditReleaseProfileModalContent(props) {
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>Preferred</FormLabel>
-
-            <FormInputGroup
-              type={inputTypes.KEY_VALUE_LIST}
-              name="preferred"
-              helpTexts={[
-                'The release will be preferred based on the each term\'s score (case insensitive)',
-                'A positive score will be more preferred',
-                'A negative score will be less preferred'
-              ]}
-              {...preferred}
-              keyPlaceholder="Term"
-              valuePlaceholder="Score"
-              onChange={onInputChange}
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <FormLabel>Include Preferred when Renaming</FormLabel>
-
-            <FormInputGroup
-              type={inputTypes.CHECK}
-              name="includePreferredWhenRenaming"
-              helpText={indexerId.value === 0 ? 'Include in {Preferred Words} renaming format' : 'Only supported when Indexer is set to (All)'}
-              {...includePreferredWhenRenaming}
-              onChange={onInputChange}
-              isDisabled={indexerId.value !== 0}
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <FormLabel>Indexer</FormLabel>
+            <FormLabel>{translate('Indexer')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.INDEXER_SELECT}
               name="indexerId"
-              helpText="Specify what indexer the profile applies to"
-              helpTextWarning="Using a specific indexer with preferred words can lead to duplicate releases being grabbed"
+              helpText={translate('ReleaseProfileIndexerHelpText')}
+              helpTextWarning={translate('ReleaseProfileIndexerHelpTextWarning')}
               {...indexerId}
               includeAny={true}
               onChange={onInputChange}
@@ -151,12 +121,12 @@ function EditReleaseProfileModalContent(props) {
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>Tags</FormLabel>
+            <FormLabel>{translate('Tags')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TAG}
               name="tags"
-              helpText="Release profiles will apply to series with at least one matching tag. Leave blank to apply to all series"
+              helpText={translate('ReleaseProfileTagSeriesHelpText')}
               {...tags}
               onChange={onInputChange}
             />
@@ -171,14 +141,14 @@ function EditReleaseProfileModalContent(props) {
               kind={kinds.DANGER}
               onPress={onDeleteReleaseProfilePress}
             >
-              Delete
+              {translate('Delete')}
             </Button>
         }
 
         <Button
           onPress={onModalClose}
         >
-          Cancel
+          {translate('Cancel')}
         </Button>
 
         <SpinnerErrorButton
@@ -186,7 +156,7 @@ function EditReleaseProfileModalContent(props) {
           error={saveError}
           onPress={onSavePress}
         >
-          Save
+          {translate('Save')}
         </SpinnerErrorButton>
       </ModalFooter>
     </ModalContent>

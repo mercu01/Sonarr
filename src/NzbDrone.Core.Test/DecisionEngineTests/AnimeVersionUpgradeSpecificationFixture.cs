@@ -1,14 +1,14 @@
-﻿using System.Linq;
+using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
-using Marr.Data;
 using NUnit.Framework;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
-using NzbDrone.Core.Tv;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
@@ -22,6 +22,10 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [SetUp]
         public void Setup()
         {
+            Mocker.GetMock<IConfigService>()
+                .Setup(s => s.DownloadPropersAndRepacks)
+                .Returns(ProperDownloadTypes.PreferAndUpgrade);
+
             Mocker.Resolve<UpgradableSpecification>();
             _subject = Mocker.Resolve<AnimeVersionUpgradeSpecification>();
 
@@ -41,7 +45,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             _remoteEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
                                                       .All()
-                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(_episodeFile))
+                                                      .With(e => e.EpisodeFile = _episodeFile)
                                                       .Build()
                                                       .ToList();
         }
@@ -104,6 +108,16 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_be_false_when_release_group_does_not_match()
         {
             _subject.IsSatisfiedBy(_remoteEpisode, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_return_true_when_repacks_are_not_preferred()
+        {
+            Mocker.GetMock<IConfigService>()
+                .Setup(s => s.DownloadPropersAndRepacks)
+                .Returns(ProperDownloadTypes.DoNotPrefer);
+
+            _subject.IsSatisfiedBy(_remoteEpisode, null).Accepted.Should().BeTrue();
         }
     }
 }

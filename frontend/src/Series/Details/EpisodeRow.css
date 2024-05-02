@@ -22,13 +22,19 @@
   width: 95px;
 }
 
+.runtime {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 80px;
+}
+
 .size {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
   width: 100px;
 }
 
-.language,
+.languages,
 .audio,
 .video,
 .status {
@@ -49,4 +55,16 @@
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
   width: 120px;
+}
+
+.customFormatScore {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 55px;
+}
+
+.indexerFlags {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 50px;
 }

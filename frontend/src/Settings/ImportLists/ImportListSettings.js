@@ -1,13 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
-import { icons } from 'Helpers/Props';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
+import { icons } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
+import translate from 'Utilities/String/translate';
+import ImportListsExclusions from './ImportListExclusions/ImportListExclusions';
 import ImportListsConnector from './ImportLists/ImportListsConnector';
-import ImportListsExclusionsConnector from './ImportListExclusions/ImportListExclusionsConnector';
+import ManageImportListsModal from './ImportLists/Manage/ManageImportListsModal';
+import ImportListOptions from './Options/ImportListOptions';
 
 class ImportListSettings extends Component {
 
@@ -17,27 +20,49 @@ class ImportListSettings extends Component {
   constructor(props, context) {
     super(props, context);
 
+    this._saveCallback = null;
+
     this.state = {
-      hasPendingChanges: false
+      isSaving: false,
+      hasPendingChanges: false,
+      isManageImportListsOpen: false
     };
   }
 
   //
   // Listeners
 
+  setChildSave = (saveCallback) => {
+    this._saveCallback = saveCallback;
+  };
+
+  onChildStateChange = (payload) => {
+    this.setState(payload);
+  };
+
   setListOptionsRef = (ref) => {
     this._listOptions = ref;
-  }
+  };
+
+  onManageImportListsPress = () => {
+    this.setState({ isManageImportListsOpen: true });
+  };
+
+  onManageImportListsModalClose = () => {
+    this.setState({ isManageImportListsOpen: false });
+  };
 
   onHasPendingChange = (hasPendingChanges) => {
     this.setState({
       hasPendingChanges
     });
-  }
+  };
 
   onSavePress = () => {
-    this._listOptions.getWrappedInstance().save();
-  }
+    if (this._saveCallback) {
+      this._saveCallback();
+    }
+  };
 
   //
   // Render
@@ -50,11 +75,12 @@ class ImportListSettings extends Component {
 
     const {
       isSaving,
-      hasPendingChanges
+      hasPendingChanges,
+      isManageImportListsOpen
     } = this.state;
 
     return (
-      <PageContent title="Import List Settings">
+      <PageContent title={translate('ImportListSettings')}>
         <SettingsToolbarConnector
           isSaving={isSaving}
           hasPendingChanges={hasPendingChanges}
@@ -63,10 +89,16 @@ class ImportListSettings extends Component {
               <PageToolbarSeparator />
 
               <PageToolbarButton
-                label="Test All Lists"
+                label={translate('TestAllLists')}
                 iconName={icons.TEST}
                 isSpinning={isTestingAll}
                 onPress={dispatchTestAllImportLists}
+              />
+
+              <PageToolbarButton
+                label={translate('ManageLists')}
+                iconName={icons.MANAGE}
+                onPress={this.onManageImportListsPress}
               />
             </Fragment>
           }
@@ -75,7 +107,17 @@ class ImportListSettings extends Component {
 
         <PageContentBody>
           <ImportListsConnector />
-          <ImportListsExclusionsConnector />
+
+          <ImportListOptions
+            setChildSave={this.setChildSave}
+            onChildStateChange={this.onChildStateChange}
+          />
+
+          <ImportListsExclusions />
+          <ManageImportListsModal
+            isOpen={isManageImportListsOpen}
+            onModalClose={this.onManageImportListsModalClose}
+          />
         </PageContentBody>
       </PageContent>
     );

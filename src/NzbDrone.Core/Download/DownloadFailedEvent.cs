@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using NzbDrone.Common.Messaging;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Download
 {
@@ -22,6 +23,8 @@ namespace NzbDrone.Core.Download
         public string Message { get; set; }
         public Dictionary<string, string> Data { get; set; }
         public TrackedDownload TrackedDownload { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
+        public bool SkipRedownload { get; set; }
+        public ReleaseSourceType ReleaseSource { get; set; }
     }
 }

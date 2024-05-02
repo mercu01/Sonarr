@@ -10,6 +10,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Http.CloudFlare;
 using NzbDrone.Core.ImportLists.Exceptions;
 using NzbDrone.Core.Indexers.Exceptions;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Validation;
@@ -22,7 +23,7 @@ namespace NzbDrone.Core.ImportLists
         protected const int MaxNumResultsPerQuery = 1000;
 
         protected readonly IHttpClient _httpClient;
-        
+
         public bool SupportsPaging => PageSize > 0;
 
         public virtual int PageSize => 0;
@@ -31,21 +32,22 @@ namespace NzbDrone.Core.ImportLists
         public abstract IImportListRequestGenerator GetRequestGenerator();
         public abstract IParseImportListResponse GetParser();
 
-        public HttpImportListBase(IHttpClient httpClient, IImportListStatusService importListStatusService, IConfigService configService, IParsingService parsingService, Logger logger)
-            : base(importListStatusService, configService, parsingService, logger)
+        public HttpImportListBase(IHttpClient httpClient, IImportListStatusService importListStatusService, IConfigService configService, IParsingService parsingService, ILocalizationService localizationService, Logger logger)
+            : base(importListStatusService, configService, parsingService, localizationService, logger)
         {
             _httpClient = httpClient;
         }
 
-        public override IList<ImportListItemInfo> Fetch()
+        public override ImportListFetchResult Fetch()
         {
             return FetchItems(g => g.GetListItems(), true);
         }
 
-        protected virtual IList<ImportListItemInfo> FetchItems(Func<IImportListRequestGenerator, ImportListPageableRequestChain> pageableRequestChainSelector, bool isRecent = false)
+        protected virtual ImportListFetchResult FetchItems(Func<IImportListRequestGenerator, ImportListPageableRequestChain> pageableRequestChainSelector, bool isRecent = false)
         {
             var releases = new List<ImportListItemInfo>();
             var url = string.Empty;
+            var anyFailure = true;
 
             try
             {
@@ -54,7 +56,7 @@ namespace NzbDrone.Core.ImportLists
 
                 var pageableRequestChain = pageableRequestChainSelector(generator);
 
-                for (int i = 0; i < pageableRequestChain.Tiers; i++)
+                for (var i = 0; i < pageableRequestChain.Tiers; i++)
                 {
                     var pageableRequests = pageableRequestChain.GetTier(i);
 
@@ -91,6 +93,7 @@ namespace NzbDrone.Core.ImportLists
                 }
 
                 _importListStatusService.RecordSuccess(Definition.Id);
+                anyFailure = false;
             }
             catch (WebException webException)
             {
@@ -124,6 +127,7 @@ namespace NzbDrone.Core.ImportLists
                 {
                     _importListStatusService.RecordFailure(Definition.Id, TimeSpan.FromHours(1));
                 }
+
                 _logger.Warn("API Request Limit reached for {0}", this);
             }
             catch (HttpException ex)
@@ -161,12 +165,12 @@ namespace NzbDrone.Core.ImportLists
                 _logger.Error(ex, "An error occurred while processing feed. {0}", url);
             }
 
-            return CleanupListItems(releases);
+            return new ImportListFetchResult(CleanupListItems(releases), anyFailure);
         }
 
-        protected virtual bool IsValidItem(ImportListItemInfo release)
+        protected virtual bool IsValidItem(ImportListItemInfo listItem)
         {
-            if (release.Title.IsNullOrWhiteSpace())
+            if (listItem.Title.IsNullOrWhiteSpace() && listItem.ImdbId.IsNullOrWhiteSpace() && listItem.TmdbId == 0)
             {
                 return false;
             }
@@ -214,8 +218,8 @@ namespace NzbDrone.Core.ImportLists
                 if (releases.Empty())
                 {
                     return new NzbDroneValidationFailure(string.Empty,
-                               "No results were returned from your import list, please check your settings.")
-                           {IsWarning = true};
+                               "No results were returned from your import list, please check your settings and the log for details.")
+                    { IsWarning = true };
                 }
             }
             catch (RequestLimitReachedException)
@@ -232,17 +236,16 @@ namespace NzbDrone.Core.ImportLists
             {
                 _logger.Warn(ex, "Unable to connect to import list");
 
-                return new ValidationFailure(string.Empty, "Unable to connect to import list. " + ex.Message);
+                return new ValidationFailure(string.Empty, $"Unable to connect to import list: {ex.Message}. Check the log surrounding this error for details.");
             }
             catch (Exception ex)
             {
                 _logger.Warn(ex, "Unable to connect to import list");
 
-                return new ValidationFailure(string.Empty, "Unable to connect to import list, check the log for more details");
+                return new ValidationFailure(string.Empty, $"Unable to connect to import list: {ex.Message}. Check the log surrounding this error for details.");
             }
 
             return null;
         }
     }
-
 }

@@ -1,12 +1,13 @@
 import { createAction } from 'redux-actions';
+import createFetchHandler from 'Store/Actions/Creators/createFetchHandler';
+import createFetchSchemaHandler from 'Store/Actions/Creators/createFetchSchemaHandler';
+import createRemoveItemHandler from 'Store/Actions/Creators/createRemoveItemHandler';
+import createSaveProviderHandler from 'Store/Actions/Creators/createSaveProviderHandler';
+import createSetSettingValueReducer from 'Store/Actions/Creators/Reducers/createSetSettingValueReducer';
 import { createThunk } from 'Store/thunks';
 import getSectionState from 'Utilities/State/getSectionState';
 import updateSectionState from 'Utilities/State/updateSectionState';
-import createSetSettingValueReducer from 'Store/Actions/Creators/Reducers/createSetSettingValueReducer';
-import createFetchHandler from 'Store/Actions/Creators/createFetchHandler';
-import createFetchSchemaHandler from 'Store/Actions/Creators/createFetchSchemaHandler';
-import createSaveProviderHandler from 'Store/Actions/Creators/createSaveProviderHandler';
-import createRemoveItemHandler from 'Store/Actions/Creators/createRemoveItemHandler';
+import translate from 'Utilities/String/translate';
 
 //
 // Variables
@@ -87,7 +88,7 @@ export default {
       const pendingChanges = { ...item, id: 0 };
       delete pendingChanges.id;
 
-      pendingChanges.name = `${pendingChanges.name} - Copy`;
+      pendingChanges.name = translate('DefaultNameCopiedProfile', { name: pendingChanges.name });
       newState.pendingChanges = pendingChanges;
 
       return updateSectionState(state, section, newState);

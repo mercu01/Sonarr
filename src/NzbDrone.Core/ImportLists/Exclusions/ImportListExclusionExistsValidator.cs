@@ -7,16 +7,20 @@ namespace NzbDrone.Core.ImportLists.Exclusions
         private readonly IImportListExclusionService _importListExclusionService;
 
         public ImportListExclusionExistsValidator(IImportListExclusionService importListExclusionService)
-            : base("This exclusion has already been added.")
         {
             _importListExclusionService = importListExclusionService;
         }
 
+        protected override string GetDefaultMessageTemplate() => "This exclusion has already been added.";
+
         protected override bool IsValid(PropertyValidatorContext context)
         {
-            if (context.PropertyValue == null) return true;
+            if (context.PropertyValue == null)
+            {
+                return true;
+            }
 
-            return (!_importListExclusionService.All().Exists(s => s.TvdbId == (int)context.PropertyValue));
+            return !_importListExclusionService.All().Exists(s => s.TvdbId == (int)context.PropertyValue);
         }
     }
 }

@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using NLog;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.EnvironmentInfo;
@@ -48,7 +46,7 @@ namespace NzbDrone.Common.Disk
         {
             CheckFolderExists(path);
 
-            var dirFiles = GetFiles(path, SearchOption.AllDirectories).ToList();
+            var dirFiles = GetFiles(path, true).ToList();
 
             if (!dirFiles.Any())
             {
@@ -67,7 +65,7 @@ namespace NzbDrone.Common.Disk
 
         private void CheckFolderExists(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             if (!FolderExists(path))
             {
@@ -77,7 +75,7 @@ namespace NzbDrone.Common.Disk
 
         private void CheckFileExists(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             if (!FileExists(path))
             {
@@ -95,19 +93,19 @@ namespace NzbDrone.Common.Disk
 
         public bool FolderExists(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
             return Directory.Exists(path);
         }
 
         public bool FileExists(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
             return FileExists(path, PathStringComparison);
         }
 
         public bool FileExists(string path, StringComparison stringComparison)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             switch (stringComparison)
             {
@@ -117,6 +115,7 @@ namespace NzbDrone.Common.Disk
                     {
                         return File.Exists(path) && path == path.GetActualCasing();
                     }
+
                 default:
                     {
                         return File.Exists(path);
@@ -126,13 +125,13 @@ namespace NzbDrone.Common.Disk
 
         public bool FolderWritable(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             try
             {
                 var testPath = Path.Combine(path, "sonarr_write_test.txt");
                 var testContent = $"This file was created to verify if '{path}' is writable. It should've been automatically deleted. Feel free to delete it.";
-                File.WriteAllText(testPath, testContent);
+                WriteAllText(testPath, testContent);
                 File.Delete(testPath);
                 return true;
             }
@@ -145,35 +144,40 @@ namespace NzbDrone.Common.Disk
 
         public bool FolderEmpty(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             return Directory.EnumerateFileSystemEntries(path).Empty();
         }
 
-        public string[] GetDirectories(string path)
+        public IEnumerable<string> GetDirectories(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
-            return Directory.GetDirectories(path);
+            return Directory.EnumerateDirectories(path);
         }
 
-        public string[] GetFiles(string path, SearchOption searchOption)
+        public IEnumerable<string> GetFiles(string path, bool recursive)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
-            return Directory.GetFiles(path, "*.*", searchOption);
+            return Directory.EnumerateFiles(path, "*", new EnumerationOptions
+            {
+                AttributesToSkip = FileAttributes.System,
+                RecurseSubdirectories = recursive,
+                IgnoreInaccessible = true
+            });
         }
 
         public long GetFolderSize(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
-            return GetFiles(path, SearchOption.AllDirectories).Sum(e => new FileInfo(e).Length);
+            return GetFiles(path, true).Sum(e => new FileInfo(e).Length);
         }
 
         public long GetFileSize(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             if (!FileExists(path))
             {
@@ -186,13 +190,13 @@ namespace NzbDrone.Common.Disk
 
         public void CreateFolder(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
             Directory.CreateDirectory(path);
         }
 
         public void DeleteFile(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
             Logger.Trace("Deleting file: {0}", path);
 
             RemoveReadOnly(path);
@@ -202,8 +206,8 @@ namespace NzbDrone.Common.Disk
 
         public void CloneFile(string source, string destination, bool overwrite = false)
         {
-            Ensure.That(source, () => source).IsValidPath();
-            Ensure.That(destination, () => destination).IsValidPath();
+            Ensure.That(source, () => source).IsValidPath(PathValidationType.CurrentOs);
+            Ensure.That(destination, () => destination).IsValidPath(PathValidationType.CurrentOs);
 
             if (source.PathEquals(destination))
             {
@@ -220,8 +224,8 @@ namespace NzbDrone.Common.Disk
 
         public void CopyFile(string source, string destination, bool overwrite = false)
         {
-            Ensure.That(source, () => source).IsValidPath();
-            Ensure.That(destination, () => destination).IsValidPath();
+            Ensure.That(source, () => source).IsValidPath(PathValidationType.CurrentOs);
+            Ensure.That(destination, () => destination).IsValidPath(PathValidationType.CurrentOs);
 
             if (source.PathEquals(destination))
             {
@@ -238,8 +242,8 @@ namespace NzbDrone.Common.Disk
 
         public void MoveFile(string source, string destination, bool overwrite = false)
         {
-            Ensure.That(source, () => source).IsValidPath();
-            Ensure.That(destination, () => destination).IsValidPath();
+            Ensure.That(source, () => source).IsValidPath(PathValidationType.CurrentOs);
+            Ensure.That(destination, () => destination).IsValidPath(PathValidationType.CurrentOs);
 
             if (source.PathEquals(destination))
             {
@@ -257,14 +261,19 @@ namespace NzbDrone.Common.Disk
 
         public void MoveFolder(string source, string destination)
         {
-            Ensure.That(source, () => source).IsValidPath();
-            Ensure.That(destination, () => destination).IsValidPath();
+            Ensure.That(source, () => source).IsValidPath(PathValidationType.CurrentOs);
+            Ensure.That(destination, () => destination).IsValidPath(PathValidationType.CurrentOs);
 
             Directory.Move(source, destination);
         }
 
         protected virtual void MoveFileInternal(string source, string destination)
         {
+            if (File.Exists(destination))
+            {
+                throw new FileAlreadyExistsException("File already exists", destination);
+            }
+
             File.Move(source, destination);
         }
 
@@ -282,38 +291,48 @@ namespace NzbDrone.Common.Disk
 
         public void DeleteFolder(string path, bool recursive)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
-            var files = Directory.GetFiles(path, "*.*", recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-            Array.ForEach(files, RemoveReadOnly);
+            var files = GetFiles(path, recursive);
+
+            files.ToList().ForEach(RemoveReadOnly);
 
             Directory.Delete(path, recursive);
         }
 
         public string ReadAllText(string filePath)
         {
-            Ensure.That(filePath, () => filePath).IsValidPath();
+            Ensure.That(filePath, () => filePath).IsValidPath(PathValidationType.CurrentOs);
 
             return File.ReadAllText(filePath);
         }
 
         public void WriteAllText(string filename, string contents)
         {
-            Ensure.That(filename, () => filename).IsValidPath();
+            Ensure.That(filename, () => filename).IsValidPath(PathValidationType.CurrentOs);
             RemoveReadOnly(filename);
-            File.WriteAllText(filename, contents);
+
+            // File.WriteAllText is broken on net core when writing to some CIFS mounts
+            // This workaround from https://github.com/dotnet/runtime/issues/42790#issuecomment-700362617
+            using (var fs = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                using (var writer = new StreamWriter(fs))
+                {
+                    writer.Write(contents);
+                }
+            }
         }
 
         public void FolderSetLastWriteTime(string path, DateTime dateTime)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             Directory.SetLastWriteTimeUtc(path, dateTime);
         }
 
         public void FileSetLastWriteTime(string path, DateTime dateTime)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             File.SetLastWriteTime(path, dateTime);
         }
@@ -333,16 +352,16 @@ namespace NzbDrone.Common.Disk
             }
         }
 
-        public string GetPathRoot(string path)
+        public virtual string GetPathRoot(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             return Path.GetPathRoot(path);
         }
 
         public string GetParentFolder(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             var parent = Directory.GetParent(path.TrimEnd(Path.DirectorySeparatorChar));
 
@@ -362,7 +381,7 @@ namespace NzbDrone.Common.Disk
 
                 if (attributes.HasFlag(FileAttributes.ReadOnly))
                 {
-                    var newAttributes = attributes & ~(FileAttributes.ReadOnly);
+                    var newAttributes = attributes & ~FileAttributes.ReadOnly;
                     File.SetAttributes(path, newAttributes);
                 }
             }
@@ -375,9 +394,9 @@ namespace NzbDrone.Common.Disk
 
         public void EmptyFolder(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
-            foreach (var file in GetFiles(path, SearchOption.TopDirectoryOnly))
+            foreach (var file in GetFiles(path, false))
             {
                 DeleteFile(file);
             }
@@ -446,12 +465,11 @@ namespace NzbDrone.Common.Disk
 
                 return mounts.Where(drive => drive.RootDirectory.PathEquals(path) ||
                                              drive.RootDirectory.IsParentPath(path))
-                          .OrderByDescending(drive => drive.RootDirectory.Length)
-                          .FirstOrDefault();
+                          .MaxBy(drive => drive.RootDirectory.Length);
             }
             catch (Exception ex)
             {
-                Logger.Debug(ex, string.Format("Failed to get mount for path {0}", path));
+                Logger.Debug(ex, $"Failed to get mount for path {path}");
                 return null;
             }
         }
@@ -465,7 +483,7 @@ namespace NzbDrone.Common.Disk
 
         public List<DirectoryInfo> GetDirectoryInfos(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             var di = new DirectoryInfo(path);
 
@@ -474,7 +492,7 @@ namespace NzbDrone.Common.Disk
 
         public List<FileInfo> GetFileInfos(string path)
         {
-            Ensure.That(path, () => path).IsValidPath();
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
             var di = new DirectoryInfo(path);
 

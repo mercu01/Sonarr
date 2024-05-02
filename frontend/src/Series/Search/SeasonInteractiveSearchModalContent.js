@@ -1,13 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { scrollDirections } from 'Helpers/Props';
 import Button from 'Components/Link/Button';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { scrollDirections } from 'Helpers/Props';
 import InteractiveSearchConnector from 'InteractiveSearch/InteractiveSearchConnector';
-import SeasonNumber from 'Season/SeasonNumber';
+import formatSeason from 'Season/formatSeason';
+import translate from 'Utilities/String/translate';
 
 function SeasonInteractiveSearchModalContent(props) {
   const {
@@ -19,7 +20,10 @@ function SeasonInteractiveSearchModalContent(props) {
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        Interactive Search  {seasonNumber != null && <SeasonNumber seasonNumber={seasonNumber} />}
+        {seasonNumber === null ?
+          translate('InteractiveSearchModalHeader') :
+          translate('InteractiveSearchModalHeaderSeason', { season: formatSeason(seasonNumber) })
+        }
       </ModalHeader>
 
       <ModalBody scrollDirection={scrollDirections.BOTH}>
@@ -34,7 +38,7 @@ function SeasonInteractiveSearchModalContent(props) {
 
       <ModalFooter>
         <Button onPress={onModalClose}>
-          Close
+          {translate('Close')}
         </Button>
       </ModalFooter>
     </ModalContent>

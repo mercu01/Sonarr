@@ -1,8 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
 using NLog;
-using NzbDrone.Common.Composition;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.ThingiProvider;
 
@@ -23,7 +23,7 @@ namespace NzbDrone.Core.Indexers
         public IndexerFactory(IIndexerStatusService indexerStatusService,
                               IIndexerRepository providerRepository,
                               IEnumerable<IIndexer> providers,
-                              IContainer container,
+                              IServiceProvider container,
                               IEventAggregator eventAggregator,
                               Logger logger)
             : base(providerRepository, providers, container, eventAggregator, logger)
@@ -88,8 +88,7 @@ namespace NzbDrone.Core.Indexers
 
             foreach (var indexer in indexers)
             {
-                IndexerStatus blockedIndexerStatus;
-                if (blockedIndexers.TryGetValue(indexer.Definition.Id, out blockedIndexerStatus))
+                if (blockedIndexers.TryGetValue(indexer.Definition.Id, out var blockedIndexerStatus))
                 {
                     _logger.Debug("Temporarily ignoring indexer {0} till {1} due to recent failures.", indexer.Definition.Name, blockedIndexerStatus.DisabledTill.Value.ToLocalTime());
                     continue;
@@ -103,9 +102,18 @@ namespace NzbDrone.Core.Indexers
         {
             var result = base.Test(definition);
 
-            if ((result == null || result.IsValid) && definition.Id != 0)
+            if (definition.Id == 0)
+            {
+                return result;
+            }
+
+            if (result == null || result.IsValid)
             {
                 _indexerStatusService.RecordSuccess(definition.Id);
+            }
+            else
+            {
+                _indexerStatusService.RecordFailure(definition.Id);
             }
 
             return result;

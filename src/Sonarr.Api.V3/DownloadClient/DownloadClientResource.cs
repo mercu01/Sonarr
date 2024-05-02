@@ -1,9 +1,9 @@
-﻿using NzbDrone.Core.Download;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
 
 namespace Sonarr.Api.V3.DownloadClient
 {
-    public class DownloadClientResource : ProviderResource
+    public class DownloadClientResource : ProviderResource<DownloadClientResource>
     {
         public bool Enable { get; set; }
         public DownloadProtocol Protocol { get; set; }
@@ -16,7 +16,10 @@ namespace Sonarr.Api.V3.DownloadClient
     {
         public override DownloadClientResource ToResource(DownloadClientDefinition definition)
         {
-            if (definition == null) return null;
+            if (definition == null)
+            {
+                return null;
+            }
 
             var resource = base.ToResource(definition);
 
@@ -29,11 +32,14 @@ namespace Sonarr.Api.V3.DownloadClient
             return resource;
         }
 
-        public override DownloadClientDefinition ToModel(DownloadClientResource resource)
+        public override DownloadClientDefinition ToModel(DownloadClientResource resource, DownloadClientDefinition existingDefinition)
         {
-            if (resource == null) return null;
+            if (resource == null)
+            {
+                return null;
+            }
 
-            var definition = base.ToModel(resource);
+            var definition = base.ToModel(resource, existingDefinition);
 
             definition.Enable = resource.Enable;
             definition.Protocol = resource.Protocol;

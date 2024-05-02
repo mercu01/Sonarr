@@ -1,32 +1,33 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { kinds } from 'Helpers/Props';
 import Button from 'Components/Link/Button';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import Modal from 'Components/Modal/Modal';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import HistoryDetails from './HistoryDetails';
 import styles from './HistoryDetailsModal.css';
 
 function getHeaderTitle(eventType) {
   switch (eventType) {
     case 'grabbed':
-      return 'Grabbed';
+      return translate('Grabbed');
     case 'downloadFailed':
-      return 'Download Failed';
+      return translate('DownloadFailed');
     case 'downloadFolderImported':
-      return 'Episode Imported';
+      return translate('EpisodeImported');
     case 'episodeFileDeleted':
-      return 'Episode File Deleted';
+      return translate('EpisodeFileDeleted');
     case 'episodeFileRenamed':
-      return 'Episode File Renamed';
+      return translate('EpisodeFileRenamed');
     case 'downloadIgnored':
-      return 'Download Ignored';
+      return translate('DownloadIgnored');
     default:
-      return 'Unknown';
+      return translate('Unknown');
   }
 }
 
@@ -36,6 +37,7 @@ function HistoryDetailsModal(props) {
     eventType,
     sourceTitle,
     data,
+    downloadId,
     isMarkingAsFailed,
     shortDateFormat,
     timeFormat,
@@ -58,6 +60,7 @@ function HistoryDetailsModal(props) {
             eventType={eventType}
             sourceTitle={sourceTitle}
             data={data}
+            downloadId={downloadId}
             shortDateFormat={shortDateFormat}
             timeFormat={timeFormat}
           />
@@ -72,14 +75,14 @@ function HistoryDetailsModal(props) {
                 isSpinning={isMarkingAsFailed}
                 onPress={onMarkAsFailedPress}
               >
-                Mark as Failed
+                {translate('MarkAsFailed')}
               </SpinnerButton>
           }
 
           <Button
             onPress={onModalClose}
           >
-            Close
+            {translate('Close')}
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -92,6 +95,7 @@ HistoryDetailsModal.propTypes = {
   eventType: PropTypes.string.isRequired,
   sourceTitle: PropTypes.string.isRequired,
   data: PropTypes.object.isRequired,
+  downloadId: PropTypes.string,
   isMarkingAsFailed: PropTypes.bool.isRequired,
   shortDateFormat: PropTypes.string.isRequired,
   timeFormat: PropTypes.string.isRequired,

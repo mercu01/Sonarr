@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net;
-using NzbDrone.Api.Series;
 using RestSharp;
+using Sonarr.Api.V3.Series;
 
 namespace NzbDrone.Integration.Test.Client
 {
@@ -19,7 +19,7 @@ namespace NzbDrone.Integration.Test.Client
             return Get<List<SeriesResource>>(request);
         }
 
-        public List<SeriesResource> Editor(List<SeriesResource> series)
+        public List<SeriesResource> Editor(SeriesEditorResource series)
         {
             var request = BuildRequest("editor");
             request.AddJsonBody(series);
@@ -31,7 +31,6 @@ namespace NzbDrone.Integration.Test.Client
             var request = BuildRequest(slug);
             return Get<SeriesResource>(request, statusCode);
         }
-
     }
 
     public class SystemInfoClient : ClientBase<SeriesResource>

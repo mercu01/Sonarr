@@ -16,7 +16,7 @@ namespace NzbDrone.Core.History
 {
     public interface IHistoryService
     {
-        PagingSpec<EpisodeHistory> Paged(PagingSpec<EpisodeHistory> pagingSpec);
+        PagingSpec<EpisodeHistory> Paged(PagingSpec<EpisodeHistory> pagingSpec, int[] languages, int[] qualities);
         EpisodeHistory MostRecentForEpisode(int episodeId);
         List<EpisodeHistory> FindByEpisodeId(int episodeId);
         EpisodeHistory MostRecentForDownloadId(string downloadId);
@@ -39,19 +39,17 @@ namespace NzbDrone.Core.History
                                   IHandle<DownloadIgnoredEvent>
     {
         private readonly IHistoryRepository _historyRepository;
-        private readonly IEpisodeFilePreferredWordCalculator _episodeFilePreferredWordCalculator;
         private readonly Logger _logger;
 
-        public HistoryService(IHistoryRepository historyRepository, IEpisodeFilePreferredWordCalculator episodeFilePreferredWordCalculator, Logger logger)
+        public HistoryService(IHistoryRepository historyRepository, Logger logger)
         {
             _historyRepository = historyRepository;
-            _episodeFilePreferredWordCalculator = episodeFilePreferredWordCalculator;
             _logger = logger;
         }
 
-        public PagingSpec<EpisodeHistory> Paged(PagingSpec<EpisodeHistory> pagingSpec)
+        public PagingSpec<EpisodeHistory> Paged(PagingSpec<EpisodeHistory> pagingSpec, int[] languages, int[] qualities)
         {
-            return _historyRepository.GetPaged(pagingSpec);
+            return _historyRepository.GetPaged(pagingSpec, languages, qualities);
         }
 
         public EpisodeHistory MostRecentForEpisode(int episodeId)
@@ -101,7 +99,7 @@ namespace NzbDrone.Core.History
             var episodeIds = trackedDownload.EpisodeInfo.Episodes.Select(c => c.Id).ToList();
             var allHistory = _historyRepository.FindDownloadHistory(trackedDownload.EpisodeInfo.Series.Id, trackedDownload.ImportedEpisode.Quality);
 
-            //Find download related items for these episodes
+            // Find download related items for these episodes
             var episodesHistory = allHistory.Where(h => episodeIds.Contains(h.EpisodeId)).ToList();
 
             var processedDownloadId = episodesHistory
@@ -150,7 +148,7 @@ namespace NzbDrone.Core.History
                     SeriesId = episode.SeriesId,
                     EpisodeId = episode.Id,
                     DownloadId = message.DownloadId,
-                    Language = message.Episode.ParsedEpisodeInfo.Language,
+                    Languages = message.Episode.Languages,
                 };
 
                 history.Data.Add("Indexer", message.Episode.Release.Indexer);
@@ -168,17 +166,18 @@ namespace NzbDrone.Core.History
                 history.Data.Add("TvdbId", message.Episode.Release.TvdbId.ToString());
                 history.Data.Add("TvRageId", message.Episode.Release.TvRageId.ToString());
                 history.Data.Add("Protocol", ((int)message.Episode.Release.DownloadProtocol).ToString());
-                history.Data.Add("PreferredWordScore", message.Episode.PreferredWordScore.ToString());
+                history.Data.Add("CustomFormatScore", message.Episode.CustomFormatScore.ToString());
                 history.Data.Add("SeriesMatchType", message.Episode.SeriesMatchType.ToString());
+                history.Data.Add("ReleaseSource", message.Episode.ReleaseSource.ToString());
+                history.Data.Add("IndexerFlags", message.Episode.Release.IndexerFlags.ToString());
+                history.Data.Add("ReleaseType", message.Episode.ParsedEpisodeInfo.ReleaseType.ToString());
 
                 if (!message.Episode.ParsedEpisodeInfo.ReleaseHash.IsNullOrWhiteSpace())
                 {
                     history.Data.Add("ReleaseHash", message.Episode.ParsedEpisodeInfo.ReleaseHash);
                 }
 
-                var torrentRelease = message.Episode.Release as TorrentInfo;
-
-                if (torrentRelease != null)
+                if (message.Episode.Release is TorrentInfo torrentRelease)
                 {
                     history.Data.Add("TorrentInfoHash", torrentRelease.InfoHash);
                 }
@@ -204,24 +203,27 @@ namespace NzbDrone.Core.History
             foreach (var episode in message.EpisodeInfo.Episodes)
             {
                 var history = new EpisodeHistory
-                    {
-                        EventType = EpisodeHistoryEventType.DownloadFolderImported,
-                        Date = DateTime.UtcNow,
-                        Quality = message.EpisodeInfo.Quality,
-                        SourceTitle = message.ImportedEpisode.SceneName ?? Path.GetFileNameWithoutExtension(message.EpisodeInfo.Path),
-                        SeriesId = message.ImportedEpisode.SeriesId,
-                        EpisodeId = episode.Id,
-                        DownloadId = downloadId,
-                        Language = message.EpisodeInfo.Language
-                    };
+                {
+                    EventType = EpisodeHistoryEventType.DownloadFolderImported,
+                    Date = DateTime.UtcNow,
+                    Quality = message.EpisodeInfo.Quality,
+                    SourceTitle = message.ImportedEpisode.SceneName ?? Path.GetFileNameWithoutExtension(message.EpisodeInfo.Path),
+                    SeriesId = message.ImportedEpisode.SeriesId,
+                    EpisodeId = episode.Id,
+                    DownloadId = downloadId,
+                    Languages = message.EpisodeInfo.Languages
+                };
 
                 history.Data.Add("FileId", message.ImportedEpisode.Id.ToString());
                 history.Data.Add("DroppedPath", message.EpisodeInfo.Path);
                 history.Data.Add("ImportedPath", Path.Combine(message.EpisodeInfo.Series.Path, message.ImportedEpisode.RelativePath));
                 history.Data.Add("DownloadClient", message.DownloadClientInfo?.Type);
                 history.Data.Add("DownloadClientName", message.DownloadClientInfo?.Name);
-                history.Data.Add("PreferredWordScore", message.EpisodeInfo.PreferredWordScore.ToString());
                 history.Data.Add("ReleaseGroup", message.EpisodeInfo.ReleaseGroup);
+                history.Data.Add("CustomFormatScore", message.EpisodeInfo.CustomFormatScore.ToString());
+                history.Data.Add("Size", message.EpisodeInfo.Size.ToString());
+                history.Data.Add("IndexerFlags", message.ImportedEpisode.IndexerFlags.ToString());
+                history.Data.Add("ReleaseType", message.ImportedEpisode.ReleaseType.ToString());
 
                 _historyRepository.Insert(history);
             }
@@ -240,13 +242,14 @@ namespace NzbDrone.Core.History
                     SeriesId = message.SeriesId,
                     EpisodeId = episodeId,
                     DownloadId = message.DownloadId,
-                    Language = message.Language
+                    Languages = message.Languages
                 };
 
                 history.Data.Add("DownloadClient", message.DownloadClient);
                 history.Data.Add("DownloadClientName", message.TrackedDownload?.DownloadItem.DownloadClientInfo.Name);
                 history.Data.Add("Message", message.Message);
                 history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup);
+                history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString());
 
                 _historyRepository.Insert(history);
             }
@@ -265,8 +268,6 @@ namespace NzbDrone.Core.History
                 return;
             }
 
-            var episodeFilePreferredWordScore = _episodeFilePreferredWordCalculator.Calculate(message.EpisodeFile.Series, message.EpisodeFile);
-
             foreach (var episode in message.EpisodeFile.Episodes.Value)
             {
                 var history = new EpisodeHistory
@@ -277,12 +278,14 @@ namespace NzbDrone.Core.History
                     SourceTitle = message.EpisodeFile.Path,
                     SeriesId = message.EpisodeFile.SeriesId,
                     EpisodeId = episode.Id,
-                    Language = message.EpisodeFile.Language
+                    Languages = message.EpisodeFile.Languages
                 };
 
                 history.Data.Add("Reason", message.Reason.ToString());
-                history.Data.Add("PreferredWordScore", episodeFilePreferredWordScore.ToString());
                 history.Data.Add("ReleaseGroup", message.EpisodeFile.ReleaseGroup);
+                history.Data.Add("Size", message.EpisodeFile.Size.ToString());
+                history.Data.Add("IndexerFlags", message.EpisodeFile.IndexerFlags.ToString());
+                history.Data.Add("ReleaseType", message.EpisodeFile.ReleaseType.ToString());
 
                 _historyRepository.Insert(history);
             }
@@ -305,7 +308,7 @@ namespace NzbDrone.Core.History
                     SourceTitle = message.OriginalPath,
                     SeriesId = message.EpisodeFile.SeriesId,
                     EpisodeId = episode.Id,
-                    Language = message.EpisodeFile.Language
+                    Languages = message.EpisodeFile.Languages
                 };
 
                 history.Data.Add("SourcePath", sourcePath);
@@ -313,6 +316,9 @@ namespace NzbDrone.Core.History
                 history.Data.Add("Path", path);
                 history.Data.Add("RelativePath", relativePath);
                 history.Data.Add("ReleaseGroup", message.EpisodeFile.ReleaseGroup);
+                history.Data.Add("Size", message.EpisodeFile.Size.ToString());
+                history.Data.Add("IndexerFlags", message.EpisodeFile.IndexerFlags.ToString());
+                history.Data.Add("ReleaseType", message.EpisodeFile.ReleaseType.ToString());
 
                 _historyRepository.Insert(history);
             }
@@ -325,21 +331,23 @@ namespace NzbDrone.Core.History
             foreach (var episodeId in message.EpisodeIds)
             {
                 var history = new EpisodeHistory
-                              {
-                                  EventType = EpisodeHistoryEventType.DownloadIgnored,
-                                  Date = DateTime.UtcNow,
-                                  Quality = message.Quality,
-                                  SourceTitle = message.SourceTitle,
-                                  SeriesId = message.SeriesId,
-                                  EpisodeId = episodeId,
-                                  DownloadId = message.DownloadId,
-                                  Language = message.Language
-                              };
+                {
+                    EventType = EpisodeHistoryEventType.DownloadIgnored,
+                    Date = DateTime.UtcNow,
+                    Quality = message.Quality,
+                    SourceTitle = message.SourceTitle,
+                    SeriesId = message.SeriesId,
+                    EpisodeId = episodeId,
+                    DownloadId = message.DownloadId,
+                    Languages = message.Languages
+                };
 
                 history.Data.Add("DownloadClient", message.DownloadClientInfo.Type);
                 history.Data.Add("DownloadClientName", message.DownloadClientInfo.Name);
                 history.Data.Add("Message", message.Message);
                 history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup);
+                history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString());
+                history.Data.Add("ReleaseType", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseType.ToString());
 
                 historyToAdd.Add(history);
             }
@@ -349,7 +357,7 @@ namespace NzbDrone.Core.History
 
         public void Handle(SeriesDeletedEvent message)
         {
-            _historyRepository.DeleteForSeries(message.Series.Id);
+            _historyRepository.DeleteForSeries(message.Series.Select(m => m.Id).ToList());
         }
 
         public List<EpisodeHistory> Since(DateTime date, EpisodeHistoryEventType? eventType)

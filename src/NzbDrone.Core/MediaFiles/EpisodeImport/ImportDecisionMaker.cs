@@ -4,6 +4,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation;
@@ -28,6 +29,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
         private readonly IAggregationService _aggregationService;
         private readonly IDiskProvider _diskProvider;
         private readonly IDetectSample _detectSample;
+        private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly Logger _logger;
 
         public ImportDecisionMaker(IEnumerable<IImportDecisionEngineSpecification> specifications,
@@ -35,6 +37,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                                    IAggregationService aggregationService,
                                    IDiskProvider diskProvider,
                                    IDetectSample detectSample,
+                                   ICustomFormatCalculationService formatCalculator,
                                    Logger logger)
         {
             _specifications = specifications;
@@ -42,6 +45,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             _aggregationService = aggregationService;
             _diskProvider = diskProvider;
             _detectSample = detectSample;
+            _formatCalculator = formatCalculator;
             _logger = logger;
         }
 
@@ -64,7 +68,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
         {
             var newFiles = filterExistingFiles ? _mediaFileService.FilterExistingFiles(videoFiles.ToList(), series) : videoFiles.ToList();
 
-            _logger.Debug("Analyzing {0}/{1} files.", newFiles.Count, videoFiles.Count());
+            _logger.Debug("Analyzing {0}/{1} files.", newFiles.Count, videoFiles.Count);
 
             ParsedEpisodeInfo downloadClientItemInfo = null;
 
@@ -85,6 +89,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                 {
                     Series = series,
                     DownloadClientEpisodeInfo = downloadClientItemInfo,
+                    DownloadItem = downloadClientItem,
                     FolderEpisodeInfo = folderInfo,
                     Path = file,
                     SceneSource = sceneSource,
@@ -114,6 +119,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
 
             localEpisode.FileEpisodeInfo = fileEpisodeInfo;
             localEpisode.Size = _diskProvider.GetFileSize(localEpisode.Path);
+            localEpisode.ReleaseType = localEpisode.DownloadClientEpisodeInfo?.ReleaseType ??
+                                       localEpisode.FolderEpisodeInfo?.ReleaseType ??
+                                       localEpisode.FileEpisodeInfo?.ReleaseType ??
+                                       ReleaseType.Unknown;
 
             try
             {
@@ -136,6 +145,9 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                 }
                 else
                 {
+                    localEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
+                    localEpisode.CustomFormatScore = localEpisode.Series.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.CustomFormats) ?? 0;
+
                     decision = GetDecision(localEpisode, downloadClientItem);
                 }
             }
@@ -179,8 +191,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             }
             catch (Exception e)
             {
-                //e.Data.Add("report", remoteEpisode.Report.ToJson());
-                //e.Data.Add("parsed", remoteEpisode.ParsedEpisodeInfo.ToJson());
+                // e.Data.Add("report", remoteEpisode.Report.ToJson());
+                // e.Data.Add("parsed", remoteEpisode.ParsedEpisodeInfo.ToJson());
                 _logger.Error(e, "Couldn't evaluate decision on {0}", localEpisode.Path);
                 return new Rejection($"{spec.GetType().Name}: {e.Message}");
             }
@@ -191,6 +203,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
         private int GetNonSampleVideoFileCount(List<string> videoFiles, Series series, ParsedEpisodeInfo downloadClientItemInfo, ParsedEpisodeInfo folderInfo)
         {
             var isPossibleSpecialEpisode = downloadClientItemInfo?.IsPossibleSpecialEpisode ?? false;
+
             // If we might already have a special, don't try to get it from the folder info.
             isPossibleSpecialEpisode = isPossibleSpecialEpisode || (folderInfo?.IsPossibleSpecialEpisode ?? false);
 

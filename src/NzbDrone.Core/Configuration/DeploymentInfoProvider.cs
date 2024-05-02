@@ -1,14 +1,10 @@
+using System;
+using System.IO;
+using System.Text.RegularExpressions;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Update;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace NzbDrone.Core.Configuration
 {
@@ -107,7 +103,6 @@ namespace NzbDrone.Core.Configuration
 
         public string ReleaseVersion { get; private set; }
         public string ReleaseBranch { get; set; }
-
 
         public bool IsExternalUpdateMechanism => PackageUpdateMechanism >= UpdateMechanism.External;
         public UpdateMechanism DefaultUpdateMechanism { get; private set; }

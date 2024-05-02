@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { Manager, Popper, Reference } from 'react-popper';
-import getUniqueElememtId from 'Utilities/getUniqueElementId';
-import { icons, kinds } from 'Helpers/Props';
-import Icon from 'Components/Icon';
-import Portal from 'Components/Portal';
 import FormInputButton from 'Components/Form/FormInputButton';
+import TextInput from 'Components/Form/TextInput';
+import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import TextInput from 'Components/Form/TextInput';
+import Portal from 'Components/Portal';
+import { icons, kinds } from 'Helpers/Props';
+import getUniqueElementId from 'Utilities/getUniqueElementId';
+import translate from 'Utilities/String/translate';
 import ImportSeriesSearchResultConnector from './ImportSeriesSearchResultConnector';
 import ImportSeriesTitle from './ImportSeriesTitle';
 import styles from './ImportSeriesSelectSeries.css';
@@ -23,8 +24,8 @@ class ImportSeriesSelectSeries extends Component {
 
     this._seriesLookupTimeout = null;
     this._scheduleUpdate = null;
-    this._buttonId = getUniqueElememtId();
-    this._contentId = getUniqueElememtId();
+    this._buttonId = getUniqueElementId();
+    this._contentId = getUniqueElementId();
 
     this.state = {
       term: props.id,
@@ -68,7 +69,7 @@ class ImportSeriesSelectSeries extends Component {
       this.setState({ isOpen: false });
       this._removeListener();
     }
-  }
+  };
 
   onPress = () => {
     if (this.state.isOpen) {
@@ -78,7 +79,7 @@ class ImportSeriesSelectSeries extends Component {
     }
 
     this.setState({ isOpen: !this.state.isOpen });
-  }
+  };
 
   onSearchInputChange = ({ value }) => {
     if (this._seriesLookupTimeout) {
@@ -90,17 +91,17 @@ class ImportSeriesSelectSeries extends Component {
         this.props.onSearchInputChange(value);
       }, 200);
     });
-  }
+  };
 
   onRefreshPress = () => {
     this.props.onSearchInputChange(this.state.term);
-  }
+  };
 
   onSeriesSelect = (tvdbId) => {
     this.setState({ isOpen: false });
 
     this.props.onSeriesSelect(tvdbId);
-  }
+  };
 
   //
   // Render
@@ -174,7 +175,7 @@ class ImportSeriesSelectSeries extends Component {
                         kind={kinds.WARNING}
                       />
 
-                      No match found!
+                      {translate('NoMatchFound')}
                     </div> :
                     null
                 }
@@ -189,7 +190,7 @@ class ImportSeriesSelectSeries extends Component {
                         kind={kinds.WARNING}
                       />
 
-                      Search failed, please try again later.
+                      {translate('SearchFailedError')}
                     </div> :
                     null
                 }

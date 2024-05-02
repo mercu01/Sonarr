@@ -33,7 +33,7 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (OsInfo.IsWindows)
             {
-                //Wrapped in Try/Catch to prevent this from causing issues with remote NAS boxes
+                // Wrapped in Try/Catch to prevent this from causing issues with remote NAS boxes
                 try
                 {
                     _diskProvider.InheritFolderPermissions(path);
@@ -52,7 +52,6 @@ namespace NzbDrone.Core.MediaFiles
                     }
                 }
             }
-
             else
             {
                 SetMonoPermissions(path);
@@ -87,10 +86,8 @@ namespace NzbDrone.Core.MediaFiles
             {
                 _diskProvider.SetPermissions(path, _configService.ChmodFolder, _configService.ChownGroup);
             }
-
             catch (Exception ex)
             {
-
                 _logger.Warn(ex, "Unable to apply permissions to: " + path);
             }
         }

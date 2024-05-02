@@ -1,25 +1,79 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, inputTypes } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputButton from 'Components/Form/FormInputButton';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import Icon from 'Components/Icon';
 import ClipboardButton from 'Components/Link/ClipboardButton';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
-import FormInputButton from 'Components/Form/FormInputButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import { icons, inputTypes, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 
-const authenticationMethodOptions = [
-  { key: 'none', value: 'None' },
-  { key: 'basic', value: 'Basic (Browser Popup)' },
-  { key: 'forms', value: 'Forms (Login Page)' }
+export const authenticationMethodOptions = [
+  {
+    key: 'none',
+    get value() {
+      return translate('None');
+    },
+    isDisabled: true
+  },
+  {
+    key: 'external',
+    get value() {
+      return translate('External');
+    },
+    isHidden: true
+  },
+  {
+    key: 'basic',
+    get value() {
+      return translate('AuthBasic');
+    }
+  },
+  {
+    key: 'forms',
+    get value() {
+      return translate('AuthForm');
+    }
+  }
+];
+
+export const authenticationRequiredOptions = [
+  {
+    key: 'enabled',
+    get value() {
+      return translate('Enabled');
+    }
+  },
+  {
+    key: 'disabledForLocalAddresses',
+    get value() {
+      return translate('DisabledForLocalAddresses');
+    }
+  }
 ];
 
 const certificateValidationOptions = [
-  { key: 'enabled', value: 'Enabled' },
-  { key: 'disabledForLocalAddresses', value: 'Disabled for Local Addresses' },
-  { key: 'disabled', value: 'Disabled' }
+  {
+    key: 'enabled',
+    get value() {
+      return translate('Enabled');
+    }
+  },
+  {
+    key: 'disabledForLocalAddresses',
+    get value() {
+      return translate('DisabledForLocalAddresses');
+    }
+  },
+  {
+    key: 'disabled',
+    get value() {
+      return translate('Disabled');
+    }
+  }
 ];
 
 class SecuritySettings extends Component {
@@ -40,20 +94,20 @@ class SecuritySettings extends Component {
 
   onApikeyFocus = (event) => {
     event.target.select();
-  }
+  };
 
   onResetApiKeyPress = () => {
     this.setState({ isConfirmApiKeyResetModalOpen: true });
-  }
+  };
 
   onConfirmResetApiKey = () => {
     this.setState({ isConfirmApiKeyResetModalOpen: false });
     this.props.onConfirmResetApiKey();
-  }
+  };
 
   onCloseResetApiKeyModal = () => {
     this.setState({ isConfirmApiKeyResetModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -67,8 +121,10 @@ class SecuritySettings extends Component {
 
     const {
       authenticationMethod,
+      authenticationRequired,
       username,
       password,
+      passwordConfirmation,
       apiKey,
       certificateValidation
     } = settings;
@@ -76,59 +132,91 @@ class SecuritySettings extends Component {
     const authenticationEnabled = authenticationMethod && authenticationMethod.value !== 'none';
 
     return (
-      <FieldSet legend="Security">
+      <FieldSet legend={translate('Security')}>
         <FormGroup>
-          <FormLabel>Authentication</FormLabel>
+          <FormLabel>{translate('Authentication')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="authenticationMethod"
             values={authenticationMethodOptions}
-            helpText="Require Username and Password to access Sonarr"
-            helpTextWarning="Requires restart to take effect"
+            helpText={translate('AuthenticationMethodHelpText')}
+            helpTextWarning={translate('AuthenticationRequiredWarning')}
             onChange={onInputChange}
             {...authenticationMethod}
           />
         </FormGroup>
 
         {
-          authenticationEnabled &&
-          <FormGroup>
-            <FormLabel>Username</FormLabel>
+          authenticationEnabled ?
+            <FormGroup>
+              <FormLabel>{translate('AuthenticationRequired')}</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.TEXT}
-              name="username"
-              helpTextWarning="Requires restart to take effect"
-              onChange={onInputChange}
-              {...username}
-            />
-          </FormGroup>
+              <FormInputGroup
+                type={inputTypes.SELECT}
+                name="authenticationRequired"
+                values={authenticationRequiredOptions}
+                helpText={translate('AuthenticationRequiredHelpText')}
+                onChange={onInputChange}
+                {...authenticationRequired}
+              />
+            </FormGroup> :
+            null
         }
 
         {
-          authenticationEnabled &&
-          <FormGroup>
-            <FormLabel>Password</FormLabel>
+          authenticationEnabled ?
+            <FormGroup>
+              <FormLabel>{translate('Username')}</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.PASSWORD}
-              name="password"
-              helpTextWarning="Requires restart to take effect"
-              onChange={onInputChange}
-              {...password}
-            />
-          </FormGroup>
+              <FormInputGroup
+                type={inputTypes.TEXT}
+                name="username"
+                onChange={onInputChange}
+                {...username}
+              />
+            </FormGroup> :
+            null
+        }
+
+        {
+          authenticationEnabled ?
+            <FormGroup>
+              <FormLabel>{translate('Password')}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.PASSWORD}
+                name="password"
+                onChange={onInputChange}
+                {...password}
+              />
+            </FormGroup> :
+            null
+        }
+
+        {
+          authenticationEnabled ?
+            <FormGroup>
+              <FormLabel>{translate('PasswordConfirmation')}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.PASSWORD}
+                name="passwordConfirmation"
+                onChange={onInputChange}
+                {...passwordConfirmation}
+              />
+            </FormGroup> :
+            null
         }
 
         <FormGroup>
-          <FormLabel>API Key</FormLabel>
+          <FormLabel>{translate('ApiKey')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.TEXT}
             name="apiKey"
             readOnly={true}
-            helpTextWarning="Requires restart to take effect"
+            helpTextWarning={translate('RestartRequiredHelpTextWarning')}
             buttons={[
               <ClipboardButton
                 key="copy"
@@ -154,13 +242,13 @@ class SecuritySettings extends Component {
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>Certificate Validation</FormLabel>
+          <FormLabel>{translate('CertificateValidation')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="certificateValidation"
             values={certificateValidationOptions}
-            helpText="Change how strict HTTPS certification validation is. Do not change unless you understand the risks."
+            helpText={translate('CertificateValidationHelpText')}
             onChange={onInputChange}
             {...certificateValidation}
           />
@@ -169,9 +257,9 @@ class SecuritySettings extends Component {
         <ConfirmModal
           isOpen={this.state.isConfirmApiKeyResetModalOpen}
           kind={kinds.DANGER}
-          title="Reset API Key"
-          message="Are you sure you want to reset your API Key?"
-          confirmLabel="Reset"
+          title={translate('ResetAPIKey')}
+          message={translate('ResetAPIKeyMessageText')}
+          confirmLabel={translate('Reset')}
           onConfirm={this.onConfirmResetApiKey}
           onCancel={this.onCloseResetApiKeyModal}
         />

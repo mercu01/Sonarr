@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Model;
 using NzbDrone.Common.Processes;
 using NzbDrone.Test.Common;
@@ -13,10 +14,10 @@ using NzbDrone.Test.Dummy;
 
 namespace NzbDrone.Common.Test
 {
+    [NonParallelizable]
     [TestFixture]
     public class ProcessProviderFixture : TestBase<ProcessProvider>
     {
-
         [SetUp]
         public void Setup()
         {
@@ -42,7 +43,6 @@ namespace NzbDrone.Common.Test
                 {
                     TestLogger.Warn(ex, "{0} when killing process", ex.Message);
                 }
-                
             });
         }
 
@@ -65,19 +65,22 @@ namespace NzbDrone.Common.Test
         }
 
         [Test]
+        [Retry(3)]
         public void Should_be_able_to_start_process()
         {
             var process = StartDummyProcess();
 
             Thread.Sleep(500);
 
-            Subject.Exists(DummyApp.DUMMY_PROCCESS_NAME).Should()
-                   .BeTrue("one running dummy process");
+            var check = Subject.GetProcessById(process.Id);
+            check.Should().NotBeNull();
+
+            process.Refresh();
+            process.HasExited.Should().BeFalse();
 
             process.Kill();
             process.WaitForExit();
-
-            Subject.Exists(DummyApp.DUMMY_PROCCESS_NAME).Should().BeFalse();
+            process.HasExited.Should().BeTrue();
         }
 
         [Test]
@@ -129,8 +132,9 @@ namespace NzbDrone.Common.Test
             }
         }
 
-
         [Test]
+        [Platform(Exclude = "MacOsX")]
+        [Retry(3)]
         public void kill_all_should_kill_all_process_with_name()
         {
             var dummy1 = StartDummyProcess();
@@ -146,8 +150,33 @@ namespace NzbDrone.Common.Test
 
         private Process StartDummyProcess()
         {
-            var path = Path.Combine(TestContext.CurrentContext.TestDirectory, DummyApp.DUMMY_PROCCESS_NAME + ".exe");
-            return Subject.Start(path);
+            var processStarted = new ManualResetEventSlim();
+
+            string suffix;
+            if (OsInfo.IsWindows)
+            {
+                suffix = ".exe";
+            }
+            else
+            {
+                suffix = "";
+            }
+
+            var path = Path.Combine(TestContext.CurrentContext.TestDirectory, DummyApp.DUMMY_PROCCESS_NAME + suffix);
+            var process = Subject.Start(path, onOutputDataReceived: (string data) =>
+            {
+                if (data.StartsWith("Dummy process. ID:"))
+                {
+                    processStarted.Set();
+                }
+            });
+
+            if (!processStarted.Wait(5000))
+            {
+                Assert.Fail("Failed to start process within 2 sec");
+            }
+
+            return process;
         }
 
         [Test]

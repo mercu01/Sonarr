@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
-using System.Text;
+using System.Net.Http;
+using NzbDrone.Common.Cache;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
@@ -11,19 +13,21 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
         PlexTvPinUrlResponse GetPinUrl();
         PlexTvSignInUrlResponse GetSignInUrl(string callbackUrl, int pinId, string pinCode);
         string GetAuthToken(int pinId);
-
-        HttpRequest GetWatchlist(string authToken);
+        void Ping(string authToken);
+        HttpRequest GetWatchlist(string authToken, int pageSize, int pageOffset);
     }
 
     public class PlexTvService : IPlexTvService
     {
         private readonly IPlexTvProxy _proxy;
         private readonly IConfigService _configService;
+        private readonly ICached<bool> _cache;
 
-        public PlexTvService(IPlexTvProxy proxy, IConfigService configService)
+        public PlexTvService(IPlexTvProxy proxy, IConfigService configService, ICacheManager cacheManager)
         {
             _proxy = proxy;
             _configService = configService;
+            _cache = cacheManager.GetCache<bool>(GetType());
         }
 
         public PlexTvPinUrlResponse GetPinUrl()
@@ -40,7 +44,7 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
                                  .AddQueryParam("X-Plex-Version", BuildInfo.Version.ToString())
                                  .AddQueryParam("strong", true);
 
-            requestBuilder.Method = HttpMethod.POST;
+            requestBuilder.Method = HttpMethod.Post;
 
             var request = requestBuilder.Build();
 
@@ -83,11 +87,19 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
             return authToken;
         }
 
-        public HttpRequest GetWatchlist(string authToken)
+        public void Ping(string authToken)
         {
+            // Ping plex.tv if we haven't done so in the last 24 hours for this auth token.
+            _cache.Get(authToken, () => _proxy.Ping(_configService.PlexClientIdentifier, authToken), TimeSpan.FromHours(24));
+        }
+
+        public HttpRequest GetWatchlist(string authToken, int pageSize, int pageOffset)
+        {
+            Ping(authToken);
+
             var clientIdentifier = _configService.PlexClientIdentifier;
 
-            var requestBuilder = new HttpRequestBuilder("https://metadata.provider.plex.tv/library/sections/watchlist/all")
+            var requestBuilder = new HttpRequestBuilder("https://discover.provider.plex.tv/library/sections/watchlist/all")
                                  .Accept(HttpAccept.Json)
                                  .AddQueryParam("clientID", clientIdentifier)
                                  .AddQueryParam("context[device][product]", BuildInfo.AppName)
@@ -95,9 +107,12 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
                                  .AddQueryParam("context[device][platformVersion]", "7")
                                  .AddQueryParam("context[device][version]", BuildInfo.Version.ToString())
                                  .AddQueryParam("includeFields", "title,type,year,ratingKey")
-                                 .AddQueryParam("includeElements", "Guid")
+                                 .AddQueryParam("excludeElements", "Image")
+                                 .AddQueryParam("includeGuids", "1")
                                  .AddQueryParam("sort", "watchlistedAt:desc")
-                                 .AddQueryParam("type", (int)PlexMediaType.Show);
+                                 .AddQueryParam("type", (int)PlexMediaType.Show)
+                                 .AddQueryParam("X-Plex-Container-Size", pageSize)
+                                 .AddQueryParam("X-Plex-Container-Start", pageOffset);
 
             if (!string.IsNullOrWhiteSpace(authToken))
             {

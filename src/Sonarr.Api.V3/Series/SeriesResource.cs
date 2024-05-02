@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Tv;
 using Sonarr.Http.REST;
@@ -9,11 +11,11 @@ namespace Sonarr.Api.V3.Series
 {
     public class SeriesResource : RestResource
     {
-        //Todo: Sorters should be done completely on the client
-        //Todo: Is there an easy way to keep IgnoreArticlesWhenSorting in sync between, Series, History, Missing?
-        //Todo: We should get the entire QualityProfile instead of ID and Name separately
+        // Todo: Sorters should be done completely on the client
+        // Todo: Is there an easy way to keep IgnoreArticlesWhenSorting in sync between, Series, History, Missing?
+        // Todo: We should get the entire QualityProfile instead of ID and Name separately
 
-        //View Only
+        // View Only
         public string Title { get; set; }
         public List<AlternateTitleResource> AlternateTitles { get; set; }
         public string SortTitle { get; set; }
@@ -30,19 +32,19 @@ namespace Sonarr.Api.V3.Series
         public string Network { get; set; }
         public string AirTime { get; set; }
         public List<MediaCover> Images { get; set; }
-
+        public Language OriginalLanguage { get; set; }
         public string RemotePoster { get; set; }
         public List<SeasonResource> Seasons { get; set; }
         public int Year { get; set; }
 
-        //View & Edit
+        // View & Edit
         public string Path { get; set; }
         public int QualityProfileId { get; set; }
-        public int LanguageProfileId { get; set; }
 
-        //Editing Only
+        // Editing Only
         public bool SeasonFolder { get; set; }
         public bool Monitored { get; set; }
+        public NewItemMonitorTypes MonitorNewItems { get; set; }
 
         public bool UseSceneNumbering { get; set; }
         public int Runtime { get; set; }
@@ -50,6 +52,7 @@ namespace Sonarr.Api.V3.Series
         public int TvRageId { get; set; }
         public int TvMazeId { get; set; }
         public DateTime? FirstAired { get; set; }
+        public DateTime? LastAired { get; set; }
         public SeriesTypes SeriesType { get; set; }
         public string CleanTitle { get; set; }
         public string ImdbId { get; set; }
@@ -66,43 +69,54 @@ namespace Sonarr.Api.V3.Series
         public SeriesStatisticsResource Statistics { get; set; }
 
         public bool? EpisodesChanged { get; set; }
+
+        [Obsolete("Deprecated")]
+        public int LanguageProfileId  => 1;
     }
 
     public static class SeriesResourceMapper
     {
         public static SeriesResource ToResource(this NzbDrone.Core.Tv.Series model, bool includeSeasonImages = false)
         {
-            if (model == null) return null;
+            if (model == null)
+            {
+                return null;
+            }
 
             return new SeriesResource
                    {
                        Id = model.Id,
 
                        Title = model.Title,
-                       //AlternateTitles
+
+                       // AlternateTitles
                        SortTitle = model.SortTitle,
 
-                       //TotalEpisodeCount
-                       //EpisodeCount
-                       //EpisodeFileCount
-                       //SizeOnDisk
+                       // TotalEpisodeCount
+                       // EpisodeCount
+                       // EpisodeFileCount
+                       // SizeOnDisk
                        Status = model.Status,
                        Overview = model.Overview,
-                       //NextAiring
-                       //PreviousAiring
+
+                       // NextAiring
+                       // PreviousAiring
                        Network = model.Network,
                        AirTime = model.AirTime,
-                       Images = model.Images,
+
+                       // JsonClone
+                       Images = model.Images.JsonClone(),
 
                        Seasons = model.Seasons.ToResource(includeSeasonImages),
                        Year = model.Year,
+                       OriginalLanguage = model.OriginalLanguage,
 
                        Path = model.Path,
                        QualityProfileId = model.QualityProfileId,
-                       LanguageProfileId = model.LanguageProfileId,
 
                        SeasonFolder = model.SeasonFolder,
                        Monitored = model.Monitored,
+                       MonitorNewItems = model.MonitorNewItems,
 
                        UseSceneNumbering = model.UseSceneNumbering,
                        Runtime = model.Runtime,
@@ -110,6 +124,7 @@ namespace Sonarr.Api.V3.Series
                        TvRageId = model.TvRageId,
                        TvMazeId = model.TvMazeId,
                        FirstAired = model.FirstAired,
+                       LastAired = model.LastAired,
                        SeriesType = model.SeriesType,
                        CleanTitle = model.CleanTitle,
                        ImdbId = model.ImdbId,
@@ -129,37 +144,43 @@ namespace Sonarr.Api.V3.Series
 
         public static NzbDrone.Core.Tv.Series ToModel(this SeriesResource resource)
         {
-            if (resource == null) return null;
+            if (resource == null)
+            {
+                return null;
+            }
 
             return new NzbDrone.Core.Tv.Series
                    {
                        Id = resource.Id,
 
                        Title = resource.Title,
-                       //AlternateTitles
+
+                       // AlternateTitles
                        SortTitle = resource.SortTitle,
 
-                       //TotalEpisodeCount
-                       //EpisodeCount
-                       //EpisodeFileCount
-                       //SizeOnDisk
+                       // TotalEpisodeCount
+                       // EpisodeCount
+                       // EpisodeFileCount
+                       // SizeOnDisk
                        Status = resource.Status,
                        Overview = resource.Overview,
-                       //NextAiring
-                       //PreviousAiring
+
+                       // NextAiring
+                       // PreviousAiring
                        Network = resource.Network,
                        AirTime = resource.AirTime,
                        Images = resource.Images,
 
                        Seasons = resource.Seasons?.ToModel() ?? new List<Season>(),
                        Year = resource.Year,
+                       OriginalLanguage = resource.OriginalLanguage,
 
                        Path = resource.Path,
                        QualityProfileId = resource.QualityProfileId,
-                       LanguageProfileId = resource.LanguageProfileId,
 
                        SeasonFolder = resource.SeasonFolder,
                        Monitored = resource.Monitored,
+                       MonitorNewItems = resource.MonitorNewItems,
 
                        UseSceneNumbering = resource.UseSceneNumbering,
                        Runtime = resource.Runtime,

@@ -1,18 +1,26 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import formatBytes from 'Utilities/Number/formatBytes';
+import Icon from 'Components/Icon';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
 import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellConnector';
-import TableRow from 'Components/Table/TableRow';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
-import EpisodeSearchCellConnector from 'Episode/EpisodeSearchCellConnector';
+import TableRow from 'Components/Table/TableRow';
+import Popover from 'Components/Tooltip/Popover';
+import Tooltip from 'Components/Tooltip/Tooltip';
+import EpisodeFormats from 'Episode/EpisodeFormats';
 import EpisodeNumber from 'Episode/EpisodeNumber';
-import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
+import EpisodeSearchCellConnector from 'Episode/EpisodeSearchCellConnector';
 import EpisodeStatusConnector from 'Episode/EpisodeStatusConnector';
+import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
+import IndexerFlags from 'Episode/IndexerFlags';
 import EpisodeFileLanguageConnector from 'EpisodeFile/EpisodeFileLanguageConnector';
 import MediaInfoConnector from 'EpisodeFile/MediaInfoConnector';
 import * as mediaInfoTypes from 'EpisodeFile/mediaInfoTypes';
-
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import formatBytes from 'Utilities/Number/formatBytes';
+import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
+import formatRuntime from 'Utilities/Number/formatRuntime';
+import translate from 'Utilities/String/translate';
 import styles from './EpisodeRow.css';
 
 class EpisodeRow extends Component {
@@ -33,15 +41,15 @@ class EpisodeRow extends Component {
 
   onManualSearchPress = () => {
     this.setState({ isDetailsModalOpen: true });
-  }
+  };
 
   onDetailsModalClose = () => {
     this.setState({ isDetailsModalOpen: false });
-  }
+  };
 
   onMonitorEpisodePress = (monitored, options) => {
     this.props.onMonitorEpisodePress(this.props.id, monitored, options);
-  }
+  };
 
   //
   // Render
@@ -59,6 +67,8 @@ class EpisodeRow extends Component {
       sceneEpisodeNumber,
       sceneAbsoluteEpisodeNumber,
       airDateUtc,
+      runtime,
+      finaleType,
       title,
       useSceneNumbering,
       unverifiedSceneNumbering,
@@ -69,6 +79,9 @@ class EpisodeRow extends Component {
       episodeFileRelativePath,
       episodeFileSize,
       releaseGroup,
+      customFormats,
+      customFormatScore,
+      indexerFlags,
       alternateTitles,
       columns
     } = this.props;
@@ -134,6 +147,7 @@ class EpisodeRow extends Component {
                     episodeId={id}
                     seriesId={seriesId}
                     episodeTitle={title}
+                    finaleType={finaleType}
                     showOpenSeriesButton={false}
                   />
                 </TableRowCell>
@@ -169,11 +183,50 @@ class EpisodeRow extends Component {
               );
             }
 
-            if (name === 'language') {
+            if (name === 'runtime') {
               return (
                 <TableRowCell
                   key={name}
-                  className={styles.language}
+                  className={styles.runtime}
+                >
+                  { formatRuntime(runtime) }
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'customFormats') {
+              return (
+                <TableRowCell key={name}>
+                  <EpisodeFormats
+                    formats={customFormats}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'customFormatScore') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.customFormatScore}
+                >
+                  <Tooltip
+                    anchor={formatCustomFormatScore(
+                      customFormatScore,
+                      customFormats.length
+                    )}
+                    tooltip={<EpisodeFormats formats={customFormats} />}
+                    position={tooltipPositions.LEFT}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'languages') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.languages}
                 >
                   <EpisodeFileLanguageConnector
                     episodeFileId={episodeFileId}
@@ -274,6 +327,24 @@ class EpisodeRow extends Component {
               );
             }
 
+            if (name === 'indexerFlags') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.indexerFlags}
+                >
+                  {indexerFlags ? (
+                    <Popover
+                      anchor={<Icon name={icons.FLAG} kind={kinds.PRIMARY} />}
+                      title={translate('IndexerFlags')}
+                      body={<IndexerFlags indexerFlags={indexerFlags} />}
+                      position={tooltipPositions.LEFT}
+                    />
+                  ) : null}
+                </TableRowCell>
+              );
+            }
+
             if (name === 'status') {
               return (
                 <TableRowCell
@@ -319,6 +390,8 @@ EpisodeRow.propTypes = {
   sceneEpisodeNumber: PropTypes.number,
   sceneAbsoluteEpisodeNumber: PropTypes.number,
   airDateUtc: PropTypes.string,
+  runtime: PropTypes.number,
+  finaleType: PropTypes.string,
   title: PropTypes.string.isRequired,
   isSaving: PropTypes.bool,
   useSceneNumbering: PropTypes.bool,
@@ -329,6 +402,9 @@ EpisodeRow.propTypes = {
   episodeFileRelativePath: PropTypes.string,
   episodeFileSize: PropTypes.number,
   releaseGroup: PropTypes.string,
+  customFormats: PropTypes.arrayOf(PropTypes.object),
+  customFormatScore: PropTypes.number.isRequired,
+  indexerFlags: PropTypes.number.isRequired,
   mediaInfo: PropTypes.object,
   alternateTitles: PropTypes.arrayOf(PropTypes.object).isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -336,7 +412,9 @@ EpisodeRow.propTypes = {
 };
 
 EpisodeRow.defaultProps = {
-  alternateTitles: []
+  alternateTitles: [],
+  customFormats: [],
+  indexerFlags: 0
 };
 
 export default EpisodeRow;

@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Extensions;
-using RestSharp;
-using NzbDrone.Core.Rest;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.Notifications.Join
 {
@@ -17,19 +18,22 @@ namespace NzbDrone.Core.Notifications.Join
 
     public class JoinProxy : IJoinProxy
     {
-        private readonly IHttpClient _httpClient;
-        private readonly Logger _logger;
         private const string URL = "https://joinjoaomgcd.appspot.com/_ah/api/messaging/v1/sendPush?";
 
-        public JoinProxy(IHttpClient httpClient, Logger logger)
+        private readonly IHttpClient _httpClient;
+        private readonly ILocalizationService _localizationService;
+        private readonly Logger _logger;
+
+        public JoinProxy(IHttpClient httpClient, ILocalizationService localizationService, Logger logger)
         {
             _httpClient = httpClient;
+            _localizationService = localizationService;
             _logger = logger;
         }
 
         public void SendNotification(string title, string message, JoinSettings settings)
         {
-            var method = HttpMethod.GET;
+            var method = HttpMethod.Get;
 
             try
             {
@@ -55,22 +59,22 @@ namespace NzbDrone.Core.Notifications.Join
             catch (JoinInvalidDeviceException ex)
             {
                 _logger.Error(ex, "Unable to send test Join message. Invalid Device IDs supplied.");
-                return new ValidationFailure("DeviceIds", "Device IDs appear invalid.");
+                return new ValidationFailure("DeviceIds", _localizationService.GetLocalizedString("NotificationsJoinValidationInvalidDeviceId"));
             }
             catch (JoinException ex)
             {
                 _logger.Error(ex, "Unable to send test Join message.");
-                return new ValidationFailure("ApiKey", ex.Message);
+                return new ValidationFailure("ApiKey", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
             catch (HttpException ex)
             {
                 _logger.Error(ex, "Unable to send test Join message. Server connection failed.");
-                return new ValidationFailure("ApiKey", "Unable to connect to Join API. Please try again later.");
+                return new ValidationFailure("ApiKey", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "service", "Join" }, { "responseCode", ex.Response.StatusCode }, { "exceptionMessage", ex.Message } }));
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Unable to send test Join message. Unknown error.");
-                return new ValidationFailure("ApiKey", ex.Message);
+                return new ValidationFailure("ApiKey", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
         }
 
@@ -104,7 +108,10 @@ namespace NzbDrone.Core.Notifications.Join
             var response = _httpClient.Execute(request);
             var res = Json.Deserialize<JoinResponseModel>(response.Content);
 
-            if (res.success) return;
+            if (res.success)
+            {
+                return;
+            }
 
             if (res.userAuthError)
             {
@@ -119,14 +126,16 @@ namespace NzbDrone.Core.Notifications.Join
                 {
                     throw new JoinInvalidDeviceException(res.errorMessage);
                 }
+
                 // Oddly enough, rather than give us an "Invalid API key", the Join API seems to assume the key is valid,
-                // but fails when doing a device lookup associated with that key.  
+                // but fails when doing a device lookup associated with that key.
                 // In our case we are using "deviceIds" rather than "deviceId" so when the singular form error shows up
                 // we know the API key was the fault.
                 else if (res.errorMessage.Equals("No device to send message to"))
                 {
                     throw new JoinAuthException("Authentication failed.");
                 }
+
                 throw new JoinException(res.errorMessage);
             }
 

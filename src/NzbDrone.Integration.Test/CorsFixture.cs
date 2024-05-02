@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
 using NUnit.Framework;
-using Sonarr.Http.Extensions;
 using RestSharp;
+using Sonarr.Http.Extensions;
 
 namespace NzbDrone.Integration.Test
 {
@@ -11,6 +11,7 @@ namespace NzbDrone.Integration.Test
         private RestRequest BuildGet(string route = "series")
         {
             var request = new RestRequest(route, Method.GET);
+            request.AddHeader("Origin", "http://a.different.domain");
             request.AddHeader(AccessControlHeaders.RequestMethod, "POST");
 
             return request;
@@ -19,6 +20,8 @@ namespace NzbDrone.Integration.Test
         private RestRequest BuildOptions(string route = "series")
         {
             var request = new RestRequest(route, Method.OPTIONS);
+            request.AddHeader("Origin", "http://a.different.domain");
+            request.AddHeader(AccessControlHeaders.RequestMethod, "POST");
 
             return request;
         }

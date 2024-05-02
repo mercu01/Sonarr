@@ -1,31 +1,31 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import ReactDOM from 'react-dom';
-import { kinds, scrollDirections } from 'Helpers/Props';
 import Alert from 'Components/Alert';
+import PathInput from 'Components/Form/PathInput';
 import Button from 'Components/Link/Button';
-import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
 import Scroller from 'Components/Scroller/Scroller';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
-import PathInput from 'Components/Form/PathInput';
+import { kinds, scrollDirections } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import FileBrowserRow from './FileBrowserRow';
 import styles from './FileBrowserModalContent.css';
 
 const columns = [
   {
     name: 'type',
-    label: 'Type',
+    label: () => translate('Type'),
     isVisible: true
   },
   {
     name: 'name',
-    label: 'Name',
+    label: () => translate('Name'),
     isVisible: true
   }
 ];
@@ -38,7 +38,7 @@ class FileBrowserModalContent extends Component {
   constructor(props, context) {
     super(props, context);
 
-    this._scrollerNode = null;
+    this._scrollerRef = React.createRef();
 
     this.state = {
       isFileBrowserModalOpen: false,
@@ -56,18 +56,7 @@ class FileBrowserModalContent extends Component {
       currentPath !== prevState.currentPath
     ) {
       this.setState({ currentPath });
-      this._scrollerNode.scrollTop = 0;
-    }
-  }
-
-  //
-  // Control
-
-  setScrollerRef = (ref) => {
-    if (ref) {
-      this._scrollerNode = ReactDOM.findDOMNode(ref);
-    } else {
-      this._scrollerNode = null;
+      this._scrollerRef.current.scrollTop = 0;
     }
   }
 
@@ -76,11 +65,11 @@ class FileBrowserModalContent extends Component {
 
   onPathInputChange = ({ value }) => {
     this.setState({ currentPath: value });
-  }
+  };
 
   onRowPress = (path) => {
     this.props.onFetchPaths(path);
-  }
+  };
 
   onOkPress = () => {
     this.props.onChange({
@@ -90,7 +79,7 @@ class FileBrowserModalContent extends Component {
 
     this.props.onClearPaths();
     this.props.onModalClose();
-  }
+  };
 
   //
   // Render
@@ -115,7 +104,7 @@ class FileBrowserModalContent extends Component {
         onModalClose={onModalClose}
       >
         <ModalHeader>
-          File Browser
+          {translate('FileBrowser')}
         </ModalHeader>
 
         <ModalBody
@@ -128,13 +117,13 @@ class FileBrowserModalContent extends Component {
                 className={styles.mappedDrivesWarning}
                 kind={kinds.WARNING}
               >
-                Mapped network drives are not available when running as a Windows Service, see the <Link className={styles.faqLink} to="https://wiki.servarr.com/sonarr/faq#why-cant-sonarr-see-my-files-on-a-remote-server">FAQ</Link> for more information.
+                <InlineMarkdown data={translate('MappedNetworkDrivesWindowsService', { url: 'https://wiki.servarr.com/sonarr/faq#why-cant-sonarr-see-my-files-on-a-remote-server' })} />
               </Alert>
           }
 
           <PathInput
             className={styles.pathInput}
-            placeholder="Start typing or select a path below"
+            placeholder={translate('FileBrowserPlaceholderText')}
             hasFileBrowser={false}
             {...otherProps}
             value={this.state.currentPath}
@@ -142,13 +131,13 @@ class FileBrowserModalContent extends Component {
           />
 
           <Scroller
-            ref={this.setScrollerRef}
+            ref={this._scrollerRef}
             className={styles.scroller}
             scrollDirection={scrollDirections.BOTH}
           >
             {
               !!error &&
-                <div>Error loading contents</div>
+                <div>{translate('ErrorLoadingContents')}</div>
             }
 
             {
@@ -162,7 +151,7 @@ class FileBrowserModalContent extends Component {
                       emptyParent &&
                         <FileBrowserRow
                           type="computer"
-                          name="My Computer"
+                          name={translate('MyComputer')}
                           path={parent}
                           onPress={this.onRowPress}
                         />
@@ -223,13 +212,13 @@ class FileBrowserModalContent extends Component {
           <Button
             onPress={onModalClose}
           >
-            Cancel
+            {translate('Cancel')}
           </Button>
 
           <Button
             onPress={this.onOkPress}
           >
-            Ok
+            {translate('Ok')}
           </Button>
         </ModalFooter>
       </ModalContent>

@@ -9,16 +9,22 @@ namespace NzbDrone.Core.Validation.Paths
         private readonly IRootFolderService _rootFolderService;
 
         public RootFolderValidator(IRootFolderService rootFolderService)
-            : base("Path is already configured as a root folder")
         {
             _rootFolderService = rootFolderService;
         }
 
+        protected override string GetDefaultMessageTemplate() => "Path '{path}' is already configured as a root folder";
+
         protected override bool IsValid(PropertyValidatorContext context)
         {
-            if (context.PropertyValue == null) return true;
+            if (context.PropertyValue == null)
+            {
+                return true;
+            }
 
-            return (!_rootFolderService.All().Exists(r => r.Path.PathEquals(context.PropertyValue.ToString())));
+            context.MessageFormatter.AppendArgument("path", context.PropertyValue.ToString());
+
+            return !_rootFolderService.All().Exists(r => r.Path.PathEquals(context.PropertyValue.ToString()));
         }
     }
 }

@@ -1,7 +1,8 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import formatBytes from 'Utilities/Number/formatBytes';
+import translate from 'Utilities/String/translate';
 import EnhancedSelectInputOption from './EnhancedSelectInputOption';
 import styles from './RootFolderSelectInputOption.css';
 
@@ -47,14 +48,14 @@ function RootFolderSelectInputOption(props) {
           freeSpace == null ?
             null :
             <div className={styles.freeSpace}>
-              {formatBytes(freeSpace)} Free
+              {translate('RootFolderSelectFreeSpace', { freeSpace: formatBytes(freeSpace) })}
             </div>
         }
 
         {
           isMissing ?
             <div className={styles.isMissing}>
-              Missing
+              {translate('Missing')}
             </div> :
             null
         }
@@ -67,7 +68,7 @@ RootFolderSelectInputOption.propTypes = {
   id: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
   freeSpace: PropTypes.number,
-  isMissing: PropTypes.boolean,
+  isMissing: PropTypes.bool,
   seriesFolder: PropTypes.string,
   isMobile: PropTypes.bool.isRequired,
   isWindows: PropTypes.bool

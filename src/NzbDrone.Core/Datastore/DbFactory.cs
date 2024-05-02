@@ -1,14 +1,15 @@
 using System;
+using System.Data.Common;
 using System.Data.SQLite;
-using Marr.Data;
-using Marr.Data.Reflection;
+using System.Net.Sockets;
+using System.Threading;
 using NLog;
-using NzbDrone.Common.Composition;
+using Npgsql;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Exceptions;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Datastore.Migration.Framework;
-
 
 namespace NzbDrone.Core.Datastore
 {
@@ -30,7 +31,6 @@ namespace NzbDrone.Core.Datastore
         {
             InitializeEnvironment();
 
-            MapRepository.Instance.ReflectionStrategy = new SimpleReflectionStrategy();
             TableMapping.Map();
         }
 
@@ -41,17 +41,6 @@ namespace NzbDrone.Core.Datastore
             Environment.SetEnvironmentVariable("No_SQLiteXmlConfigFile", "true");
             Environment.SetEnvironmentVariable("No_PreLoadSQLite", "true");
             Environment.SetEnvironmentVariable("No_SQLiteFunctions", "true");
-        }
-
-        public static void RegisterDatabase(IContainer container)
-        {
-            var mainDb = new MainDatabase(container.Resolve<IDbFactory>().Create());
-
-            container.Register<IMainDatabase>(mainDb);
-
-            var logDb = new LogDatabase(container.Resolve<IDbFactory>().Create(MigrationType.Log));
-
-            container.Register<ILogDatabase>(logDb);
         }
 
         public DbFactory(IMigrationController migrationController,
@@ -72,24 +61,26 @@ namespace NzbDrone.Core.Datastore
 
         public IDatabase Create(MigrationContext migrationContext)
         {
-            string connectionString;
+            DatabaseConnectionInfo connectionInfo;
 
             switch (migrationContext.MigrationType)
             {
                 case MigrationType.Main:
                     {
-                        connectionString = _connectionStringFactory.MainDbConnectionString;
-                        CreateMain(connectionString, migrationContext);
+                        connectionInfo = _connectionStringFactory.MainDbConnection;
+                        CreateMain(connectionInfo.ConnectionString, migrationContext, connectionInfo.DatabaseType);
 
                         break;
                     }
+
                 case MigrationType.Log:
                     {
-                        connectionString = _connectionStringFactory.LogDbConnectionString;
-                        CreateLog(connectionString, migrationContext);
+                        connectionInfo = _connectionStringFactory.LogDbConnection;
+                        CreateLog(connectionInfo.ConnectionString, migrationContext, connectionInfo.DatabaseType);
 
                         break;
                     }
+
                 default:
                     {
                         throw new ArgumentException("Invalid MigrationType");
@@ -97,24 +88,32 @@ namespace NzbDrone.Core.Datastore
             }
 
             var db = new Database(migrationContext.MigrationType.ToString(), () =>
-                {
-                    var dataMapper = new DataMapper(SQLiteFactory.Instance, connectionString)
-                    {
-                        SqlMode = SqlModes.Text,
-                    };
+            {
+                DbConnection conn;
 
-                    return dataMapper;
-                });
+                if (connectionInfo.DatabaseType == DatabaseType.SQLite)
+                {
+                    conn = SQLiteFactory.Instance.CreateConnection();
+                    conn.ConnectionString = connectionInfo.ConnectionString;
+                }
+                else
+                {
+                    conn = new NpgsqlConnection(connectionInfo.ConnectionString);
+                }
+
+                conn.Open();
+                return conn;
+            });
 
             return db;
         }
 
-        private void CreateMain(string connectionString, MigrationContext migrationContext)
+        private void CreateMain(string connectionString, MigrationContext migrationContext, DatabaseType databaseType)
         {
             try
             {
                 _restoreDatabaseService.Restore();
-                _migrationController.Migrate(connectionString, migrationContext);
+                _migrationController.Migrate(connectionString, migrationContext, databaseType);
             }
             catch (SQLiteException e)
             {
@@ -127,13 +126,50 @@ namespace NzbDrone.Core.Datastore
 
                 throw new CorruptDatabaseException("Database file: {0} is corrupt, restore from backup if available. See: https://wiki.servarr.com/sonarr/faq#i-am-getting-an-error-database-disk-image-is-malformed", e, fileName);
             }
+            catch (NpgsqlException e)
+            {
+                if (e.InnerException is SocketException)
+                {
+                    var retryCount = 3;
+
+                    while (true)
+                    {
+                        Logger.Error(e, "Failure to connect to Postgres DB, {0} retries remaining", retryCount);
+
+                        Thread.Sleep(5000);
+
+                        try
+                        {
+                            _migrationController.Migrate(connectionString, migrationContext, databaseType);
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            if (--retryCount > 0)
+                            {
+                                continue;
+                            }
+
+                            throw new SonarrStartupException(ex, "Error creating main database");
+                        }
+                    }
+                }
+                else
+                {
+                    throw new SonarrStartupException(e, "Error creating main database");
+                }
+            }
+            catch (Exception e)
+            {
+                throw new SonarrStartupException(e, "Error creating main database");
+            }
         }
 
-        private void CreateLog(string connectionString, MigrationContext migrationContext)
+        private void CreateLog(string connectionString, MigrationContext migrationContext, DatabaseType databaseType)
         {
             try
             {
-                _migrationController.Migrate(connectionString, migrationContext);
+                _migrationController.Migrate(connectionString, migrationContext, databaseType);
             }
             catch (SQLiteException e)
             {
@@ -153,7 +189,11 @@ namespace NzbDrone.Core.Datastore
                     Logger.Error("Unable to recreate logging database automatically. It will need to be removed manually.");
                 }
 
-                _migrationController.Migrate(connectionString, migrationContext);
+                _migrationController.Migrate(connectionString, migrationContext, databaseType);
+            }
+            catch (Exception e)
+            {
+                throw new SonarrStartupException(e, "Error creating log database");
             }
         }
     }

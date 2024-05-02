@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using NzbDrone.Api.Episodes;
 using RestSharp;
+using Sonarr.Api.V3.Episodes;
 
 namespace NzbDrone.Integration.Test.Client
 {
@@ -15,6 +15,13 @@ namespace NzbDrone.Integration.Test.Client
         {
             var request = BuildRequest("?seriesId=" + seriesId.ToString());
             return Get<List<EpisodeResource>>(request);
+        }
+
+        public EpisodeResource SetMonitored(EpisodeResource episode)
+        {
+            var request = BuildRequest(episode.Id.ToString());
+            request.AddJsonBody(episode);
+            return Put<EpisodeResource>(request);
         }
     }
 }

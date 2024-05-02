@@ -1,7 +1,8 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import Icon from 'Components/Icon';
+import translate from 'Utilities/String/translate';
 import Link from './Link';
 import styles from './IconButton.css';
 
@@ -23,6 +24,7 @@ function IconButton(props) {
         className,
         isDisabled && styles.isDisabled
       )}
+      aria-label={translate('TableOptionsButton')}
       isDisabled={isDisabled}
       {...otherProps}
     >
@@ -38,11 +40,13 @@ function IconButton(props) {
 }
 
 IconButton.propTypes = {
+  ...Link.propTypes,
   className: PropTypes.string.isRequired,
   iconClassName: PropTypes.string,
   kind: PropTypes.string,
   name: PropTypes.object.isRequired,
   size: PropTypes.number,
+  title: PropTypes.string,
   isSpinning: PropTypes.bool,
   isDisabled: PropTypes.bool
 };

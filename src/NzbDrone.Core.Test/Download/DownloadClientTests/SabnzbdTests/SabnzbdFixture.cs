@@ -1,19 +1,19 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Sabnzbd;
 using NzbDrone.Core.Download.Clients.Sabnzbd.Responses;
-using NzbDrone.Core.Tv;
-using NzbDrone.Test.Common;
 using NzbDrone.Core.RemotePathMappings;
-using NzbDrone.Common.Disk;
+using NzbDrone.Core.Tv;
 using NzbDrone.Core.Validation;
+using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
 {
@@ -171,10 +171,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         protected virtual void GivenHistory(SabnzbdHistory history)
         {
             if (history == null)
+            {
                 history = new SabnzbdHistory() { Items = new List<SabnzbdHistoryItem>() };
+            }
 
             Mocker.GetMock<ISabnzbdProxy>()
-                .Setup(s => s.GetHistory(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SabnzbdSettings>()))
+                .Setup(s => s.GetHistory(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<SabnzbdSettings>()))
                 .Returns(history);
         }
 
@@ -299,27 +301,27 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         }
 
         [TestCase("[ TOWN ]-[ http://www.town.ag ]-[ ANIME ]-[Usenet Provider >> http://www.ssl- <<] - [Commie] Aldnoah Zero 18 [234C8FC7]", "[ TOWN ]-[ http-++www.town.ag ]-[ ANIME ]-[Usenet Provider  http-++www.ssl- ] - [Commie] Aldnoah Zero 18 [234C8FC7].nzb")]
-        public void Download_should_use_clean_title(string title, string filename)
+        public async Task Download_should_use_clean_title(string title, string filename)
         {
             GivenSuccessfulDownload();
 
             var remoteEpisode = CreateRemoteEpisode();
             remoteEpisode.Release.Title = title;
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             Mocker.GetMock<ISabnzbdProxy>()
                 .Verify(v => v.DownloadNzb(It.IsAny<byte[]>(), filename, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SabnzbdSettings>()), Times.Once());
         }
 
         [Test]
-        public void Download_should_return_unique_id()
+        public async Task Download_should_return_unique_id()
         {
             GivenSuccessfulDownload();
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().NotBeNullOrEmpty();
         }
@@ -352,7 +354,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         }
 
         [Test]
-        public void Download_should_use_sabRecentTvPriority_when_recentEpisode_is_true()
+        public async Task Download_should_use_sabRecentTvPriority_when_recentEpisode_is_true()
         {
             Mocker.GetMock<ISabnzbdProxy>()
                     .Setup(s => s.DownloadNzb(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), (int)SabnzbdPriority.High, It.IsAny<SabnzbdSettings>()))
@@ -365,7 +367,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                                                       .Build()
                                                       .ToList();
 
-            Subject.Download(remoteEpisode);
+            await Subject.Download(remoteEpisode, CreateIndexer());
 
             Mocker.GetMock<ISabnzbdProxy>()
                   .Verify(v => v.DownloadNzb(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), (int)SabnzbdPriority.High, It.IsAny<SabnzbdSettings>()), Times.Once());
@@ -450,6 +452,32 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
             result.OutputRootFolders.First().Should().Be(fullCategoryDir);
         }
 
+        [TestCase("0")]
+        [TestCase("15d")]
+        [TestCase("")]
+        [TestCase(null)]
+        public void should_set_history_removes_completed_downloads_false(string historyRetention)
+        {
+            _config.Misc.history_retention = historyRetention;
+
+            var downloadClientInfo = Subject.GetStatus();
+
+            downloadClientInfo.RemovesCompletedDownloads.Should().BeFalse();
+        }
+
+        [TestCase("-1")]
+        [TestCase("15")]
+        [TestCase("3")]
+        [TestCase("3d")]
+        public void should_set_history_removes_completed_downloads_true(string historyRetention)
+        {
+            _config.Misc.history_retention = historyRetention;
+
+            var downloadClientInfo = Subject.GetStatus();
+
+            downloadClientInfo.RemovesCompletedDownloads.Should().BeTrue();
+        }
+
         [TestCase(@"Y:\nzbget\root", @"completed\downloads", @"vv", @"Y:\nzbget\root\completed\downloads", @"Y:\nzbget\root\completed\downloads\vv")]
         [TestCase(@"Y:\nzbget\root", @"completed", @"vv", @"Y:\nzbget\root\completed", @"Y:\nzbget\root\completed\vv")]
         [TestCase(@"/nzbget/root", @"completed/downloads", @"vv", @"/nzbget/root/completed/downloads", @"/nzbget/root/completed/downloads/vv")]
@@ -518,6 +546,52 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         }
 
         [Test]
+        public void should_test_success_if_sorters_are_empty()
+        {
+            _config.Misc.enable_tv_sorting = false;
+            _config.Misc.tv_categories = null;
+            _config.Sorters = new List<SabnzbdSorter>();
+
+            var result = new NzbDroneValidationResult(Subject.Test());
+
+            result.IsValid.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_test_failed_if_sorter_is_enabled_for_non_tv_category()
+        {
+            _config.Misc.enable_tv_sorting = false;
+            _config.Misc.tv_categories = null;
+            _config.Sorters = Builder<SabnzbdSorter>.CreateListOfSize(1)
+                .All()
+                .With(s => s.is_active = true)
+                .With(s => s.sort_cats = new List<string> { "tv-custom" })
+                .Build()
+                .ToList();
+
+            var result = new NzbDroneValidationResult(Subject.Test());
+
+            result.IsValid.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_test_failed_if_sorter_is_enabled_for_tv_category()
+        {
+            _config.Misc.enable_tv_sorting = false;
+            _config.Misc.tv_categories = null;
+            _config.Sorters = Builder<SabnzbdSorter>.CreateListOfSize(1)
+                .All()
+                .With(s => s.is_active = true)
+                .With(s => s.sort_cats = new List<string> { "tv" })
+                .Build()
+                .ToList();
+
+            var result = new NzbDroneValidationResult(Subject.Test());
+
+            result.IsValid.Should().BeFalse();
+        }
+
+        [Test]
         public void should_test_success_if_tv_sorting_disabled()
         {
             _config.Misc.enable_tv_sorting = false;
@@ -543,7 +617,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         public void should_test_failed_if_tv_sorting_empty()
         {
             _config.Misc.enable_tv_sorting = true;
-            _config.Misc.tv_categories = new string[0];
+            _config.Misc.tv_categories = Array.Empty<string>();
 
             var result = new NzbDroneValidationResult(Subject.Test());
 

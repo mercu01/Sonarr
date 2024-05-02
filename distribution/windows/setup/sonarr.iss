@@ -6,17 +6,20 @@
 #define AppURL "https://sonarr.tv/"
 #define ForumsURL "https://forums.sonarr.tv/"
 #define AppExeName "Sonarr.exe"
-#define BuildNumber "3.0"
-#define BuildNumber GetEnv('BUILD_NUMBER')
+#define BuildNumber "4.0"
+#define BuildNumber GetEnv('SONARR_VERSION')
+#define MajorVersion GetEnv('SONARR_MAJOR_VERSION')
 #define BranchName GetEnv('BRANCH')
+#define Framework GetEnv('FRAMEWORK')
+#define Runtime GetEnv('RUNTIME')
 
 [Setup]
-; NOTE: The value of AppId uniquely identifies this application.
+; NOTE: The value of AppId uniquely identifies this appl ication.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{56C1065D-3523-4025-B76D-6F73F67F7F71}
 AppName={#AppName}
-AppVersion=3.0
+AppVersion={#MajorVersion}
 AppPublisher={#AppPublisher}
 AppPublisherURL={#AppURL}
 AppSupportURL={#ForumsURL}
@@ -26,7 +29,7 @@ DefaultDirName={commonappdata}\Sonarr\bin
 DisableDirPage=yes
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
-OutputBaseFilename=Sonarr.{#BranchName}.{#BuildNumber}.windows
+OutputBaseFilename=Sonarr.{#BranchName}.{#BuildNumber}.{#Runtime}-installer
 SolidCompression=yes
 AppCopyright=Creative Commons 3.0 License
 AllowUNCPath=False
@@ -35,9 +38,10 @@ DisableReadyPage=True
 CompressionThreads=2
 Compression=lzma2/normal
 AppContact={#ForumsURL}
-VersionInfoVersion={#BuildNumber}
+VersionInfoVersion={#MajorVersion}
 SetupLogging=yes
-OutputDir=output
+OutputDir="..\..\..\_artifacts"
+AppverName={#AppName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -49,8 +53,8 @@ Name: "startupShortcut"; Description: "Create shortcut in Startup folder (Starts
 Name: "none"; Description: "Do not start automatically"; GroupDescription: "Start automatically"; Flags: exclusive unchecked
 
 [Files]
-Source: "..\..\..\_output_windows\Sonarr.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\..\..\_output_windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\..\_output\{#Runtime}\{#Framework}\Sonarr\Sonarr.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\..\_output\{#Runtime}\{#Framework}\Sonarr\*"; Excludes: "Sonarr.Update"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -79,27 +83,4 @@ var
 begin
   Exec('net', 'stop nzbdrone', '', 0, ewWaitUntilTerminated, ResultCode)
   Exec('sc', 'delete nzbdrone', '', 0, ewWaitUntilTerminated, ResultCode)
-end;
-
-function Framework472IsNotInstalled(): Boolean;
-var
-  bSuccess: Boolean;
-  regVersion: Cardinal;
-begin
-  Result := True;
-bSuccess := RegQueryDWordValue(HKLM, 'Software\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', regVersion);
-  if (True = bSuccess) and (regVersion >= 461808) then begin
-    Result := False;
-  end;
-end;
-
-function InitializeSetup(): Boolean;
-begin
-    if Framework472IsNotInstalled() then begin
-        MsgBox('Sonarr requires Microsoft .NET Framework 4.7.2 or higher.'#13#13
-            'Please use Windows Update to install this version'#13
-            'or download it from https://dotnet.microsoft.com/download/dotnet-framework.', mbInformation, MB_OK);
-        result := false;
-    end else
-        result := true;
 end;

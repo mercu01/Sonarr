@@ -77,6 +77,22 @@ function createMatchingIndexersSelector() {
   );
 }
 
+function createMatchingDownloadClientsSelector() {
+  return createSelector(
+    (state, { downloadClientIds }) => downloadClientIds,
+    (state) => state.settings.downloadClients.items,
+    findMatchingItems
+  );
+}
+
+function createMatchingAutoTagsSelector() {
+  return createSelector(
+    (state, { autoTagIds }) => autoTagIds,
+    (state) => state.settings.autoTaggings.items,
+    findMatchingItems
+  );
+}
+
 function createMapStateToProps() {
   return createSelector(
     createMatchingSeriesSelector(),
@@ -85,14 +101,18 @@ function createMapStateToProps() {
     createMatchingNotificationsSelector(),
     createMatchingReleaseProfilesSelector(),
     createMatchingIndexersSelector(),
-    (series, delayProfiles, importLists, notifications, releaseProfiles, indexers) => {
+    createMatchingDownloadClientsSelector(),
+    createMatchingAutoTagsSelector(),
+    (series, delayProfiles, importLists, notifications, releaseProfiles, indexers, downloadClients, autoTags) => {
       return {
         series,
         delayProfiles,
         importLists,
         notifications,
         releaseProfiles,
-        indexers
+        indexers,
+        downloadClients,
+        autoTags
       };
     }
   );

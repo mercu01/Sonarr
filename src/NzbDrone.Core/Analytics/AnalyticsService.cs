@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Configuration;
@@ -24,16 +24,16 @@ namespace NzbDrone.Core.Analytics
             _historyService = historyService;
         }
 
-        public bool IsEnabled => _configFileProvider.AnalyticsEnabled && RuntimeInfo.IsProduction || RuntimeInfo.IsDevelopment;
+        public bool IsEnabled => (_configFileProvider.AnalyticsEnabled && RuntimeInfo.IsProduction) || RuntimeInfo.IsDevelopment;
 
         public bool InstallIsActive
         {
             get
             {
-                var lastRecord = _historyService.Paged(new PagingSpec<EpisodeHistory>() { Page = 0, PageSize = 1, SortKey = "date", SortDirection = SortDirection.Descending });
+                var lastRecord = _historyService.Paged(new PagingSpec<EpisodeHistory>() { Page = 0, PageSize = 1, SortKey = "date", SortDirection = SortDirection.Descending }, null, null);
                 var monthAgo = DateTime.UtcNow.AddMonths(-1);
 
-                return lastRecord.Records.Any(v => v.Date > monthAgo); 
+                return lastRecord.Records.Any(v => v.Date > monthAgo);
             }
         }
     }

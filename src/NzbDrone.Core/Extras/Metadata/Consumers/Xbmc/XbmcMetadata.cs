@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
@@ -22,19 +24,19 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
     {
         private readonly Logger _logger;
         private readonly IMapCoversToLocal _mediaCoverService;
-        private readonly ITagService _tagService;
+        private readonly ITagRepository _tagRepo;
         private readonly IDetectXbmcNfo _detectNfo;
         private readonly IDiskProvider _diskProvider;
 
         public XbmcMetadata(IDetectXbmcNfo detectNfo,
                             IDiskProvider diskProvider,
                             IMapCoversToLocal mediaCoverService,
-                            ITagService tagService,
+                            ITagRepository tagRepo,
                             Logger logger)
         {
             _logger = logger;
             _mediaCoverService = mediaCoverService;
-            _tagService = tagService;
+            _tagRepo = tagRepo;
             _diskProvider = diskProvider;
             _detectNfo = detectNfo;
         }
@@ -67,7 +69,10 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
         {
             var filename = Path.GetFileName(path);
 
-            if (filename == null) return null;
+            if (filename == null)
+            {
+                return null;
+            }
 
             var metadata = new MetadataFile
             {
@@ -89,18 +94,15 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                 metadata.Type = MetadataType.SeasonImage;
 
                 var seasonNumberMatch = seasonMatch.Groups["season"].Value;
-                int seasonNumber;
 
                 if (seasonNumberMatch.Contains("specials"))
                 {
                     metadata.SeasonNumber = 0;
                 }
-
-                else if (int.TryParse(seasonNumberMatch, out seasonNumber))
+                else if (int.TryParse(seasonNumberMatch, out var seasonNumber))
                 {
                     metadata.SeasonNumber = seasonNumber;
                 }
-
                 else
                 {
                     return null;
@@ -181,7 +183,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
 
                     if (series.Tags.Any())
                     {
-                        var tags = _tagService.GetTags(series.Tags);
+                        var tags = _tagRepo.Get(series.Tags);
 
                         foreach (var tag in tags)
                         {
@@ -189,9 +191,17 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                         }
                     }
 
+                    tvShow.Add(new XElement("status", series.Status));
+
                     if (series.FirstAired.HasValue)
                     {
                         tvShow.Add(new XElement("premiered", series.FirstAired.Value.ToString("yyyy-MM-dd")));
+                    }
+
+                    // Add support for Jellyfin's "enddate" tag
+                    if (series.Status == SeriesStatusType.Ended && series.LastAired.HasValue)
+                    {
+                        tvShow.Add(new XElement("enddate", series.LastAired.Value.ToString("yyyy-MM-dd")));
                     }
 
                     tvShow.Add(new XElement("studio", series.Network));
@@ -204,10 +214,19 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
 
                         if (actor.Images.Any())
                         {
-                            xmlActor.Add(new XElement("thumb", actor.Images.First().Url));
+                            xmlActor.Add(new XElement("thumb", actor.Images.First().RemoteUrl));
                         }
 
                         tvShow.Add(xmlActor);
+                    }
+
+                    if (Settings.SeriesMetadataEpisodeGuide)
+                    {
+                        var episodeGuide = new KodiEpisodeGuide(series);
+                        var serializerSettings = STJson.GetSerializerSettings();
+                        serializerSettings.WriteIndented = false;
+
+                        tvShow.Add(new XElement("episodeguide", JsonSerializer.Serialize(episodeGuide, serializerSettings)));
                     }
 
                     var doc = new XDocument(tvShow);
@@ -227,7 +246,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                 xmlResult += "https://www.thetvdb.com/?tab=series&id=" + series.TvdbId;
             }
 
-            return xmlResult == string.Empty ? null : new MetadataFileResult("tvshow.nfo", xmlResult);
+            return xmlResult.IsNullOrWhiteSpace() ? null : new MetadataFileResult("tvshow.nfo", xmlResult);
         }
 
         public override MetadataFileResult EpisodeMetadata(Series series, EpisodeFile episodeFile)
@@ -270,7 +289,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                         details.Add(new XElement("displayseason", episode.AiredBeforeSeasonNumber));
                         details.Add(new XElement("displayepisode", episode.AiredBeforeEpisodeNumber ?? -1));
                     }
-                    
+
                     var tvdbId = new XElement("uniqueid", episode.TvdbId);
                     tvdbId.SetAttributeValue("type", "tvdb");
                     tvdbId.SetAttributeValue("default", true);
@@ -284,10 +303,9 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                     {
                         details.Add(new XElement("thumb"));
                     }
-
-                    else
+                    else if (Settings.EpisodeImageThumb)
                     {
-                        details.Add(new XElement("thumb", image.Url));
+                        details.Add(new XElement("thumb", image.RemoteUrl));
                     }
 
                     details.Add(new XElement("watched", watched));
@@ -313,36 +331,36 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                         video.Add(new XElement("scantype", episodeFile.MediaInfo.ScanType));
                         video.Add(new XElement("width", episodeFile.MediaInfo.Width));
 
-                        if (episodeFile.MediaInfo.RunTime != null)
-                        {
-                            video.Add(new XElement("duration", episodeFile.MediaInfo.RunTime.TotalMinutes));
-                            video.Add(new XElement("durationinseconds", Math.Round(episodeFile.MediaInfo.RunTime.TotalSeconds)));
-                        }
+                        video.Add(new XElement("duration", episodeFile.MediaInfo.RunTime.TotalMinutes));
+                        video.Add(new XElement("durationinseconds", Math.Round(episodeFile.MediaInfo.RunTime.TotalSeconds)));
 
                         streamDetails.Add(video);
 
                         var audio = new XElement("audio");
-                        var audioChannelCount = episodeFile.MediaInfo.AudioChannelsStream > 0 ? episodeFile.MediaInfo.AudioChannelsStream : episodeFile.MediaInfo.AudioChannelsContainer;
+                        var audioChannelCount = episodeFile.MediaInfo.AudioChannels;
                         audio.Add(new XElement("bitrate", episodeFile.MediaInfo.AudioBitrate));
                         audio.Add(new XElement("channels", audioChannelCount));
                         audio.Add(new XElement("codec", MediaInfoFormatter.FormatAudioCodec(episodeFile.MediaInfo, sceneName)));
                         audio.Add(new XElement("language", episodeFile.MediaInfo.AudioLanguages));
                         streamDetails.Add(audio);
 
-                        if (episodeFile.MediaInfo.Subtitles.IsNotNullOrWhiteSpace())
+                        if (episodeFile.MediaInfo.Subtitles != null && episodeFile.MediaInfo.Subtitles.Count > 0)
                         {
-                            var subtitle = new XElement("subtitle");
-                            subtitle.Add(new XElement("language", episodeFile.MediaInfo.Subtitles));
-                            streamDetails.Add(subtitle);
+                            foreach (var s in episodeFile.MediaInfo.Subtitles)
+                            {
+                                var subtitle = new XElement("subtitle");
+                                subtitle.Add(new XElement("language", s));
+                                streamDetails.Add(subtitle);
+                            }
                         }
 
                         fileInfo.Add(streamDetails);
                         details.Add(fileInfo);
                     }
 
-                    //Todo: get guest stars, writer and director
-                    //details.Add(new XElement("credits", tvdbEpisode.Writer.FirstOrDefault()));
-                    //details.Add(new XElement("director", tvdbEpisode.Directors.FirstOrDefault()));
+                    // Todo: get guest stars, writer and director
+                    // details.Add(new XElement("credits", tvdbEpisode.Writer.FirstOrDefault()));
+                    // details.Add(new XElement("director", tvdbEpisode.Directors.FirstOrDefault()));
 
                     doc.Add(details);
                     doc.Save(xw);
@@ -394,7 +412,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
 
                 return new List<ImageFileResult>
                    {
-                       new ImageFileResult(GetEpisodeImageFilename(episodeFile.RelativePath), screenshot.Url)
+                       new ImageFileResult(GetEpisodeImageFilename(episodeFile.RelativePath), screenshot.RemoteUrl)
                    };
             }
             catch (Exception ex)
@@ -427,7 +445,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                     filename = string.Format("season-specials-{0}.jpg", image.CoverType.ToString().ToLower());
                 }
 
-                yield return new ImageFileResult(filename, image.Url);
+                yield return new ImageFileResult(filename, image.RemoteUrl);
             }
         }
 

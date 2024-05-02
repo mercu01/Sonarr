@@ -1,7 +1,6 @@
+using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
-using System.Collections.Generic;
-
 
 namespace NzbDrone.Core.DataAugmentation.Scene
 {
@@ -20,7 +19,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
         public List<SceneMapping> FindByTvdbid(int tvdbId)
         {
-            return Query.Where(x => x.TvdbId == tvdbId);
+            return Query(x => x.TvdbId == tvdbId);
         }
 
         public void Clear(string type)

@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
-import { inputTypes } from 'Helpers/Props';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import { inputTypes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 
 class QueueOptions extends Component {
 
@@ -41,7 +42,7 @@ class QueueOptions extends Component {
         [name]: value
       });
     });
-  }
+  };
 
   //
   // Render
@@ -54,13 +55,13 @@ class QueueOptions extends Component {
     return (
       <Fragment>
         <FormGroup>
-          <FormLabel>Show Unknown Series Items</FormLabel>
+          <FormLabel>{translate('ShowUnknownSeriesItems')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.CHECK}
             name="includeUnknownSeriesItems"
             value={includeUnknownSeriesItems}
-            helpText="Show items without a series in the queue, this could include removed series, movies or anything else in Sonarr's category"
+            helpText={translate('ShowUnknownSeriesItemsHelpText')}
             onChange={this.onOptionChange}
           />
         </FormGroup>

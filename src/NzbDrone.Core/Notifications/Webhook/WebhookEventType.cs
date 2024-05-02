@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -12,9 +12,12 @@ namespace NzbDrone.Core.Notifications.Webhook
         Grab,
         Download,
         Rename,
+        SeriesAdd,
         SeriesDelete,
         EpisodeFileDelete,
         Health,
-        ApplicationUpdate
+        ApplicationUpdate,
+        HealthRestored,
+        ManualInteractionRequired
     }
 }

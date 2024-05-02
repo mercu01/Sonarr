@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Parser.Model;
 
@@ -14,12 +14,13 @@ namespace NzbDrone.Core.Download.Pending
         public PendingReleaseReason Reason { get; set; }
         public PendingReleaseAdditionalInfo AdditionalInfo { get; set; }
 
-        //Not persisted
+        // Not persisted
         public RemoteEpisode RemoteEpisode { get; set; }
     }
 
     public class PendingReleaseAdditionalInfo
     {
         public SeriesMatchType SeriesMatchType { get; set; }
+        public ReleaseSourceType ReleaseSource { get; set; }
     }
 }

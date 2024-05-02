@@ -3,6 +3,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.HealthCheck.Checks;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.HealthCheck.Checks
@@ -26,6 +27,10 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
             Mocker.GetMock<IIndexerFactory>()
                   .Setup(s => s.InteractiveSearchEnabled(It.IsAny<bool>()))
                   .Returns(new List<IIndexer>());
+
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
+                  .Returns("Some Warning Message");
         }
 
         private void GivenIndexer(bool supportsRss, bool supportsSearch)
@@ -62,6 +67,10 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
             Mocker.GetMock<IIndexerFactory>()
                   .Setup(s => s.InteractiveSearchEnabled(false))
                   .Returns(new List<IIndexer> { _indexerMock.Object });
+
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
+                  .Returns("recent indexer errors");
         }
 
         [Test]
@@ -113,7 +122,6 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
 
             Subject.Check().ShouldBeWarning();
         }
-
 
         [Test]
         public void should_return_filter_warning_if_search_is_enabled_but_filtered()

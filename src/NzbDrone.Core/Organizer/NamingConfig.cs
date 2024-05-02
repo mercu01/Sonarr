@@ -8,7 +8,8 @@ namespace NzbDrone.Core.Organizer
         {
             RenameEpisodes = false,
             ReplaceIllegalCharacters = true,
-            MultiEpisodeStyle = 0,
+            ColonReplacementFormat = ColonReplacementFormat.Smart,
+            MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange,
             StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}",
             DailyEpisodeFormat = "{Series Title} - {Air-Date} - {Episode Title} {Quality Full}",
             AnimeEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}",
@@ -19,7 +20,8 @@ namespace NzbDrone.Core.Organizer
 
         public bool RenameEpisodes { get; set; }
         public bool ReplaceIllegalCharacters { get; set; }
-        public int MultiEpisodeStyle { get; set; }
+        public ColonReplacementFormat ColonReplacementFormat { get; set; }
+        public MultiEpisodeStyle MultiEpisodeStyle { get; set; }
         public string StandardEpisodeFormat { get; set; }
         public string DailyEpisodeFormat { get; set; }
         public string AnimeEpisodeFormat { get; set; }

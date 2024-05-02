@@ -1,5 +1,3 @@
-﻿using System.Collections.Generic;
-
 namespace NzbDrone.Core.Notifications.Webhook
 {
     public class WebhookSeriesDeletePayload : WebhookPayload
@@ -8,4 +6,3 @@ namespace NzbDrone.Core.Notifications.Webhook
         public bool DeletedFiles { get; set; }
     }
 }
-

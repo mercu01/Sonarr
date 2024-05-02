@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { icons, kinds } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import { icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './HistoryEventTypeCell.css';
 
-function getIconName(eventType) {
+function getIconName(eventType, data) {
   switch (eventType) {
     case 'grabbed':
       return icons.DOWNLOADING;
@@ -16,7 +17,7 @@ function getIconName(eventType) {
     case 'downloadFailed':
       return icons.DOWNLOADING;
     case 'episodeFileDeleted':
-      return icons.DELETE;
+      return data.reason === 'MissingFromDisk' ? icons.FILE_MISSING : icons.DELETE;
     case 'episodeFileRenamed':
       return icons.ORGANIZE;
     case 'downloadIgnored':
@@ -38,26 +39,26 @@ function getIconKind(eventType) {
 function getTooltip(eventType, data) {
   switch (eventType) {
     case 'grabbed':
-      return `Episode grabbed from ${data.indexer} and sent to ${data.downloadClient}`;
+      return translate('EpisodeGrabbedTooltip', { indexer: data.indexer, downloadClient: data.downloadClient });
     case 'seriesFolderImported':
-      return 'Episode imported from series folder';
+      return translate('SeriesFolderImportedTooltip');
     case 'downloadFolderImported':
-      return 'Episode downloaded successfully and picked up from download client';
+      return translate('EpisodeImportedTooltip');
     case 'downloadFailed':
-      return 'Episode download failed';
+      return translate('DownloadFailedEpisodeTooltip');
     case 'episodeFileDeleted':
-      return 'Episode file deleted';
+      return data.reason === 'MissingFromDisk' ? translate('EpisodeFileMissingTooltip') : translate('EpisodeFileDeletedTooltip');
     case 'episodeFileRenamed':
-      return 'Episode file renamed';
+      return translate('EpisodeFileRenamedTooltip');
     case 'downloadIgnored':
-      return 'Episode Download Ignored';
+      return translate('DownloadIgnoredEpisodeTooltip');
     default:
-      return 'Unknown event';
+      return translate('UnknownEventTooltip');
   }
 }
 
 function HistoryEventTypeCell({ eventType, data }) {
-  const iconName = getIconName(eventType);
+  const iconName = getIconName(eventType, data);
   const iconKind = getIconKind(eventType);
   const tooltip = getTooltip(eventType, data);
 

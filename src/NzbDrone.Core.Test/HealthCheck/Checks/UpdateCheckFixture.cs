@@ -1,9 +1,10 @@
-﻿using Moq;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.HealthCheck.Checks;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Update;
 
@@ -12,6 +13,14 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
     [TestFixture]
     public class UpdateCheckFixture : CoreTest<UpdateCheck>
     {
+        [SetUp]
+        public void Setup()
+        {
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
+                  .Returns("Some Warning Message");
+        }
+
         [Test]
         public void should_return_error_when_app_folder_is_write_protected()
         {
@@ -31,7 +40,7 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
         [Test]
         public void should_return_error_when_app_folder_is_write_protected_and_update_automatically_is_enabled()
         {
-            MonoOnly();
+            PosixOnly();
 
             const string startupFolder = @"/opt/nzbdrone";
 
@@ -53,7 +62,7 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
         [Test]
         public void should_return_error_when_ui_folder_is_write_protected_and_update_automatically_is_enabled()
         {
-            MonoOnly();
+            PosixOnly();
 
             const string startupFolder = @"/opt/nzbdrone";
             const string uiFolder = @"/opt/nzbdrone/UI";
@@ -80,7 +89,7 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
         [Test]
         public void should_not_return_error_when_app_folder_is_write_protected_and_external_script_enabled()
         {
-            MonoOnly();
+            PosixOnly();
 
             Mocker.GetMock<IConfigFileProvider>()
                   .Setup(s => s.UpdateAutomatically)

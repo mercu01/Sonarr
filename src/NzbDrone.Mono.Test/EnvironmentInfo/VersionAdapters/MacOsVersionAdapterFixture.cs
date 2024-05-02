@@ -1,4 +1,3 @@
-﻿using System;
 using System.IO;
 using FluentAssertions;
 using Moq;
@@ -16,6 +15,9 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
         [TestCase("10.8")]
         [TestCase("10.8.1")]
         [TestCase("10.11.20")]
+        [TestCase("11.7.9")]
+        [TestCase("12.6.8")]
+        [TestCase("13.5.1")]
         public void should_get_version_info(string versionString)
         {
             var fileContent = File.ReadAllText(GetTestPath("Files/macOS/SystemVersion.plist")).Replace("10.0.0", versionString);
@@ -26,7 +28,7 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
                 .Setup(c => c.FolderExists("/System/Library/CoreServices/")).Returns(true);
 
             Mocker.GetMock<IDiskProvider>()
-                .Setup(c => c.GetFiles("/System/Library/CoreServices/", SearchOption.TopDirectoryOnly))
+                .Setup(c => c.GetFiles("/System/Library/CoreServices/", false))
                 .Returns(new[] { plistPath });
 
             Mocker.GetMock<IDiskProvider>()
@@ -39,8 +41,7 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
             versionName.FullName.Should().Be("macOS " + versionString);
         }
 
-
-        [TestCase]
+        [Test]
         public void should_detect_server()
         {
             var fileContent = File.ReadAllText(GetTestPath("Files/macOS/SystemVersion.plist"));
@@ -51,7 +52,7 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
                .Setup(c => c.FolderExists("/System/Library/CoreServices/")).Returns(true);
 
             Mocker.GetMock<IDiskProvider>()
-                .Setup(c => c.GetFiles("/System/Library/CoreServices/", SearchOption.TopDirectoryOnly))
+                .Setup(c => c.GetFiles("/System/Library/CoreServices/", false))
                 .Returns(new[] { plistPath });
 
             Mocker.GetMock<IDiskProvider>()
@@ -62,7 +63,7 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
             versionName.Name.Should().Be("macOS Server");
         }
 
-        [TestCase]
+        [Test]
         public void should_return_null_if_folder_doesnt_exist()
         {
             Mocker.GetMock<IDiskProvider>()
@@ -71,7 +72,7 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
             Subject.Read().Should().BeNull();
 
             Mocker.GetMock<IDiskProvider>()
-                .Verify(c => c.GetFiles(It.IsAny<string>(), SearchOption.TopDirectoryOnly), Times.Never());
+                .Verify(c => c.GetFiles(It.IsAny<string>(), false), Times.Never());
         }
     }
 }

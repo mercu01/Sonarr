@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import sortByName from 'Utilities/Array/sortByName';
-import { icons } from 'Helpers/Props';
-import FieldSet from 'Components/FieldSet';
 import Card from 'Components/Card';
+import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
 import PageSectionContent from 'Components/Page/PageSectionContent';
-import ImportList from './ImportList';
+import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import AddImportListModal from './AddImportListModal';
 import EditImportListModalConnector from './EditImportListModalConnector';
+import ImportList from './ImportList';
 import styles from './ImportLists.css';
 
 class ImportLists extends Component {
@@ -30,18 +30,18 @@ class ImportLists extends Component {
 
   onAddImportListPress = () => {
     this.setState({ isAddImportListModalOpen: true });
-  }
+  };
 
   onAddImportListModalClose = ({ listSelected = false } = {}) => {
     this.setState({
       isAddImportListModalOpen: false,
       isEditImportListModalOpen: listSelected
     });
-  }
+  };
 
   onEditImportListModalClose = () => {
     this.setState({ isEditImportListModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -59,16 +59,14 @@ class ImportLists extends Component {
     } = this.state;
 
     return (
-      <FieldSet
-        legend="Import Lists"
-      >
+      <FieldSet legend={translate('ImportLists')} >
         <PageSectionContent
-          errorMessage="Unable to load Lists"
+          errorMessage={translate('ImportListsLoadError')}
           {...otherProps}
         >
           <div className={styles.lists}>
             {
-              items.sort(sortByName).map((item) => {
+              items.map((item) => {
                 return (
                   <ImportList
                     key={item.id}

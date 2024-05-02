@@ -63,7 +63,7 @@ namespace NzbDrone.Core.Queue
             {
                 Series = trackedDownload.RemoteEpisode?.Series,
                 Episode = episode,
-                Language = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo.Language ?? Language.Unknown,
+                Languages = trackedDownload.RemoteEpisode?.Languages ?? new List<Language> { Language.Unknown },
                 Quality = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo.Quality ?? new QualityModel(Quality.Unknown),
                 Title = Parser.Parser.RemoveFileExtension(trackedDownload.DownloadItem.Title),
                 Size = trackedDownload.DownloadItem.TotalSize,
@@ -79,7 +79,9 @@ namespace NzbDrone.Core.Queue
                 Protocol = trackedDownload.Protocol,
                 DownloadClient = trackedDownload.DownloadItem.DownloadClientInfo.Name,
                 Indexer = trackedDownload.Indexer,
-                OutputPath = trackedDownload.DownloadItem.OutputPath.ToString()
+                OutputPath = trackedDownload.DownloadItem.OutputPath.ToString(),
+                Added = trackedDownload.Added,
+                DownloadClientHasPostImportCategory = trackedDownload.DownloadItem.DownloadClientInfo.HasPostImportCategory
             };
 
             queue.Id = HashConverter.GetHashInt31($"trackedDownload-{trackedDownload.DownloadClient}-{trackedDownload.DownloadItem.DownloadId}-ep{episode?.Id ?? 0}");

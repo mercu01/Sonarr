@@ -1,16 +1,18 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download
 {
     public interface IFailedDownloadService
     {
-        void MarkAsFailed(int historyId);
-        void MarkAsFailed(string downloadId);
+        void MarkAsFailed(int historyId, bool skipRedownload = false);
+        void MarkAsFailed(string downloadId, bool skipRedownload = false);
         void Check(TrackedDownload trackedDownload);
         void ProcessFailed(TrackedDownload trackedDownload);
     }
@@ -30,23 +32,34 @@ namespace NzbDrone.Core.Download
             _eventAggregator = eventAggregator;
         }
 
-        public void MarkAsFailed(int historyId)
+        public void MarkAsFailed(int historyId, bool skipRedownload = false)
         {
             var history = _historyService.Get(historyId);
 
             var downloadId = history.DownloadId;
             if (downloadId.IsNullOrWhiteSpace())
             {
-                PublishDownloadFailedEvent(new List<EpisodeHistory> { history }, "Manually marked as failed");
+                PublishDownloadFailedEvent(new List<EpisodeHistory> { history }, "Manually marked as failed", skipRedownload: skipRedownload);
+
+                return;
             }
-            else
+
+            var grabbedHistory = new List<EpisodeHistory>();
+
+            // If the history item is a grabbed item (it should be, at least from the UI) add it as the first history item
+            if (history.EventType == EpisodeHistoryEventType.Grabbed)
             {
-                var grabbedHistory = _historyService.Find(downloadId, EpisodeHistoryEventType.Grabbed).ToList();
-                PublishDownloadFailedEvent(grabbedHistory, "Manually marked as failed");
+                grabbedHistory.Add(history);
             }
+
+            // Add any other history items for the download ID then filter out any duplicate history items.
+            grabbedHistory.AddRange(_historyService.Find(downloadId, EpisodeHistoryEventType.Grabbed));
+            grabbedHistory = grabbedHistory.DistinctBy(h => h.Id).ToList();
+
+            PublishDownloadFailedEvent(grabbedHistory, "Manually marked as failed");
         }
 
-        public void MarkAsFailed(string downloadId)
+        public void MarkAsFailed(string downloadId, bool skipRedownload = false)
         {
             var history = _historyService.Find(downloadId, EpisodeHistoryEventType.Grabbed);
 
@@ -54,7 +67,7 @@ namespace NzbDrone.Core.Download
             {
                 var trackedDownload = _trackedDownloadService.Find(downloadId);
 
-                PublishDownloadFailedEvent(history, "Manually marked as failed", trackedDownload);
+                PublishDownloadFailedEvent(history, "Manually marked as failed", trackedDownload, skipRedownload: skipRedownload);
             }
         }
 
@@ -114,14 +127,15 @@ namespace NzbDrone.Core.Download
             PublishDownloadFailedEvent(grabbedItems, failure, trackedDownload);
         }
 
-        private void PublishDownloadFailedEvent(List<EpisodeHistory> historyItems, string message, TrackedDownload trackedDownload = null)
+        private void PublishDownloadFailedEvent(List<EpisodeHistory> historyItems, string message, TrackedDownload trackedDownload = null, bool skipRedownload = false)
         {
-            var historyItem = historyItems.First();
+            var historyItem = historyItems.Last();
+            Enum.TryParse(historyItem.Data.GetValueOrDefault(EpisodeHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
 
             var downloadFailedEvent = new DownloadFailedEvent
             {
                 SeriesId = historyItem.SeriesId,
-                EpisodeIds = historyItems.Select(h => h.EpisodeId).ToList(),
+                EpisodeIds = historyItems.Select(h => h.EpisodeId).Distinct().ToList(),
                 Quality = historyItem.Quality,
                 SourceTitle = historyItem.SourceTitle,
                 DownloadClient = historyItem.Data.GetValueOrDefault(EpisodeHistory.DOWNLOAD_CLIENT),
@@ -129,7 +143,9 @@ namespace NzbDrone.Core.Download
                 Message = message,
                 Data = historyItem.Data,
                 TrackedDownload = trackedDownload,
-                Language = historyItem.Language
+                Languages = historyItem.Languages,
+                SkipRedownload = skipRedownload,
+                ReleaseSource = releaseSource
             };
 
             _eventAggregator.PublishEvent(downloadFailedEvent);

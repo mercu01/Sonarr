@@ -1,22 +1,23 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, inputTypes, tooltipPositions } from 'Helpers/Props';
-import Icon from 'Components/Icon';
-import SpinnerButton from 'Components/Link/SpinnerButton';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
-import CheckInput from 'Components/Form/CheckInput';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
-import Popover from 'Components/Tooltip/Popover';
-import SeriesPoster from 'Series/SeriesPoster';
-import * as seriesTypes from 'Utilities/Series/seriesTypes';
 import SeriesMonitoringOptionsPopoverContent from 'AddSeries/SeriesMonitoringOptionsPopoverContent';
 import SeriesTypePopoverContent from 'AddSeries/SeriesTypePopoverContent';
+import CheckInput from 'Components/Form/CheckInput';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import Icon from 'Components/Icon';
+import SpinnerButton from 'Components/Link/SpinnerButton';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import Popover from 'Components/Tooltip/Popover';
+import { icons, inputTypes, kinds, tooltipPositions } from 'Helpers/Props';
+import SeriesPoster from 'Series/SeriesPoster';
+import * as seriesTypes from 'Utilities/Series/seriesTypes';
+import translate from 'Utilities/String/translate';
 import styles from './AddNewSeriesModalContent.css';
 
 class AddNewSeriesModalContent extends Component {
@@ -45,11 +46,7 @@ class AddNewSeriesModalContent extends Component {
 
   onQualityProfileIdChange = ({ value }) => {
     this.props.onInputChange({ name: 'qualityProfileId', value: parseInt(value) });
-  }
-
-  onLanguageProfileIdChange = ({ value }) => {
-    this.props.onInputChange({ name: 'languageProfileId', value: parseInt(value) });
-  }
+  };
 
   onAddSeriesPress = () => {
     const {
@@ -59,7 +56,7 @@ class AddNewSeriesModalContent extends Component {
     this.props.onAddSeriesPress(
       seriesType
     );
-  }
+  };
 
   //
   // Render
@@ -74,14 +71,12 @@ class AddNewSeriesModalContent extends Component {
       rootFolderPath,
       monitor,
       qualityProfileId,
-      languageProfileId,
       seriesType,
       seasonFolder,
       searchForMissingEpisodes,
       searchForCutoffUnmetEpisodes,
       folder,
       tags,
-      showLanguageProfile,
       isSmallScreen,
       isWindows,
       onModalClose,
@@ -125,7 +120,7 @@ class AddNewSeriesModalContent extends Component {
 
               <Form {...otherProps}>
                 <FormGroup>
-                  <FormLabel>Root Folder</FormLabel>
+                  <FormLabel>{translate('RootFolder')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.ROOT_FOLDER_SELECT}
@@ -138,7 +133,7 @@ class AddNewSeriesModalContent extends Component {
                       seriesFolder: folder,
                       isWindows
                     }}
-                    helpText={`'${folder}' subfolder will be created automatically`}
+                    helpText={translate('AddNewSeriesRootFolderHelpText', { folder })}
                     onChange={onInputChange}
                     {...rootFolderPath}
                   />
@@ -146,7 +141,7 @@ class AddNewSeriesModalContent extends Component {
 
                 <FormGroup>
                   <FormLabel>
-                    Monitor
+                    {translate('Monitor')}
 
                     <Popover
                       anchor={
@@ -155,7 +150,7 @@ class AddNewSeriesModalContent extends Component {
                           name={icons.INFO}
                         />
                       }
-                      title="Monitoring Options"
+                      title={translate('MonitoringOptions')}
                       body={<SeriesMonitoringOptionsPopoverContent />}
                       position={tooltipPositions.RIGHT}
                     />
@@ -170,7 +165,7 @@ class AddNewSeriesModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Quality Profile</FormLabel>
+                  <FormLabel>{translate('QualityProfile')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.QUALITY_PROFILE_SELECT}
@@ -180,20 +175,9 @@ class AddNewSeriesModalContent extends Component {
                   />
                 </FormGroup>
 
-                <FormGroup className={showLanguageProfile ? undefined : styles.hideLanguageProfile}>
-                  <FormLabel>Language Profile</FormLabel>
-
-                  <FormInputGroup
-                    type={inputTypes.LANGUAGE_PROFILE_SELECT}
-                    name="languageProfileId"
-                    onChange={this.onLanguageProfileIdChange}
-                    {...languageProfileId}
-                  />
-                </FormGroup>
-
                 <FormGroup>
                   <FormLabel>
-                    Series Type
+                    {translate('SeriesType')}
 
                     <Popover
                       anchor={
@@ -202,7 +186,7 @@ class AddNewSeriesModalContent extends Component {
                           name={icons.INFO}
                         />
                       }
-                      title="Series Types"
+                      title={translate('SeriesTypes')}
                       body={<SeriesTypePopoverContent />}
                       position={tooltipPositions.RIGHT}
                     />
@@ -214,11 +198,12 @@ class AddNewSeriesModalContent extends Component {
                     onChange={onInputChange}
                     {...seriesType}
                     value={this.state.seriesType}
+                    helpText={translate('SeriesTypesHelpText')}
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Season Folder</FormLabel>
+                  <FormLabel>{translate('SeasonFolder')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -229,7 +214,7 @@ class AddNewSeriesModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Tags</FormLabel>
+                  <FormLabel>{translate('Tags')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TAG}
@@ -247,7 +232,7 @@ class AddNewSeriesModalContent extends Component {
           <div>
             <label className={styles.searchLabelContainer}>
               <span className={styles.searchLabel}>
-                Start search for missing episodes
+                {translate('AddNewSeriesSearchForMissingEpisodes')}
               </span>
 
               <CheckInput
@@ -261,7 +246,7 @@ class AddNewSeriesModalContent extends Component {
 
             <label className={styles.searchLabelContainer}>
               <span className={styles.searchLabel}>
-                Start search for cutoff unmet episodes
+                {translate('AddNewSeriesSearchForCutoffUnmetEpisodes')}
               </span>
 
               <CheckInput
@@ -280,7 +265,7 @@ class AddNewSeriesModalContent extends Component {
             isSpinning={isAdding}
             onPress={this.onAddSeriesPress}
           >
-            Add {title}
+            {translate('AddSeriesWithTitle', { title })}
           </SpinnerButton>
         </ModalFooter>
       </ModalContent>
@@ -299,14 +284,12 @@ AddNewSeriesModalContent.propTypes = {
   rootFolderPath: PropTypes.object,
   monitor: PropTypes.object.isRequired,
   qualityProfileId: PropTypes.object,
-  languageProfileId: PropTypes.object,
   seriesType: PropTypes.object.isRequired,
   seasonFolder: PropTypes.object.isRequired,
   searchForMissingEpisodes: PropTypes.object.isRequired,
   searchForCutoffUnmetEpisodes: PropTypes.object.isRequired,
   folder: PropTypes.string.isRequired,
   tags: PropTypes.object.isRequired,
-  showLanguageProfile: PropTypes.bool.isRequired,
   isSmallScreen: PropTypes.bool.isRequired,
   isWindows: PropTypes.bool.isRequired,
   onModalClose: PropTypes.func.isRequired,

@@ -9,17 +9,17 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd.JsonConverters
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var ts = (TimeSpan)value;
-                writer.WriteValue(ts.ToString());
+            writer.WriteValue(ts.ToString());
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             var split = reader.Value.ToString().Split(':').Select(int.Parse).ToArray();
 
-            switch (split.Count())
+            switch (split.Length)
             {
                 case 4:
-                    return new TimeSpan(split[0] * 24 + split[1], split[2], split[3]);
+                    return new TimeSpan((split[0] * 24) + split[1], split[2], split[3]);
                 case 3:
                     return new TimeSpan(split[0], split[1], split[2]);
                 default:

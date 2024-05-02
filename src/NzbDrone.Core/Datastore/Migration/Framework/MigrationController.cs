@@ -1,68 +1,91 @@
-﻿using System.Data.SQLite;
+using System;
 using System.Diagnostics;
 using System.Reflection;
 using FluentMigrator.Runner;
+using FluentMigrator.Runner.Generators;
 using FluentMigrator.Runner.Initialization;
+using FluentMigrator.Runner.Processors;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NLog;
+using NLog.Extensions.Logging;
 
 namespace NzbDrone.Core.Datastore.Migration.Framework
 {
     public interface IMigrationController
     {
-        void Migrate(string connectionString, MigrationContext migrationContext);
+        void Migrate(string connectionString, MigrationContext migrationContext, DatabaseType databaseType);
     }
 
     public class MigrationController : IMigrationController
     {
-        private readonly IAnnouncer _announcer;
+        private readonly Logger _logger;
+        private readonly ILoggerProvider _migrationLoggerProvider;
 
-        public MigrationController(IAnnouncer announcer)
+        public MigrationController(Logger logger,
+                                   ILoggerProvider migrationLoggerProvider)
         {
-            _announcer = announcer;
+            _logger = logger;
+            _migrationLoggerProvider = migrationLoggerProvider;
         }
 
-        public void Migrate(string connectionString, MigrationContext migrationContext)
+        public void Migrate(string connectionString, MigrationContext migrationContext, DatabaseType databaseType)
         {
             var sw = Stopwatch.StartNew();
 
-            _announcer.Heading("Checking database for required migrations " + connectionString);
+            _logger.Info("*** Migrating {0} ***", connectionString);
 
-            var assembly = Assembly.GetExecutingAssembly();
+            ServiceProvider serviceProvider;
 
-            var runnerContext = new RunnerContext(_announcer)
+            var db = databaseType == DatabaseType.SQLite ? "sqlite" : "postgres";
+
+            serviceProvider = new ServiceCollection()
+                .AddLogging(b => b.AddNLog())
+                .AddFluentMigratorCore()
+                .Configure<RunnerOptions>(cfg => cfg.IncludeUntaggedMaintenances = true)
+                .ConfigureRunner(
+                    builder => builder
+                    .AddPostgres()
+                    .AddNzbDroneSQLite()
+                    .WithGlobalConnectionString(connectionString)
+                    .ScanIn(Assembly.GetExecutingAssembly()).For.All())
+                .Configure<TypeFilterOptions>(opt => opt.Namespace = "NzbDrone.Core.Datastore.Migration")
+                .Configure<ProcessorOptions>(opt =>
+                {
+                    opt.PreviewOnly = false;
+                    opt.Timeout = TimeSpan.FromMinutes(5);
+                })
+                .Configure<SelectingProcessorAccessorOptions>(cfg =>
+                {
+                    cfg.ProcessorId = db;
+                })
+                .Configure<SelectingGeneratorAccessorOptions>(cfg =>
+                {
+                    cfg.GeneratorId = db;
+                })
+                .BuildServiceProvider();
+
+            using (var scope = serviceProvider.CreateScope())
             {
-                Namespace = "NzbDrone.Core.Datastore.Migration",
-                ApplicationContext = migrationContext
-            };
+                var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
 
-            var options = new MigrationOptions { PreviewOnly = false, Timeout = 60 };
-            var factory = new NzbDroneSqliteProcessorFactory();
-            var processor = factory.Create(connectionString, _announcer, options);
-
-            try
-            {
-                var runner = new MigrationRunner(assembly, runnerContext, processor);
+                MigrationContext.Current = migrationContext;
 
                 if (migrationContext.DesiredVersion.HasValue)
                 {
-                    runner.MigrateUp(migrationContext.DesiredVersion.Value, true);
+                    runner.MigrateUp(migrationContext.DesiredVersion.Value);
                 }
                 else
                 {
-                    runner.MigrateUp(true);
+                    runner.MigrateUp();
                 }
 
-                processor.Dispose();
-            }
-            catch (SQLiteException)
-            {
-                processor.Dispose();
-                SQLiteConnection.ClearAllPools();
-                throw;
+                MigrationContext.Current = null;
             }
 
             sw.Stop();
 
-            _announcer.ElapsedTime(sw.Elapsed);
+            _logger.Debug("Took: {0}", sw.Elapsed);
         }
     }
 }

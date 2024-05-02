@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Linq;
 using System.Text.RegularExpressions;
 using FluentMigrator;
@@ -19,12 +19,12 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void ConvertQualityTitle(IDbConnection conn, IDbTransaction tran)
         {
-            using (IDbCommand namingConfigCmd = conn.CreateCommand())
+            using (var namingConfigCmd = conn.CreateCommand())
             {
                 namingConfigCmd.Transaction = tran;
-                namingConfigCmd.CommandText = @"SELECT StandardEpisodeFormat, DailyEpisodeFormat, AnimeEpisodeFormat FROM NamingConfig LIMIT 1";
+                namingConfigCmd.CommandText = "SELECT \"StandardEpisodeFormat\", \"DailyEpisodeFormat\", \"AnimeEpisodeFormat\" FROM \"NamingConfig\" LIMIT 1";
 
-                using (IDataReader configReader = namingConfigCmd.ExecuteReader())
+                using (var configReader = namingConfigCmd.ExecuteReader())
                 {
                     while (configReader.Read())
                     {
@@ -36,11 +36,11 @@ namespace NzbDrone.Core.Datastore.Migration
                         var newDaily = GetNewFormat(currentDaily);
                         var newAnime = GetNewFormat(currentAnime);
 
-                        using (IDbCommand updateCmd = conn.CreateCommand())
+                        using (var updateCmd = conn.CreateCommand())
                         {
                             updateCmd.Transaction = tran;
 
-                            updateCmd.CommandText = "UPDATE NamingConfig SET StandardEpisodeFormat = ?, DailyEpisodeFormat = ?, AnimeEpisodeFormat = ?";
+                            updateCmd.CommandText = "UPDATE \"NamingConfig\" SET \"StandardEpisodeFormat\" = ?, \"DailyEpisodeFormat\" = ?, \"AnimeEpisodeFormat\" = ?";
                             updateCmd.AddParameter(newStandard);
                             updateCmd.AddParameter(newDaily);
                             updateCmd.AddParameter(newAnime);
@@ -60,7 +60,7 @@ namespace NzbDrone.Core.Datastore.Migration
             foreach (Match match in matches)
             {
                 var tokenMatch = GetTokenMatch(match);
-                var qualityFullToken = string.Format("Quality{0}Full", tokenMatch.Separator); ;
+                var qualityFullToken = string.Format("Quality{0}Full", tokenMatch.Separator);
 
                 if (tokenMatch.Token.All(t => !char.IsLetter(t) || char.IsLower(t)))
                 {

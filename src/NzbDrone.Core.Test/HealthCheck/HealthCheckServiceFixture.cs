@@ -1,21 +1,20 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Messaging;
+using NzbDrone.Common.TPL;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Tv.Events;
+using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.HealthCheck
 {
     public class HealthCheckServiceFixture : CoreTest<HealthCheckService>
     {
-        FakeHealthCheck _healthCheck;
+        private FakeHealthCheck _healthCheck;
 
         [SetUp]
         public void SetUp()
@@ -24,6 +23,10 @@ namespace NzbDrone.Core.Test.HealthCheck
 
             Mocker.SetConstant<IEnumerable<IProvideHealthCheck>>(new[] { _healthCheck });
             Mocker.SetConstant<ICacheManager>(Mocker.Resolve<CacheManager>());
+            Mocker.SetConstant<IDebounceManager>(Mocker.Resolve<DebounceManager>());
+
+            Mocker.GetMock<IDebounceManager>().Setup(s => s.CreateDebouncer(It.IsAny<Action>(), It.IsAny<TimeSpan>()))
+                .Returns<Action, TimeSpan>((a, t) => new MockDebouncer(a, t));
         }
 
         [Test]
@@ -49,7 +52,6 @@ namespace NzbDrone.Core.Test.HealthCheck
 
             _healthCheck.Executed.Should().BeTrue();
         }
-
     }
 
     public class FakeEvent : IEvent

@@ -1,7 +1,8 @@
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
-using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv;
@@ -19,7 +20,8 @@ namespace NzbDrone.Core.HealthCheck.Checks
         private readonly IDiskProvider _diskProvider;
         private readonly IRootFolderService _rootFolderService;
 
-        public RootFolderCheck(ISeriesService seriesService, IDiskProvider diskProvider, IRootFolderService rootFolderService)
+        public RootFolderCheck(ISeriesService seriesService, IDiskProvider diskProvider, IRootFolderService rootFolderService, ILocalizationService localizationService)
+            : base(localizationService)
         {
             _seriesService = seriesService;
             _diskProvider = diskProvider;
@@ -28,20 +30,37 @@ namespace NzbDrone.Core.HealthCheck.Checks
 
         public override HealthCheck Check()
         {
-            var rootFolders = _seriesService.GetAllSeriesPaths().Select(s => _rootFolderService.GetBestRootFolderPath(s)).Distinct();
+            var rootFolders = _seriesService.GetAllSeriesPaths()
+                .Select(s => _rootFolderService.GetBestRootFolderPath(s.Value))
+                .Distinct();
 
-            var missingRootFolders = rootFolders.Where(s => !_diskProvider.FolderExists(s))
-                                                          .ToList();
+            var missingRootFolders = rootFolders.Where(s => !s.IsPathValid(PathValidationType.CurrentOs) || !_diskProvider.FolderExists(s))
+                .ToList();
 
             if (missingRootFolders.Any())
             {
                 if (missingRootFolders.Count == 1)
                 {
-                    return new HealthCheck(GetType(), HealthCheckResult.Error, "Missing root folder: " + missingRootFolders.First(), "#missing-root-folder");
+                    return new HealthCheck(GetType(),
+                        HealthCheckResult.Error,
+                        _localizationService.GetLocalizedString(
+                            "RootFolderMissingHealthCheckMessage",
+                            new Dictionary<string, object>
+                            {
+                                { "rootFolderPath", missingRootFolders.First() }
+                            }),
+                        "#missing-root-folder");
                 }
 
-                var message = string.Format("Multiple root folders are missing: {0}", string.Join(" | ", missingRootFolders));
-                return new HealthCheck(GetType(), HealthCheckResult.Error, message, "#missing-root-folder");
+                return new HealthCheck(GetType(),
+                    HealthCheckResult.Error,
+                    _localizationService.GetLocalizedString(
+                        "RootFolderMultipleMissingHealthCheckMessage",
+                        new Dictionary<string, object>
+                        {
+                            { "rootFolderPaths", string.Join(" | ", missingRootFolders) }
+                        }),
+                    "#missing-root-folder");
             }
 
             return new HealthCheck(GetType());

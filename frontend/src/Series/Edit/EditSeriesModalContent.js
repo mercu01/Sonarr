@@ -1,18 +1,21 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
-import Button from 'Components/Link/Button';
-import SpinnerButton from 'Components/Link/SpinnerButton';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
+import SeriesMonitorNewItemsOptionsPopoverContent from 'AddSeries/SeriesMonitorNewItemsOptionsPopoverContent';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
-
+import FormLabel from 'Components/Form/FormLabel';
+import Icon from 'Components/Icon';
+import Button from 'Components/Link/Button';
+import SpinnerButton from 'Components/Link/SpinnerButton';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import Popover from 'Components/Tooltip/Popover';
+import { icons, inputTypes, kinds, tooltipPositions } from 'Helpers/Props';
 import MoveSeriesModal from 'Series/MoveSeries/MoveSeriesModal';
+import translate from 'Utilities/String/translate';
 import styles from './EditSeriesModalContent.css';
 
 class EditSeriesModalContent extends Component {
@@ -31,6 +34,10 @@ class EditSeriesModalContent extends Component {
   //
   // Listeners
 
+  onCancelPress = () => {
+    this.setState({ isConfirmMoveModalOpen: false });
+  };
+
   onSavePress = () => {
     const {
       isPathChanging,
@@ -44,13 +51,13 @@ class EditSeriesModalContent extends Component {
 
       onSavePress(false);
     }
-  }
+  };
 
   onMoveSeriesPress = () => {
     this.setState({ isConfirmMoveModalOpen: false });
 
     this.props.onSavePress(true);
-  }
+  };
 
   //
   // Render
@@ -59,7 +66,6 @@ class EditSeriesModalContent extends Component {
     const {
       item,
       isSaving,
-      showLanguageProfile,
       originalPath,
       onInputChange,
       onModalClose,
@@ -69,9 +75,9 @@ class EditSeriesModalContent extends Component {
 
     const {
       monitored,
+      monitorNewItems,
       seasonFolder,
       qualityProfileId,
-      languageProfileId,
       seriesType,
       path,
       title,
@@ -96,44 +102,69 @@ class EditSeriesModalContent extends Component {
                 {...title}
                 onChange={onInputChange}
               />
-             
+
             </FormGroup>
             <FormGroup>
               <FormLabel>Sonarr Scene Naming Exceptions + link to add google forms</FormLabel>
               {otherProps.alternateTitlesLinks.map((object, i) => <div key={object.key}><span>{object.name} </span><a href={object.url} target="_blank">[link google form]</a></div>)}
-             
-              <div> 
+
+              <div>
                 <span>
                   <a href="https://docs.google.com/spreadsheets/d/1PiIvzijwcdALKQWfGE3j4lwnOqmDkhB48fyQTArJpI4/edit#gid=675284162" target="_blank">Excel Naming Exception</a>
                 </span>
               </div>
             </FormGroup>
             <FormGroup>
-              <FormLabel>Monitored</FormLabel>
+              <FormLabel>{translate('Monitored')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="monitored"
-                helpText="Download monitored episodes in this series"
+                helpText={translate('MonitoredEpisodesHelpText')}
                 {...monitored}
                 onChange={onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Use Season Folder</FormLabel>
+              <FormLabel>
+                {translate('MonitorNewSeasons')}
+                <Popover
+                  anchor={
+                    <Icon
+                      className={styles.labelIcon}
+                      name={icons.INFO}
+                    />
+                  }
+                  title={translate('MonitorNewSeasons')}
+                  body={<SeriesMonitorNewItemsOptionsPopoverContent />}
+                  position={tooltipPositions.RIGHT}
+                />
+              </FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.MONITOR_NEW_ITEMS_SELECT}
+                name="monitorNewItems"
+                helpText={translate('MonitorNewSeasonsHelpText')}
+                {...monitorNewItems}
+                onChange={onInputChange}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <FormLabel>{translate('UseSeasonFolder')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="seasonFolder"
-                helpText="Sort episodes into season folders"
+                helpText={translate('UseSeasonFolderHelpText')}
                 {...seasonFolder}
                 onChange={onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Quality Profile</FormLabel>
+              <FormLabel>{translate('QualityProfile')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.QUALITY_PROFILE_SELECT}
@@ -143,33 +174,20 @@ class EditSeriesModalContent extends Component {
               />
             </FormGroup>
 
-            {
-              showLanguageProfile &&
-                <FormGroup>
-                  <FormLabel>Language Profile</FormLabel>
-
-                  <FormInputGroup
-                    type={inputTypes.LANGUAGE_PROFILE_SELECT}
-                    name="languageProfileId"
-                    {...languageProfileId}
-                    onChange={onInputChange}
-                  />
-                </FormGroup>
-            }
-
             <FormGroup>
-              <FormLabel>Series Type</FormLabel>
+              <FormLabel>{translate('SeriesType')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.SERIES_TYPE_SELECT}
                 name="seriesType"
                 {...seriesType}
+                helpText={translate('SeriesTypesHelpText')}
                 onChange={onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Path</FormLabel>
+              <FormLabel>{translate('Path')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.PATH}
@@ -180,7 +198,7 @@ class EditSeriesModalContent extends Component {
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Tags</FormLabel>
+              <FormLabel>{translate('Tags')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TAG}
@@ -198,20 +216,20 @@ class EditSeriesModalContent extends Component {
             kind={kinds.DANGER}
             onPress={onDeleteSeriesPress}
           >
-            Delete
+            {translate('Delete')}
           </Button>
 
           <Button
             onPress={onModalClose}
           >
-            Cancel
+            {translate('Cancel')}
           </Button>
 
           <SpinnerButton
             isSpinning={isSaving}
             onPress={this.onSavePress}
           >
-            Save
+            {translate('Save')}
           </SpinnerButton>
         </ModalFooter>
 
@@ -219,6 +237,7 @@ class EditSeriesModalContent extends Component {
           originalPath={originalPath}
           destinationPath={path.value}
           isOpen={this.state.isConfirmMoveModalOpen}
+          onModalClose={this.onCancelPress}
           onSavePress={this.onSavePress}
           onMoveSeriesPress={this.onMoveSeriesPress}
         />
@@ -232,7 +251,6 @@ EditSeriesModalContent.propTypes = {
   title: PropTypes.string.isRequired,
   item: PropTypes.object.isRequired,
   isSaving: PropTypes.bool.isRequired,
-  showLanguageProfile: PropTypes.bool.isRequired,
   isPathChanging: PropTypes.bool.isRequired,
   originalPath: PropTypes.string.isRequired,
   onInputChange: PropTypes.func.isRequired,

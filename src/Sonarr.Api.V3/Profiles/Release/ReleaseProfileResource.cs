@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using NzbDrone.Core.Profiles.Releases;
 using Sonarr.Http.REST;
 
@@ -12,17 +11,15 @@ namespace Sonarr.Api.V3.Profiles.Release
     {
         public string Name { get; set; }
         public bool Enabled { get; set; }
+
         // Is List<string>, string or JArray, we accept 'string' with POST for backward compatibility
         public object Required { get; set; }
         public object Ignored { get; set; }
-        public List<KeyValuePair<string, int>> Preferred { get; set; }
-        public bool IncludePreferredWhenRenaming { get; set; }
         public int IndexerId { get; set; }
         public HashSet<int> Tags { get; set; }
 
         public ReleaseProfileResource()
         {
-            Preferred = new List<KeyValuePair<string, int>>();
             Tags = new HashSet<int>();
         }
     }
@@ -31,7 +28,10 @@ namespace Sonarr.Api.V3.Profiles.Release
     {
         public static ReleaseProfileResource ToResource(this ReleaseProfile model)
         {
-            if (model == null) return null;
+            if (model == null)
+            {
+                return null;
+            }
 
             return new ReleaseProfileResource
             {
@@ -40,8 +40,6 @@ namespace Sonarr.Api.V3.Profiles.Release
                 Enabled = model.Enabled,
                 Required = model.Required ?? new List<string>(),
                 Ignored = model.Ignored ?? new List<string>(),
-                Preferred = model.Preferred,
-                IncludePreferredWhenRenaming = model.IncludePreferredWhenRenaming,
                 IndexerId = model.IndexerId,
                 Tags = new HashSet<int>(model.Tags)
             };
@@ -49,7 +47,10 @@ namespace Sonarr.Api.V3.Profiles.Release
 
         public static ReleaseProfile ToModel(this ReleaseProfileResource resource)
         {
-            if (resource == null) return null;
+            if (resource == null)
+            {
+                return null;
+            }
 
             return new ReleaseProfile
             {
@@ -58,8 +59,6 @@ namespace Sonarr.Api.V3.Profiles.Release
                 Enabled = resource.Enabled,
                 Required = resource.MapRequired(),
                 Ignored = resource.MapIgnored(),
-                Preferred = resource.Preferred,
-                IncludePreferredWhenRenaming = resource.IncludePreferredWhenRenaming,
                 IndexerId = resource.IndexerId,
                 Tags = new HashSet<int>(resource.Tags)
             };
@@ -72,7 +71,7 @@ namespace Sonarr.Api.V3.Profiles.Release
 
         public static List<string> MapRequired(this ReleaseProfileResource profile) => ParseArray(profile.Required, "required");
         public static List<string> MapIgnored(this ReleaseProfileResource profile) => ParseArray(profile.Ignored, "ignored");
-        
+
         private static List<string> ParseArray(object resource, string title)
         {
             if (resource == null)
@@ -85,9 +84,17 @@ namespace Sonarr.Api.V3.Profiles.Release
                 return list;
             }
 
-            if (resource is JArray jarray)
+            if (resource is JsonElement array)
             {
-                return jarray.ToObject<List<string>>();
+                if (array.ValueKind == JsonValueKind.String)
+                {
+                    return array.GetString().Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                }
+
+                if (array.ValueKind == JsonValueKind.Array)
+                {
+                    return JsonSerializer.Deserialize<List<string>>(array);
+                }
             }
 
             if (resource is string str)

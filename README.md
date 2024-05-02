@@ -186,6 +186,11 @@ Copy the [following](torrentUnrar.sh) .sh to somewhere accessible to qbittorent,
 
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
 
+[![Translated](https://translate.servarr.com/widgets/servarr/-/sonarr/svg-badge.svg)](https://translate.servarr.com/engage/servarr/)
+[![Backers on Open Collective](https://opencollective.com/Sonarr/backers/badge.svg)](#backers)
+[![Sponsors on Open Collective](https://opencollective.com/Sonarr/sponsors/badge.svg)](#sponsors)
+[![Mega Sponsors on Open Collective](https://opencollective.com/Sonarr/megasponsors/badge.svg)](#mega-sponsors)
+
 Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new episodes of your favorite shows and will grab, sort and rename them. It can also be configured to automatically upgrade the quality of files already downloaded when a better quality format becomes available.
 
 ## Getting Started
@@ -193,10 +198,11 @@ Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS fee
 - [Download/Installation](https://sonarr.tv/#downloads-v3)
 - [FAQ](https://wiki.servarr.com/sonarr/faq)
 - [Wiki](https://wiki.servarr.com/Sonarr)
-- [(WIP) API Documentation](https://github.com/Sonarr/Sonarr/wiki/API)
+- [v4 Beta API Documentation](https://sonarr.tv/docs/api)
 - [Donate](https://sonarr.tv/donate)
 
 ## Support
+
 Note: GitHub Issues are for Bugs and Feature Requests Only
 
 - [Forums](https://forums.sonarr.tv/)
@@ -205,8 +211,6 @@ Note: GitHub Issues are for Bugs and Feature Requests Only
 - [IRC](https://web.libera.chat/?channels=#sonarr)
 - [Reddit](https://www.reddit.com/r/sonarr)
 - [Wiki](https://wiki.servarr.com/sonarr)
-
-
 
 ## Features
 
@@ -227,6 +231,7 @@ Note: GitHub Issues are for Bugs and Feature Requests Only
 ## Contributing
 
 ### Development
+
 This project exists thanks to all the people who contribute. [Contribute](CONTRIBUTING.md).
 
 <a href="https://github.com/Sonarr/Sonarr/graphs/contributors"><img src="https://opencollective.com/Sonarr/contributors.svg?width=890&button=false" /></a>
@@ -259,4 +264,4 @@ Thank you to [<img src="/Logo/Jetbrains/jetbrains.svg" alt="JetBrains" width="32
 ### Licenses
 
 - [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)	
-- Copyright 2010-2021
+- Copyright 2010-2023
