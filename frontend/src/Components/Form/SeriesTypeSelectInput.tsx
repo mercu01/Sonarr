@@ -23,7 +23,7 @@ const seriesTypeOptions: ISeriesTypeOption[] = [
     key: seriesTypes.STANDARD,
     value: 'Standard',
     get format() {
-      return translate('StandardEpisodeTypeFormat', { format: 'S01E05' });
+      return 'Standard and spanish "Cap.XXX"';
     },
   },
   {
