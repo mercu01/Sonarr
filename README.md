@@ -53,8 +53,10 @@ Two tasks added, to automate the search for new episodes
 
 #### How to use
 1. Choose you  lavel correct architecture:
-    - amd64 -> mercu/sonarr-atomohd:amd64
     - arm64 -> mercu/sonarr-atomohd:arm64
+> [!CAUTION]
+> NOT WORK!
+> - amd64 -> mercu/sonarr-atomohd:amd64
 2. I use portainer to create a new stack:
 
 Stack name: test-sonnar-clear
