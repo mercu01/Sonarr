@@ -19,6 +19,7 @@ Will generate the following search format in jackett in **season mode**:
 | Mandalorean T2 | {Series.Title} T{SeasonNumber:0} | N |
 | Mandalorean T 2 | {Series.Title} T {SeasonNumber:0}   | N |
 | Mandalorean T02 | {Series.Title} T{SeasonNumber:00}   | N |
+| Mandalorean Temporada 2 | {Series.Title} Temporada {SeasonNumber:0} | N |
 | Mandalorean S02 | {Series.Title} S{SeasonNumber:00} | N | Standard format
 
 #### How to use?
@@ -35,7 +36,9 @@ The title field is enabled, you can manually add search terms:
 <img src="Sample3.jpg" alt="Sample change title">
 
 You can send the translation to sonarr, so that other users have it:
+
 ![image](https://github.com/mercu01/Sonarr/assets/9451876/665a0ef3-698b-461b-ac0e-e9ba371224a0)
+
 ![image](https://github.com/mercu01/Sonarr/assets/9451876/9b162d4e-99eb-4df8-8142-921dac37d05f)
 
 
@@ -49,7 +52,10 @@ Two tasks added, to automate the search for new episodes
 - Cutoff Unmet Episode Search	(Wanted -> Cuttoff Unmet, monitored only) every 6 hours
 
 #### How to use
-1. I use portainer to create a new stack:
+1. Choose you  lavel correct architecture:
+    - amd64 -> mercu/sonarr-atomohd:amd64
+    - arm64 -> mercu/sonarr-atomohd:arm64
+2. I use portainer to create a new stack:
 
 Stack name: test-sonnar-clear
 
@@ -58,7 +64,7 @@ Stack content:
 version: "2.1"
 services:
   sonarr:
-    image: mercu/sonarr-v3-stable:latest
+    image: mercu/sonarr-atomohd:arm64
     container_name: sonarr-clear
     environment:
       - PUID=1000
@@ -72,82 +78,17 @@ services:
       - 8989:8989 
     restart: unless-stopped
 ```   
-2. Open url sonar, ex: http://0.0.0.0:8989/, ok work.
+2. Open url sonar, ex: http://0.0.0.0:8989/, ok work
+3. Configure custom format:
+   
+![image](https://github.com/mercu01/Sonarr/assets/9451876/2c67204b-4ce7-48cc-a442-6b63485c77d4)
 
-3. Download patch: "patch_build_mono.zip" or build branch. [Download](patch_build_mono.zip)
-```yaml
-wget https://github.com/mercu01/Sonarr/raw/main-atomoHD/patch_build_mono.zip
-``` 
-4. Unzip the patch in "/sonarr-clear/patch/"
-```yaml
-sudo unzip ./patch_build_mono.zip -d /sonarr-clear/patch/
-``` 
-5. Change the Stack content created before:
-```yaml
-version: "2.1"
-services:
-  sonarr:
-    image: linuxserver/sonarr:3.0.10
-    container_name: sonarr-clear
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
-    volumes:
-      - /sonarr-clear/config:/config
-      - /sonarr-clear/tvseries:/tv #optional
-      - /sonarr-clear/downloadclient-downloads:/downloads #optional
-      - type: bind
-        source: /sonarr-clear/patch/UI
-        target: /app/sonarr/bin/UI
-      - type: bind
-        source: /sonarr-clear/patch/Sonarr.Core.dll
-        target: /app/sonarr/bin/Sonarr.Core.dll
-      - type: bind
-        source: /sonarr-clear/patch/Sonarr.Api.V3.dll
-        target: /app/sonarr/bin/Sonarr.Api.V3.dll
-      - type: bind
-        source: /sonarr-clear/patch/Sonarr.Common.dll
-        target: /app/sonarr/bin/Sonarr.Common.dll
-    ports:
-      - 8989:8989 
-    restart: unless-stopped
-``` 
+![image](https://github.com/mercu01/Sonarr/assets/9451876/538e07f5-0836-43f7-9f4e-fb8ac350bc8d)
 
-#### Other example docker compose:
-```yaml
-  sonarr:
-    image: linuxserver/sonarr:3.0.10
-    container_name: sonarr
-    networks:
-      - default
-    depends_on:
-      - qbittorrent
-      - jackett
-    volumes:
-      - /path/to/conf:/config
-      - /path/to/tv:/tv
-      - /path/to/downloads:/downloads
-      - type: bind
-        source: patch/UI
-        target: /app/sonarr/bin/UI
-      - type: bind
-        source: patch/Sonarr.Core.dll
-        target: /app/sonarr/bin/Sonarr.Core.dll
-      - type: bind
-        source: patch/Sonarr.Api.V3.dll
-        target: /app/sonarr/bin/Sonarr.Api.V3.dll
-      - type: bind
-        source: patch/Sonarr.Common.dll
-        target: /app/sonarr/bin/Sonarr.Common.dll
-    ports:
-      - 8989:8989
-    restart: unless-stopped
-    environment:
-      - UMASK_SET=022 #optional
-      - PUID=1000
-      - PGID=1000
-```
+4. Configure profile with custom format:
+   
+![image](https://github.com/mercu01/Sonarr/assets/9451876/a9856d32-df1d-495a-9d21-8b27b8d7236d)
+
 #### Tips 
 - Sonarr Indexers - Enable RSS:
   - bt4g url term[Cap.] -> https://bt4gprx.com/search?q=Cap.&page=rss
