@@ -73,11 +73,12 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Title.the.Series.2009.S01E14.Spanish.HDTV.XviD-LOL")]
         [TestCase("Series Title - Temporada 1 [HDTV 720p][Cap.101][AC3 5.1 Castellano][www.pctnew.ORG]")]
         [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.206][AC3 5.1 Español Castellano]")]
-        [TestCase("Title.the.Series.Cap.305.saddsasda.2323")]//spanish
-        [TestCase("Series Title - cap.306 - Pilot.english.sub")]//spanish
-        [TestCase("Series Title - Temporada 5 - Pilot.english.sub")]//spanish
-        [TestCase("Series Title 6x14")]//spanish
-        [TestCase("Series Title 08x07")]//spanish
+
+        [TestCase("Title.the.Series.Cap.305.saddsasda.2323")] // spanish
+        [TestCase("Series Title - cap.306 - Pilot.english.sub")]// spanish
+        [TestCase("Series Title - Temporada 5 - Pilot.english.sub")]// spanish
+        [TestCase("Series Title 6x14")]// spanish
+        [TestCase("Series Title 08x07")]// spanish
         public void should_parse_language_spanish(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
@@ -383,7 +384,7 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             var result = LanguageParser.ParseLanguages(postTitle);
             result.Should().BeEquivalentTo(new[] { Language.Hindi, Language.English });
-    }
+        }
 
         [TestCase("Series S01 [WEB-DL NF 1080p EAC3 2.0 esp cat Subs][HDOlimpo]")]
         [TestCase("Series S02E08 M+ WEBDL 1080p SPA-CAT DD5.1 SUBS x264")]
