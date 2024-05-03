@@ -52,7 +52,7 @@ Two tasks added, to automate the search for new episodes
 - Cutoff Unmet Episode Search	(Wanted -> Cuttoff Unmet, monitored only) every 6 hours
 
 #### How to use
-1. Choose you  lavel correct architecture:
+1. Choose you correct label architecture:
     - arm64 -> mercu/sonarr-atomohd:arm64
 > [!CAUTION]
 > NOT WORK!
