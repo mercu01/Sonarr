@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Tags;
@@ -11,7 +12,9 @@ using Sonarr.Http.REST.Attributes;
 namespace Sonarr.Api.V3.Tags
 {
     [V3ApiController]
-    public class TagController : RestControllerWithSignalR<TagResource, Tag>, IHandle<TagsUpdatedEvent>
+    public class TagController : RestControllerWithSignalR<TagResource, Tag>,
+                                 IHandle<TagsUpdatedEvent>,
+                                 IHandle<AutoTagsUpdatedEvent>
     {
         private readonly ITagService _tagService;
 
@@ -36,14 +39,14 @@ namespace Sonarr.Api.V3.Tags
 
         [RestPostById]
         [Consumes("application/json")]
-        public ActionResult<TagResource> Create(TagResource resource)
+        public ActionResult<TagResource> Create([FromBody] TagResource resource)
         {
             return Created(_tagService.Add(resource.ToModel()).Id);
         }
 
         [RestPutById]
         [Consumes("application/json")]
-        public ActionResult<TagResource> Update(TagResource resource)
+        public ActionResult<TagResource> Update([FromBody] TagResource resource)
         {
             _tagService.Update(resource.ToModel());
             return Accepted(resource.Id);
@@ -57,6 +60,12 @@ namespace Sonarr.Api.V3.Tags
 
         [NonAction]
         public void Handle(TagsUpdatedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Sync);
+        }
+
+        [NonAction]
+        public void Handle(AutoTagsUpdatedEvent message)
         {
             BroadcastResourceChange(ModelAction.Sync);
         }

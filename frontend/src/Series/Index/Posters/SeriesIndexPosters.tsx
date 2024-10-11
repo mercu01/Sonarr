@@ -5,7 +5,7 @@ import { FixedSizeGrid as Grid, GridChildComponentProps } from 'react-window';
 import { createSelector } from 'reselect';
 import AppState from 'App/State/AppState';
 import useMeasure from 'Helpers/Hooks/useMeasure';
-import SortDirection from 'Helpers/Props/SortDirection';
+import { SortDirection } from 'Helpers/Props/sortDirections';
 import SeriesIndexPoster from 'Series/Index/Posters/SeriesIndexPoster';
 import Series from 'Series/Series';
 import dimensions from 'Styles/Variables/dimensions';
@@ -60,12 +60,12 @@ const seriesIndexSelector = createSelector(
   }
 );
 
-const Cell: React.FC<GridChildComponentProps<CellItemData>> = ({
+function Cell({
   columnIndex,
   rowIndex,
   style,
   data,
-}) => {
+}: GridChildComponentProps<CellItemData>) {
   const { layout, items, sortKey, isSelectMode } = data;
   const { columnCount, padding, posterWidth, posterHeight } = layout;
   const index = rowIndex * columnCount + columnIndex;
@@ -92,7 +92,7 @@ const Cell: React.FC<GridChildComponentProps<CellItemData>> = ({
       />
     </div>
   );
-};
+}
 
 function getWindowScrollTopPosition() {
   return document.documentElement.scrollTop || document.body.scrollTop || 0;
@@ -141,6 +141,7 @@ export default function SeriesIndexPosters(props: SeriesIndexPostersProps) {
       showTitle,
       showMonitored,
       showQualityProfile,
+      showTags,
     } = posterOptions;
 
     const nextAiringHeight = 19;
@@ -164,6 +165,10 @@ export default function SeriesIndexPosters(props: SeriesIndexPostersProps) {
       heights.push(19);
     }
 
+    if (showTags) {
+      heights.push(21);
+    }
+
     switch (sortKey) {
       case 'network':
       case 'seasons':
@@ -176,6 +181,11 @@ export default function SeriesIndexPosters(props: SeriesIndexPostersProps) {
       case 'qualityProfileId':
         if (!showQualityProfile) {
           heights.push(19);
+        }
+        break;
+      case 'tags':
+        if (!showTags) {
+          heights.push(21);
         }
         break;
       default:

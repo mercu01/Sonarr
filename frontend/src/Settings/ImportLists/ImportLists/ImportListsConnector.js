@@ -5,12 +5,12 @@ import { createSelector } from 'reselect';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
 import { deleteImportList, fetchImportLists } from 'Store/Actions/settingsActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
-import sortByName from 'Utilities/Array/sortByName';
+import sortByProp from 'Utilities/Array/sortByProp';
 import ImportLists from './ImportLists';
 
 function createMapStateToProps() {
   return createSelector(
-    createSortedSectionSelector('settings.importLists', sortByName),
+    createSortedSectionSelector('settings.importLists', sortByProp('name')),
     (importLists) => importLists
   );
 }
@@ -21,7 +21,7 @@ const mapDispatchToProps = {
   fetchRootFolders
 };
 
-class ListsConnector extends Component {
+class ImportListsConnector extends Component {
 
   //
   // Lifecycle
@@ -51,10 +51,10 @@ class ListsConnector extends Component {
   }
 }
 
-ListsConnector.propTypes = {
+ImportListsConnector.propTypes = {
   fetchImportLists: PropTypes.func.isRequired,
   deleteImportList: PropTypes.func.isRequired,
   fetchRootFolders: PropTypes.func.isRequired
 };
 
-export default connect(createMapStateToProps, mapDispatchToProps)(ListsConnector);
+export default connect(createMapStateToProps, mapDispatchToProps)(ImportListsConnector);

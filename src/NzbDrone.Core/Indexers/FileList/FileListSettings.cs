@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Equ;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Languages;
@@ -19,9 +20,9 @@ namespace NzbDrone.Core.Indexers.FileList
         }
     }
 
-    public class FileListSettings : ITorrentIndexerSettings
+    public class FileListSettings : PropertywiseEquatable<FileListSettings>, ITorrentIndexerSettings
     {
-        private static readonly FileListSettingsValidator Validator = new FileListSettingsValidator();
+        private static readonly FileListSettingsValidator Validator = new ();
 
         public FileListSettings()
         {
@@ -61,7 +62,7 @@ namespace NzbDrone.Core.Indexers.FileList
         public int MinimumSeeders { get; set; }
 
         [FieldDefinition(7)]
-        public SeedCriteriaSettings SeedCriteria { get; set; } = new SeedCriteriaSettings();
+        public SeedCriteriaSettings SeedCriteria { get; set; } = new ();
 
         [FieldDefinition(8, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectBlocklistedTorrentHashes", HelpText = "IndexerSettingsRejectBlocklistedTorrentHashesHelpText", Advanced = true)]
         public bool RejectBlocklistedTorrentHashesWhileGrabbing { get; set; }
@@ -74,17 +75,19 @@ namespace NzbDrone.Core.Indexers.FileList
 
     public enum FileListCategories
     {
-        [FieldOption]
+        [FieldOption(Label = "Anime")]
         Anime = 24,
-        [FieldOption]
+        [FieldOption(Label = "Animation")]
         Animation = 15,
-        [FieldOption]
+        [FieldOption(Label = "TV 4K")]
         TV_4K = 27,
-        [FieldOption]
+        [FieldOption(Label = "TV HD")]
         TV_HD = 21,
-        [FieldOption]
+        [FieldOption(Label = "TV SD")]
         TV_SD = 23,
-        [FieldOption]
-        Sport = 13
+        [FieldOption(Label = "Sport")]
+        Sport = 13,
+        [FieldOption(Label = "RO Dubbed")]
+        RoDubbed = 28
     }
 }

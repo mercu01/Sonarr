@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import HistoryDetailsConnector from 'Activity/History/Details/HistoryDetailsConnector';
+import HistoryDetails from 'Activity/History/Details/HistoryDetails';
 import HistoryEventTypeCell from 'Activity/History/HistoryEventTypeCell';
 import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
-import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellConnector';
+import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableRow from 'Components/Table/TableRow';
 import Popover from 'Components/Tooltip/Popover';
@@ -86,6 +86,10 @@ class SeriesHistoryRow extends Component {
 
     const EpisodeComponent = fullSeries ? SeasonEpisodeNumber : EpisodeNumber;
 
+    if (!series || !episode) {
+      return null;
+    }
+
     return (
       <TableRow>
         <HistoryEventTypeCell
@@ -129,8 +133,10 @@ class SeriesHistoryRow extends Component {
           {formatCustomFormatScore(customFormatScore, customFormats.length)}
         </TableRowCell>
 
-        <RelativeDateCellConnector
+        <RelativeDateCell
           date={date}
+          includeSeconds={true}
+          includeTime={true}
         />
 
         <TableRowCell className={styles.actions}>
@@ -142,7 +148,7 @@ class SeriesHistoryRow extends Component {
             }
             title={getTitle(eventType)}
             body={
-              <HistoryDetailsConnector
+              <HistoryDetails
                 eventType={eventType}
                 sourceTitle={sourceTitle}
                 data={data}

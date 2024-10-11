@@ -3,6 +3,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv.Events;
@@ -17,6 +18,7 @@ namespace NzbDrone.Core.Tv
         List<Series> AddSeries(List<Series> newSeries);
         Series FindByTvdbId(int tvdbId);
         Series FindByTvRageId(int tvRageId);
+        Series FindByImdbId(string imdbId);
         Series FindByTitle(string title);
         Series FindByTitle(string title, int year);
         Series FindByTitleInexact(string title);
@@ -31,6 +33,7 @@ namespace NzbDrone.Core.Tv
         List<Series> UpdateSeries(List<Series> series, bool useExistingRelativeFolder);
         bool SeriesPathExists(string folder);
         void RemoveAddOptions(Series series);
+        bool UpdateTags(Series series);
     }
 
     public class SeriesService : ISeriesService
@@ -39,6 +42,7 @@ namespace NzbDrone.Core.Tv
         private readonly IEventAggregator _eventAggregator;
         private readonly IEpisodeService _episodeService;
         private readonly IBuildSeriesPaths _seriesPathBuilder;
+        private readonly IAutoTaggingService _autoTaggingService;
         private readonly IDiskProvider _diskProvider;
         private readonly Logger _logger;
 
@@ -46,6 +50,7 @@ namespace NzbDrone.Core.Tv
                              IEventAggregator eventAggregator,
                              IEpisodeService episodeService,
                              IBuildSeriesPaths seriesPathBuilder,
+                             IAutoTaggingService autoTaggingService,
                              IDiskProvider diskProvider,
                              Logger logger)
         {
@@ -53,6 +58,7 @@ namespace NzbDrone.Core.Tv
             _eventAggregator = eventAggregator;
             _episodeService = episodeService;
             _seriesPathBuilder = seriesPathBuilder;
+            _autoTaggingService = autoTaggingService;
             _diskProvider = diskProvider;
             _logger = logger;
         }
@@ -96,6 +102,11 @@ namespace NzbDrone.Core.Tv
         public Series FindByTvRageId(int tvRageId)
         {
             return _seriesRepository.FindByTvRageId(tvRageId);
+        }
+
+        public Series FindByImdbId(string imdbId)
+        {
+            return _seriesRepository.FindByImdbId(imdbId);
         }
 
         public Series FindByTitle(string title)
@@ -214,6 +225,7 @@ namespace NzbDrone.Core.Tv
 
             // Never update AddOptions when updating a series, keep it the same as the existing stored series.
             series.AddOptions = storedSeries.AddOptions;
+            UpdateTags(series);
 
             var updatedSeries = _seriesRepository.Update(series);
             if (publishUpdatedEvent)
@@ -242,6 +254,8 @@ namespace NzbDrone.Core.Tv
                 {
                     _logger.Trace("Not changing path for: {0}", s.Title);
                 }
+
+                UpdateTags(s);
             }
 
             _seriesRepository.UpdateMany(series);
@@ -258,6 +272,42 @@ namespace NzbDrone.Core.Tv
         public void RemoveAddOptions(Series series)
         {
             _seriesRepository.SetFields(series, s => s.AddOptions);
+        }
+
+        public bool UpdateTags(Series series)
+        {
+            _logger.Trace("Updating tags for {0}", series);
+
+            var tagsAdded = new HashSet<int>();
+            var tagsRemoved = new HashSet<int>();
+            var changes = _autoTaggingService.GetTagChanges(series);
+
+            foreach (var tag in changes.TagsToRemove)
+            {
+                if (series.Tags.Contains(tag))
+                {
+                    series.Tags.Remove(tag);
+                    tagsRemoved.Add(tag);
+                }
+            }
+
+            foreach (var tag in changes.TagsToAdd)
+            {
+                if (!series.Tags.Contains(tag))
+                {
+                    series.Tags.Add(tag);
+                    tagsAdded.Add(tag);
+                }
+            }
+
+            if (tagsAdded.Any() || tagsRemoved.Any())
+            {
+                _logger.Debug("Updated tags for '{0}'. Added: {1}, Removed: {2}", series.Title, tagsAdded.Count, tagsRemoved.Count);
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

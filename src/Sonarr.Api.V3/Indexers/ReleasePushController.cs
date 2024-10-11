@@ -49,7 +49,7 @@ namespace Sonarr.Api.V3.Indexers
 
         [HttpPost]
         [Consumes("application/json")]
-        public ActionResult<List<ReleaseResource>> Create(ReleaseResource release)
+        public ActionResult<List<ReleaseResource>> Create([FromBody] ReleaseResource release)
         {
             _logger.Info("Release pushed: {0} - {1}", release.Title, release.DownloadUrl ?? release.MagnetUrl);
 
@@ -86,7 +86,8 @@ namespace Sonarr.Api.V3.Indexers
         {
             if (release.IndexerId == 0 && release.Indexer.IsNotNullOrWhiteSpace())
             {
-                var indexer = _indexerFactory.All().FirstOrDefault(v => v.Name == release.Indexer);
+                var indexer = _indexerFactory.All().FirstOrDefault(v => v.Name.EqualsIgnoreCase(release.Indexer));
+
                 if (indexer != null)
                 {
                     release.IndexerId = indexer.Id;
