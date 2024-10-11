@@ -1,7 +1,8 @@
-using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Tv.Events;
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.ImportLists.Exclusions
 {
@@ -9,7 +10,9 @@ namespace NzbDrone.Core.ImportLists.Exclusions
     {
         ImportListExclusion Add(ImportListExclusion importListExclusion);
         List<ImportListExclusion> All();
+        PagingSpec<ImportListExclusion> Paged(PagingSpec<ImportListExclusion> pagingSpec);
         void Delete(int id);
+        void Delete(List<int> ids);
         ImportListExclusion Get(int id);
         ImportListExclusion FindByTvdbId(int tvdbId);
         ImportListExclusion Update(ImportListExclusion importListExclusion);
@@ -39,6 +42,11 @@ namespace NzbDrone.Core.ImportLists.Exclusions
             _repo.Delete(id);
         }
 
+        public void Delete(List<int> ids)
+        {
+            _repo.DeleteMany(ids);
+        }
+
         public ImportListExclusion Get(int id)
         {
             return _repo.Get(id);
@@ -54,6 +62,11 @@ namespace NzbDrone.Core.ImportLists.Exclusions
             return _repo.All().ToList();
         }
 
+        public PagingSpec<ImportListExclusion> Paged(PagingSpec<ImportListExclusion> pagingSpec)
+        {
+            return _repo.GetPaged(pagingSpec);
+        }
+
         public void HandleAsync(SeriesDeletedEvent message)
         {
             if (!message.AddImportListExclusion)
@@ -61,20 +74,25 @@ namespace NzbDrone.Core.ImportLists.Exclusions
                 return;
             }
 
-            var existingExclusion = _repo.FindByTvdbId(message.Series.TvdbId);
+            var exclusionsToAdd = new List<ImportListExclusion>();
 
-            if (existingExclusion != null)
+            foreach (var series in message.Series.DistinctBy(s => s.TvdbId))
             {
-                return;
+                var existingExclusion = _repo.FindByTvdbId(series.TvdbId);
+
+                if (existingExclusion != null)
+                {
+                    continue;
+                }
+
+                exclusionsToAdd.Add(new ImportListExclusion
+                {
+                    TvdbId = series.TvdbId,
+                    Title = series.Title
+                });
             }
 
-            var importExclusion = new ImportListExclusion
-            {
-                TvdbId = message.Series.TvdbId,
-                Title = message.Series.Title
-            };
-
-            _repo.Insert(importExclusion);
+            _repo.InsertMany(exclusionsToAdd);
         }
     }
 }

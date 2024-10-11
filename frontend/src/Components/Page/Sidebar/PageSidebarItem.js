@@ -1,9 +1,9 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import classNames from 'classnames';
-import { map } from 'Helpers/elementChildren';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
+import { map } from 'Helpers/elementChildren';
 import styles from './PageSidebarItem.css';
 
 class PageSidebarItem extends Component {
@@ -21,7 +21,7 @@ class PageSidebarItem extends Component {
     if (isChildItem || !isParentItem) {
       onPress();
     }
-  }
+  };
 
   //
   // Render
@@ -64,7 +64,7 @@ class PageSidebarItem extends Component {
           }
 
           <span className={isChildItem ? styles.noIcon : null}>
-            {title}
+            {typeof title === 'function' ? title() : title}
           </span>
 
           {
@@ -88,7 +88,7 @@ class PageSidebarItem extends Component {
 
 PageSidebarItem.propTypes = {
   iconName: PropTypes.object,
-  title: PropTypes.string.isRequired,
+  title: PropTypes.oneOfType([PropTypes.string, PropTypes.func]).isRequired,
   to: PropTypes.string.isRequired,
   isActive: PropTypes.bool,
   isActiveParent: PropTypes.bool,

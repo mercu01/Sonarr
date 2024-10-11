@@ -1,20 +1,22 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import Alert from 'Components/Alert';
-import Button from 'Components/Link/Button';
-import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
-import ModalBody from 'Components/Modal/ModalBody';
-import ModalFooter from 'Components/Modal/ModalFooter';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import ProviderFieldFormGroup from 'Components/Form/ProviderFieldFormGroup';
+import Button from 'Components/Link/Button';
+import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds, sizes } from 'Helpers/Props';
+import AdvancedSettingsButton from 'Settings/AdvancedSettingsButton';
+import translate from 'Utilities/String/translate';
 import styles from './EditDownloadClientModalContent.css';
 
 class EditDownloadClientModalContent extends Component {
@@ -36,6 +38,7 @@ class EditDownloadClientModalContent extends Component {
       onModalClose,
       onSavePress,
       onTestPress,
+      onAdvancedSettingsPress,
       onDeleteDownloadClientPress,
       ...otherProps
     } = this.props;
@@ -50,13 +53,14 @@ class EditDownloadClientModalContent extends Component {
       removeCompletedDownloads,
       removeFailedDownloads,
       fields,
+      tags,
       message
     } = item;
 
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          {`${id ? 'Edit' : 'Add'} Download Client - ${implementationName}`}
+          {id ? translate('EditDownloadClientImplementation', { implementationName }) : translate('AddDownloadClientImplementation', { implementationName })}
         </ModalHeader>
 
         <ModalBody>
@@ -67,7 +71,9 @@ class EditDownloadClientModalContent extends Component {
 
           {
             !isFetching && !!error &&
-              <div>Unable to add a new download client, please try again.</div>
+              <Alert kind={kinds.DANGER}>
+                {translate('AddDownloadClientError')}
+              </Alert>
           }
 
           {
@@ -84,7 +90,7 @@ class EditDownloadClientModalContent extends Component {
                 }
 
                 <FormGroup>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>{translate('Name')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TEXT}
@@ -95,7 +101,7 @@ class EditDownloadClientModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Enable</FormLabel>
+                  <FormLabel>{translate('Enable')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -124,12 +130,12 @@ class EditDownloadClientModalContent extends Component {
                   advancedSettings={advancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>Client Priority</FormLabel>
+                  <FormLabel>{translate('ClientPriority')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.NUMBER}
                     name="priority"
-                    helpText="Prioritize multiple Download Clients. Round-Robin is used for clients with the same priority."
+                    helpText={translate('DownloadClientPriorityHelpText')}
                     min={1}
                     max={50}
                     {...priority}
@@ -137,17 +143,29 @@ class EditDownloadClientModalContent extends Component {
                   />
                 </FormGroup>
 
+                <FormGroup>
+                  <FormLabel>{translate('Tags')}</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.TAG}
+                    name="tags"
+                    helpText={translate('DownloadClientSeriesTagHelpText')}
+                    {...tags}
+                    onChange={onInputChange}
+                  />
+                </FormGroup>
+
                 <FieldSet
                   size={sizes.SMALL}
-                  legend="Completed Download Handling"
+                  legend={translate('CompletedDownloadHandling')}
                 >
                   <FormGroup>
-                    <FormLabel>Remove Completed</FormLabel>
+                    <FormLabel>{translate('RemoveCompleted')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.CHECK}
                       name="removeCompletedDownloads"
-                      helpText="Remove imported downloads from download client history (when finished seeding for torrents)"
+                      helpText={translate('RemoveCompletedDownloadsHelpText')}
                       {...removeCompletedDownloads}
                       onChange={onInputChange}
                     />
@@ -156,12 +174,12 @@ class EditDownloadClientModalContent extends Component {
                   {
                     protocol.value !== 'torrent' &&
                       <FormGroup>
-                        <FormLabel>Remove Failed</FormLabel>
+                        <FormLabel>{translate('RemoveFailed')}</FormLabel>
 
                         <FormInputGroup
                           type={inputTypes.CHECK}
                           name="removeFailedDownloads"
-                          helpText="Remove failed downloads from download client history"
+                          helpText={translate('RemoveFailedDownloadsHelpText')}
                           {...removeFailedDownloads}
                           onChange={onInputChange}
                         />
@@ -179,22 +197,28 @@ class EditDownloadClientModalContent extends Component {
                 kind={kinds.DANGER}
                 onPress={onDeleteDownloadClientPress}
               >
-                Delete
+                {translate('Delete')}
               </Button>
           }
+
+          <AdvancedSettingsButton
+            advancedSettings={advancedSettings}
+            onAdvancedSettingsPress={onAdvancedSettingsPress}
+            showLabel={false}
+          />
 
           <SpinnerErrorButton
             isSpinning={isTesting}
             error={saveError}
             onPress={onTestPress}
           >
-            Test
+            {translate('Test')}
           </SpinnerErrorButton>
 
           <Button
             onPress={onModalClose}
           >
-            Cancel
+            {translate('Cancel')}
           </Button>
 
           <SpinnerErrorButton
@@ -202,7 +226,7 @@ class EditDownloadClientModalContent extends Component {
             error={saveError}
             onPress={onSavePress}
           >
-            Save
+            {translate('Save')}
           </SpinnerErrorButton>
         </ModalFooter>
       </ModalContent>
@@ -223,6 +247,7 @@ EditDownloadClientModalContent.propTypes = {
   onModalClose: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onTestPress: PropTypes.func.isRequired,
+  onAdvancedSettingsPress: PropTypes.func.isRequired,
   onDeleteDownloadClientPress: PropTypes.func
 };
 

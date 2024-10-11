@@ -1,22 +1,19 @@
 import moment from 'moment';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import updateSectionState from 'Utilities/State/updateSectionState';
-import naturalExpansion from 'Utilities/String/naturalExpansion';
-import { createThunk, handleThunks } from 'Store/thunks';
 import { sortDirections } from 'Helpers/Props';
-import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
-import createFetchHandler from './Creators/createFetchHandler';
-import createHandleActions from './Creators/createHandleActions';
+import { createThunk, handleThunks } from 'Store/thunks';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import naturalExpansion from 'Utilities/String/naturalExpansion';
 import { set, update, updateItem } from './baseActions';
+import createHandleActions from './Creators/createHandleActions';
+import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
 
 //
 // Variables
 
 export const section = 'interactiveImport';
 
-const episodesSection = `${section}.episodes`;
 let abortCurrentRequest = null;
 let currentIds = [];
 
@@ -31,8 +28,8 @@ export const defaultState = {
   error: null,
   items: [],
   originalItems: [],
-  sortKey: 'quality',
-  sortDirection: sortDirections.DESCENDING,
+  sortKey: 'relativePath',
+  sortDirection: sortDirections.ASCENDING,
   recentFolders: [],
   importMode: 'chooseImportMode',
   sortPredicates: {
@@ -50,17 +47,11 @@ export const defaultState = {
 
     quality: function(item, direction) {
       return item.qualityWeight || 0;
-    }
-  },
+    },
 
-  episodes: {
-    isFetching: false,
-    isReprocessing: false,
-    isPopulated: false,
-    error: null,
-    sortKey: 'episodeNumber',
-    sortDirection: sortDirections.ASCENDING,
-    items: []
+    customFormats: function(item, direction) {
+      return item.customFormatScore;
+    }
   }
 };
 
@@ -84,10 +75,6 @@ export const ADD_RECENT_FOLDER = 'interactiveImport/addRecentFolder';
 export const REMOVE_RECENT_FOLDER = 'interactiveImport/removeRecentFolder';
 export const SET_INTERACTIVE_IMPORT_MODE = 'interactiveImport/setInteractiveImportMode';
 
-export const FETCH_INTERACTIVE_IMPORT_EPISODES = 'interactiveImport/fetchInteractiveImportEpisodes';
-export const SET_INTERACTIVE_IMPORT_EPISODES_SORT = 'interactiveImport/setInteractiveImportEpisodesSort';
-export const CLEAR_INTERACTIVE_IMPORT_EPISODES = 'interactiveImport/clearInteractiveImportEpisodes';
-
 //
 // Action Creators
 
@@ -100,10 +87,6 @@ export const clearInteractiveImport = createAction(CLEAR_INTERACTIVE_IMPORT);
 export const addRecentFolder = createAction(ADD_RECENT_FOLDER);
 export const removeRecentFolder = createAction(REMOVE_RECENT_FOLDER);
 export const setInteractiveImportMode = createAction(SET_INTERACTIVE_IMPORT_MODE);
-
-export const fetchInteractiveImportEpisodes = createThunk(FETCH_INTERACTIVE_IMPORT_EPISODES);
-export const setInteractiveImportEpisodesSort = createAction(SET_INTERACTIVE_IMPORT_EPISODES_SORT);
-export const clearInteractiveImportEpisodes = createAction(CLEAR_INTERACTIVE_IMPORT_EPISODES);
 
 //
 // Action Handlers
@@ -177,8 +160,10 @@ export const actionHandlers = handleThunks({
         seasonNumber: item.seasonNumber,
         episodeIds: (item.episodes || []).map((e) => e.id),
         quality: item.quality,
-        language: item.language,
+        languages: item.languages,
         releaseGroup: item.releaseGroup,
+        indexerFlags: item.indexerFlags,
+        releaseType: item.releaseType,
         downloadId: item.downloadId
       };
     });
@@ -218,9 +203,7 @@ export const actionHandlers = handleThunks({
         }))
       ));
     });
-  },
-
-  [FETCH_INTERACTIVE_IMPORT_EPISODES]: createFetchHandler('interactiveImport.episodes', '/episode')
+  }
 });
 
 //
@@ -242,13 +225,13 @@ export const reducers = createHandleActions({
   },
 
   [UPDATE_INTERACTIVE_IMPORT_ITEMS]: (state, { payload }) => {
-    const ids = payload.ids;
+    const { ids, ...otherPayload } = payload;
     const newState = Object.assign({}, state);
     const items = [...newState.items];
 
     ids.forEach((id) => {
       const index = items.findIndex((item) => item.id === id);
-      const item = Object.assign({}, items[index], payload);
+      const item = Object.assign({}, items[index], otherPayload);
 
       items.splice(index, 1, item);
     });
@@ -299,14 +282,6 @@ export const reducers = createHandleActions({
 
   [SET_INTERACTIVE_IMPORT_MODE]: function(state, { payload }) {
     return Object.assign({}, state, { importMode: payload.importMode });
-  },
-
-  [SET_INTERACTIVE_IMPORT_EPISODES_SORT]: createSetClientSideCollectionSortReducer(episodesSection),
-
-  [CLEAR_INTERACTIVE_IMPORT_EPISODES]: (state) => {
-    return updateSectionState(state, episodesSection, {
-      ...defaultState.episodes
-    });
   }
 
 }, defaultState, section);

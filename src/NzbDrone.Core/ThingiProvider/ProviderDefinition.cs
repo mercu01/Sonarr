@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using Equ;
 using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.ThingiProvider
@@ -13,19 +15,24 @@ namespace NzbDrone.Core.ThingiProvider
         private IProviderConfig _settings;
 
         public string Name { get; set; }
+
+        [JsonIgnore]
+        [MemberwiseEqualityIgnore]
         public string ImplementationName { get; set; }
+
         public string Implementation { get; set; }
         public string ConfigContract { get; set; }
         public virtual bool Enable { get; set; }
+
+        [MemberwiseEqualityIgnore]
         public ProviderMessage Message { get; set; }
+
         public HashSet<int> Tags { get; set; }
 
+        [MemberwiseEqualityIgnore]
         public IProviderConfig Settings
         {
-            get
-            {
-                return _settings;
-            }
+            get => _settings;
             set
             {
                 _settings = value;

@@ -5,6 +5,7 @@ import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import AddNotificationModal from './AddNotificationModal';
 import EditNotificationModalConnector from './EditNotificationModalConnector';
 import Notification from './Notification';
@@ -29,18 +30,18 @@ class Notifications extends Component {
 
   onAddNotificationPress = () => {
     this.setState({ isAddNotificationModalOpen: true });
-  }
+  };
 
   onAddNotificationModalClose = ({ notificationSelected = false } = {}) => {
     this.setState({
       isAddNotificationModalOpen: false,
       isEditNotificationModalOpen: notificationSelected
     });
-  }
+  };
 
   onEditNotificationModalClose = () => {
     this.setState({ isEditNotificationModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -48,6 +49,7 @@ class Notifications extends Component {
   render() {
     const {
       items,
+      tagList,
       onConfirmDeleteNotification,
       ...otherProps
     } = this.props;
@@ -58,9 +60,9 @@ class Notifications extends Component {
     } = this.state;
 
     return (
-      <FieldSet legend="Connections">
+      <FieldSet legend={translate('Connections')}>
         <PageSectionContent
-          errorMessage="Unable to load Notifications"
+          errorMessage={translate('NotificationsLoadError')}
           {...otherProps}
         >
           <div className={styles.notifications}>
@@ -70,6 +72,7 @@ class Notifications extends Component {
                   <Notification
                     key={item.id}
                     {...item}
+                    tagList={tagList}
                     onConfirmDeleteNotification={onConfirmDeleteNotification}
                   />
                 );
@@ -108,6 +111,7 @@ Notifications.propTypes = {
   isFetching: PropTypes.bool.isRequired,
   error: PropTypes.object,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
+  tagList: PropTypes.arrayOf(PropTypes.object).isRequired,
   onConfirmDeleteNotification: PropTypes.func.isRequired
 };
 

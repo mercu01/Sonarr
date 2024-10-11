@@ -9,13 +9,16 @@ namespace Sonarr.Http.Frontend.Mappers
 {
     public class LoginHtmlMapper : HtmlMapperBase
     {
+        private readonly IConfigFileProvider _configFileProvider;
+
         public LoginHtmlMapper(IAppFolderInfo appFolderInfo,
                                IDiskProvider diskProvider,
-                               Func<ICacheBreakerProvider> cacheBreakProviderFactory,
+                               Lazy<ICacheBreakerProvider> cacheBreakProviderFactory,
                                IConfigFileProvider configFileProvider,
                                Logger logger)
             : base(diskProvider, cacheBreakProviderFactory, logger)
         {
+            _configFileProvider = configFileProvider;
             HtmlPath = Path.Combine(appFolderInfo.StartUpFolder, configFileProvider.UiFolder, "login.html");
             UrlBase = configFileProvider.UrlBase;
         }
@@ -28,6 +31,16 @@ namespace Sonarr.Http.Frontend.Mappers
         public override bool CanHandle(string resourceUrl)
         {
             return resourceUrl.StartsWith("/login");
+        }
+
+        protected override string GetHtmlText()
+        {
+            var html = base.GetHtmlText();
+            var theme = _configFileProvider.Theme;
+
+            html = html.Replace("_THEME_", theme);
+
+            return html;
         }
     }
 }

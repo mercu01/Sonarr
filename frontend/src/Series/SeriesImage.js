@@ -7,12 +7,10 @@ function findImage(images, coverType) {
 }
 
 function getUrl(image, coverType, size) {
-  if (image) {
-    // Remove protocol
-    let url = image.url.replace(/^https?:/, '');
-    url = url.replace(`${coverType}.jpg`, `${coverType}-${size}.jpg`);
+  const imageUrl = image?.url;
 
-    return url;
+  if (imageUrl) {
+    return imageUrl.replace(`${coverType}.jpg`, `${coverType}-${size}.jpg`);
   }
 }
 
@@ -98,7 +96,7 @@ class SeriesImage extends Component {
     if (this.props.onError) {
       this.props.onError();
     }
-  }
+  };
 
   onLoad = () => {
     this.setState({
@@ -109,7 +107,7 @@ class SeriesImage extends Component {
     if (this.props.onLoad) {
       this.props.onLoad();
     }
-  }
+  };
 
   //
   // Render

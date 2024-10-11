@@ -4,13 +4,20 @@ import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { deleteNotification, fetchNotifications } from 'Store/Actions/settingsActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
-import sortByName from 'Utilities/Array/sortByName';
+import createTagsSelector from 'Store/Selectors/createTagsSelector';
+import sortByProp from 'Utilities/Array/sortByProp';
 import Notifications from './Notifications';
 
 function createMapStateToProps() {
   return createSelector(
-    createSortedSectionSelector('settings.notifications', sortByName),
-    (notifications) => notifications
+    createSortedSectionSelector('settings.notifications', sortByProp('name')),
+    createTagsSelector(),
+    (notifications, tagList) => {
+      return {
+        ...notifications,
+        tagList
+      };
+    }
   );
 }
 
@@ -33,7 +40,7 @@ class NotificationsConnector extends Component {
 
   onConfirmDeleteNotification = (id) => {
     this.props.deleteNotification({ id });
-  }
+  };
 
   //
   // Render

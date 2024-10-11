@@ -1,8 +1,7 @@
-/* eslint max-params: 0 */
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import createSeriesSelector from 'Store/Selectors/createSeriesSelector';
 import createEpisodeFileSelector from 'Store/Selectors/createEpisodeFileSelector';
+import createSeriesSelector from 'Store/Selectors/createSeriesSelector';
 import EpisodeRow from './EpisodeRow';
 
 function createMapStateToProps() {
@@ -18,6 +17,9 @@ function createMapStateToProps() {
         episodeFileRelativePath: episodeFile ? episodeFile.relativePath : null,
         episodeFileSize: episodeFile ? episodeFile.size : null,
         releaseGroup: episodeFile ? episodeFile.releaseGroup : null,
+        customFormats: episodeFile ? episodeFile.customFormats : [],
+        customFormatScore: episodeFile ? episodeFile.customFormatScore : 0,
+        indexerFlags: episodeFile ? episodeFile.indexerFlags : 0,
         alternateTitles: series.alternateTitles
       };
     }

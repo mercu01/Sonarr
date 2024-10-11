@@ -3,21 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Notifications.Slack.Payloads;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Validation;
-
 
 namespace NzbDrone.Core.Notifications.Slack
 {
     public class Slack : NotificationBase<SlackSettings>
     {
         private readonly ISlackProxy _proxy;
+        private readonly ILocalizationService _localizationService;
 
-        public Slack(ISlackProxy proxy)
+        public Slack(ISlackProxy proxy, ILocalizationService localizationService)
         {
             _proxy = proxy;
+            _localizationService = localizationService;
         }
 
         public override string Name => "Slack";
@@ -26,15 +28,15 @@ namespace NzbDrone.Core.Notifications.Slack
         public override void OnGrab(GrabMessage message)
         {
             var attachments = new List<Attachment>
-                              {
-                                  new Attachment
-                                  {
-                                      Fallback = message.Message,
-                                      Title = message.Series.Title,
-                                      Text = message.Message,
-                                      Color = "warning"
-                                  }
-                              };
+            {
+                new ()
+                {
+                    Fallback = message.Message,
+                    Title = message.Series.Title,
+                    Text = message.Message,
+                    Color = "warning"
+                }
+            };
             var payload = CreatePayload($"Grabbed: {message.Message}", attachments);
 
             _proxy.SendPayload(payload, Settings);
@@ -43,16 +45,33 @@ namespace NzbDrone.Core.Notifications.Slack
         public override void OnDownload(DownloadMessage message)
         {
             var attachments = new List<Attachment>
-                              {
-                                  new Attachment
-                                  {
-                                      Fallback = message.Message,
-                                      Title = message.Series.Title,
-                                      Text = message.Message,
-                                      Color = "good"
-                                  }
-                              };
+            {
+                new ()
+                {
+                    Fallback = message.Message,
+                    Title = message.Series.Title,
+                    Text = message.Message,
+                    Color = "good"
+                }
+            };
             var payload = CreatePayload($"Imported: {message.Message}", attachments);
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
+        public override void OnImportComplete(ImportCompleteMessage message)
+        {
+            var attachments = new List<Attachment>
+            {
+                new ()
+                {
+                    Fallback = message.Message,
+                    Title = message.Series.Title,
+                    Text = message.Message,
+                    Color = "good"
+                }
+            };
+            var payload = CreatePayload($"Imported all expected episodes: {message.Message}", attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -60,12 +79,12 @@ namespace NzbDrone.Core.Notifications.Slack
         public override void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles)
         {
             var attachments = new List<Attachment>
-                              {
-                                  new Attachment
-                                  {
-                                      Title = series.Title,
-                                  }
-                              };
+            {
+                new ()
+                {
+                    Title = series.Title,
+                }
+            };
 
             var payload = CreatePayload("Renamed", attachments);
 
@@ -75,14 +94,29 @@ namespace NzbDrone.Core.Notifications.Slack
         public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
         {
             var attachments = new List<Attachment>
-                              {
-                                  new Attachment
-                                  {
-                                      Title = GetTitle(deleteMessage.Series, deleteMessage.EpisodeFile.Episodes),
-                                  }
-                              };
+            {
+                new ()
+                {
+                    Title = GetTitle(deleteMessage.Series, deleteMessage.EpisodeFile.Episodes),
+                }
+            };
 
             var payload = CreatePayload("Episode Deleted", attachments);
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
+        public override void OnSeriesAdd(SeriesAddMessage message)
+        {
+            var attachments = new List<Attachment>
+            {
+                new ()
+                {
+                    Title = message.Series.Title,
+                }
+            };
+
+            var payload = CreatePayload("Series Added", attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -90,13 +124,13 @@ namespace NzbDrone.Core.Notifications.Slack
         public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
         {
             var attachments = new List<Attachment>
-                              {
-                                  new Attachment
-                                  {
-                                      Title = deleteMessage.Series.Title,
-                                      Text = deleteMessage.DeletedFilesMessage
-                                  }
-                              };
+            {
+                new ()
+                {
+                    Title = deleteMessage.Series.Title,
+                    Text = deleteMessage.DeletedFilesMessage
+                }
+            };
 
             var payload = CreatePayload("Series Deleted", attachments);
 
@@ -106,16 +140,33 @@ namespace NzbDrone.Core.Notifications.Slack
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)
         {
             var attachments = new List<Attachment>
-                              {
-                                  new Attachment
-                                  {
-                                      Title = healthCheck.Source.Name,
-                                      Text = healthCheck.Message,
-                                      Color = healthCheck.Type == HealthCheck.HealthCheckResult.Warning ? "warning" : "danger"
-                                  }
-                              };
+            {
+                new ()
+                {
+                    Title = healthCheck.Source.Name,
+                    Text = healthCheck.Message,
+                    Color = healthCheck.Type == HealthCheck.HealthCheckResult.Warning ? "warning" : "danger"
+                }
+            };
 
             var payload = CreatePayload("Health Issue", attachments);
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
+        {
+            var attachments = new List<Attachment>
+            {
+                new ()
+                {
+                    Title = previousCheck.Source.Name,
+                    Text = $"The following issue is now resolved: {previousCheck.Message}",
+                    Color = "good"
+                }
+            };
+
+            var payload = CreatePayload("Health Issue Resolved", attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -123,16 +174,33 @@ namespace NzbDrone.Core.Notifications.Slack
         public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
         {
             var attachments = new List<Attachment>
-                              {
-                                  new Attachment
-                                  {
-                                      Title = Environment.MachineName,
-                                      Text = updateMessage.Message,
-                                      Color = "good"
-                                  }
-                              };
+            {
+                new ()
+                {
+                    Title = Environment.MachineName,
+                    Text = updateMessage.Message,
+                    Color = "good"
+                }
+            };
 
             var payload = CreatePayload("Application Updated", attachments);
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
+        public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
+        {
+            var attachments = new List<Attachment>
+            {
+                new ()
+                {
+                    Title = Environment.MachineName,
+                    Text = message.Message,
+                    Color = "warning"
+                }
+            };
+
+            var payload = CreatePayload("Manual Interaction Required", attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -154,11 +222,10 @@ namespace NzbDrone.Core.Notifications.Slack
                 var payload = CreatePayload(message);
 
                 _proxy.SendPayload(payload, Settings);
-
             }
             catch (SlackExeption ex)
             {
-                return new NzbDroneValidationFailure("Unable to post", ex.Message);
+                return new NzbDroneValidationFailure("Unable to post", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;
@@ -196,6 +263,7 @@ namespace NzbDrone.Core.Notifications.Slack
 
             return payload;
         }
+
         private string GetTitle(Series series, List<Episode> episodes)
         {
             if (series.SeriesType == SeriesTypes.Daily)

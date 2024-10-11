@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,8 +9,10 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.DataAugmentation.DailySeries;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MetadataSource.SkyHook.Resource;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MetadataSource.SkyHook
@@ -30,7 +32,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                             Logger logger)
         {
             _httpClient = httpClient;
-             _requestBuilder = requestBuilder.SkyHookTvdb;
+            _requestBuilder = requestBuilder.SkyHookTvdb;
             _logger = logger;
             _seriesService = seriesService;
             _dailySeriesService = dailySeriesService;
@@ -67,6 +69,41 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             return new Tuple<Series, List<Episode>>(series, episodes.ToList());
         }
 
+        public List<Series> SearchForNewSeriesByImdbId(string imdbId)
+        {
+            imdbId = Parser.Parser.NormalizeImdbId(imdbId);
+
+            if (imdbId == null)
+            {
+                return new List<Series>();
+            }
+
+            var results = SearchForNewSeries($"imdb:{imdbId}");
+
+            return results;
+        }
+
+        public List<Series> SearchForNewSeriesByAniListId(int aniListId)
+        {
+            var results = SearchForNewSeries($"anilist:{aniListId}");
+
+            return results;
+        }
+
+        public List<Series> SearchForNewSeriesByMyAnimeListId(int malId)
+        {
+            var results = SearchForNewSeries($"mal:{malId}");
+
+            return results;
+        }
+
+        public List<Series> SearchForNewSeriesByTmdbId(int tmdbId)
+        {
+            var results = SearchForNewSeries($"tmdb:{tmdbId}");
+
+            return results;
+        }
+
         public List<Series> SearchForNewSeries(string title)
         {
             try
@@ -77,9 +114,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                 {
                     var slug = lowerTitle.Split(':')[1].Trim();
 
-                    int tvdbId;
-
-                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || !int.TryParse(slug, out tvdbId) || tvdbId <= 0)
+                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || !int.TryParse(slug, out var tvdbId) || tvdbId <= 0)
                     {
                         return new List<Series>();
                     }
@@ -153,15 +188,29 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                 series.TvMazeId = show.TvMazeId.Value;
             }
 
+            if (show.TmdbId.HasValue)
+            {
+                series.TmdbId = show.TmdbId.Value;
+            }
+
             series.ImdbId = show.ImdbId;
             series.Title = show.Title;
             series.CleanTitle = Parser.Parser.CleanSeriesTitle(show.Title);
             series.SortTitle = SeriesTitleNormalizer.Normalize(show.Title, show.TvdbId);
 
+            series.OriginalLanguage = show.OriginalLanguage.IsNotNullOrWhiteSpace() ?
+                IsoLanguages.Find(show.OriginalLanguage.ToLower())?.Language ?? Language.English :
+                Language.English;
+
             if (show.FirstAired != null)
             {
                 series.FirstAired = DateTime.ParseExact(show.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
                 series.Year = series.FirstAired.Value.Year;
+            }
+
+            if (show.LastAired != null)
+            {
+                series.LastAired = DateTime.ParseExact(show.LastAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
             }
 
             series.Overview = show.Overview;
@@ -235,10 +284,12 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
 
             episode.AirDate = oracleEpisode.AirDate;
             episode.AirDateUtc = oracleEpisode.AirDateUtc;
+            episode.Runtime = oracleEpisode.Runtime;
+            episode.FinaleType = oracleEpisode.FinaleType;
 
             episode.Ratings = MapRatings(oracleEpisode.Rating);
 
-            //Don't include series fanart images as episode screenshot
+            // Don't include series fanart images as episode screenshot
             if (oracleEpisode.Image != null)
             {
                 episode.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Screenshot, oracleEpisode.Image));
@@ -290,7 +341,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
         {
             return new MediaCover.MediaCover
             {
-                Url = arg.Url,
+                RemoteUrl = arg.Url,
                 CoverType = MapCoverType(arg.CoverType)
             };
         }
@@ -305,6 +356,8 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                     return MediaCoverTypes.Banner;
                 case "fanart":
                     return MediaCoverTypes.Fanart;
+                case "clearlogo":
+                    return MediaCoverTypes.Clearlogo;
                 default:
                     return MediaCoverTypes.Unknown;
             }

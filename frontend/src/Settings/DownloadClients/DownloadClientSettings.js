@@ -1,12 +1,14 @@
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
-import { icons } from 'Helpers/Props';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
+import { icons } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
+import translate from 'Utilities/String/translate';
 import DownloadClientsConnector from './DownloadClients/DownloadClientsConnector';
+import ManageDownloadClientsModal from './DownloadClients/Manage/ManageDownloadClientsModal';
 import DownloadClientOptionsConnector from './Options/DownloadClientOptionsConnector';
 import RemotePathMappingsConnector from './RemotePathMappings/RemotePathMappingsConnector';
 
@@ -22,7 +24,8 @@ class DownloadClientSettings extends Component {
 
     this.state = {
       isSaving: false,
-      hasPendingChanges: false
+      hasPendingChanges: false,
+      isManageDownloadClientsOpen: false
     };
   }
 
@@ -31,17 +34,25 @@ class DownloadClientSettings extends Component {
 
   onChildMounted = (saveCallback) => {
     this._saveCallback = saveCallback;
-  }
+  };
 
   onChildStateChange = (payload) => {
     this.setState(payload);
-  }
+  };
+
+  onManageDownloadClientsPress = () => {
+    this.setState({ isManageDownloadClientsOpen: true });
+  };
+
+  onManageDownloadClientsModalClose = () => {
+    this.setState({ isManageDownloadClientsOpen: false });
+  };
 
   onSavePress = () => {
     if (this._saveCallback) {
       this._saveCallback();
     }
-  }
+  };
 
   //
   // Render
@@ -54,11 +65,12 @@ class DownloadClientSettings extends Component {
 
     const {
       isSaving,
-      hasPendingChanges
+      hasPendingChanges,
+      isManageDownloadClientsOpen
     } = this.state;
 
     return (
-      <PageContent title="Download Client Settings">
+      <PageContent title={translate('DownloadClientSettings')}>
         <SettingsToolbarConnector
           isSaving={isSaving}
           hasPendingChanges={hasPendingChanges}
@@ -67,10 +79,16 @@ class DownloadClientSettings extends Component {
               <PageToolbarSeparator />
 
               <PageToolbarButton
-                label="Test All Clients"
+                label={translate('TestAllClients')}
                 iconName={icons.TEST}
                 isSpinning={isTestingAll}
                 onPress={dispatchTestAllDownloadClients}
+              />
+
+              <PageToolbarButton
+                label={translate('ManageClients')}
+                iconName={icons.MANAGE}
+                onPress={this.onManageDownloadClientsPress}
               />
             </Fragment>
           }
@@ -86,6 +104,11 @@ class DownloadClientSettings extends Component {
           />
 
           <RemotePathMappingsConnector />
+
+          <ManageDownloadClientsModal
+            isOpen={isManageDownloadClientsOpen}
+            onModalClose={this.onManageDownloadClientsModalClose}
+          />
         </PageContentBody>
       </PageContent>
     );

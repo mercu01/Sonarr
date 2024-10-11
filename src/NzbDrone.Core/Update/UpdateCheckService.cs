@@ -1,4 +1,4 @@
-﻿using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Configuration;
 
 namespace NzbDrone.Core.Update
@@ -12,7 +12,6 @@ namespace NzbDrone.Core.Update
     {
         private readonly IUpdatePackageProvider _updatePackageProvider;
         private readonly IConfigFileProvider _configFileProvider;
-
 
         public CheckUpdateService(IUpdatePackageProvider updatePackageProvider,
                                   IConfigFileProvider configFileProvider)

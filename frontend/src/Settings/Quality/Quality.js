@@ -2,11 +2,12 @@ import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
-import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
-import QualityDefinitionsConnector from './Definition/QualityDefinitionsConnector';
-import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
+import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import { icons } from 'Helpers/Props';
+import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
+import translate from 'Utilities/String/translate';
+import QualityDefinitionsConnector from './Definition/QualityDefinitionsConnector';
 import ResetQualityDefinitionsModal from './Reset/ResetQualityDefinitionsModal';
 
 class Quality extends Component {
@@ -31,25 +32,25 @@ class Quality extends Component {
 
   onChildMounted = (saveCallback) => {
     this._saveCallback = saveCallback;
-  }
+  };
 
   onChildStateChange = (payload) => {
     this.setState(payload);
-  }
+  };
 
   onResetQualityDefinitionsPress = () => {
     this.setState({ isConfirmQualityDefinitionResetModalOpen: true });
-  }
+  };
 
   onCloseResetQualityDefinitionsModal = () => {
     this.setState({ isConfirmQualityDefinitionResetModalOpen: false });
-  }
+  };
 
   onSavePress = () => {
     if (this._saveCallback) {
       this._saveCallback();
     }
-  }
+  };
 
   //
   // Render
@@ -62,7 +63,7 @@ class Quality extends Component {
     } = this.state;
 
     return (
-      <PageContent title="Quality Settings">
+      <PageContent title={translate('QualitySettings')}>
         <SettingsToolbarConnector
           isSaving={isSaving}
           hasPendingChanges={hasPendingChanges}
@@ -71,7 +72,7 @@ class Quality extends Component {
               <PageToolbarSeparator />
 
               <PageToolbarButton
-                label="Reset Definitions"
+                label={translate('ResetDefinitions')}
                 iconName={icons.REFRESH}
                 isSpinning={isResettingQualityDefinitions}
                 onPress={this.onResetQualityDefinitionsPress}

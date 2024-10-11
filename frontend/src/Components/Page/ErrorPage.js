@@ -1,39 +1,40 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import getErrorMessage from 'Utilities/Object/getErrorMessage';
+import translate from 'Utilities/String/translate';
 import styles from './ErrorPage.css';
 
 function ErrorPage(props) {
   const {
     version,
     isLocalStorageSupported,
+    translationsError,
     seriesError,
     customFiltersError,
     tagsError,
     qualityProfilesError,
-    languageProfilesError,
     uiSettingsError,
     systemStatusError
   } = props;
 
-  let errorMessage = 'Failed to load Sonarr';
+  let errorMessage = translate('FailedToLoadSonarr');
 
   if (!isLocalStorageSupported) {
-    errorMessage = 'Local Storage is not supported or disabled. A plugin or private browsing may have disabled it.';
+    errorMessage = translate('LocalStorageIsNotSupported');
+  } else if (translationsError) {
+    errorMessage = getErrorMessage(translationsError, translate('FailedToLoadTranslationsFromApi'));
   } else if (seriesError) {
-    errorMessage = getErrorMessage(seriesError, 'Failed to load series from API');
+    errorMessage = getErrorMessage(seriesError, translate('FailedToLoadSeriesFromApi'));
   } else if (customFiltersError) {
-    errorMessage = getErrorMessage(customFiltersError, 'Failed to load custom filters from API');
+    errorMessage = getErrorMessage(customFiltersError, translate('FailedToLoadCustomFiltersFromApi'));
   } else if (tagsError) {
-    errorMessage = getErrorMessage(tagsError, 'Failed to load tags from API');
+    errorMessage = getErrorMessage(tagsError, translate('FailedToLoadTagsFromApi'));
   } else if (qualityProfilesError) {
-    errorMessage = getErrorMessage(qualityProfilesError, 'Failed to load quality profiles from API');
-  } else if (languageProfilesError) {
-    errorMessage = getErrorMessage(languageProfilesError, 'Failed to load language profiles from API');
+    errorMessage = getErrorMessage(qualityProfilesError, translate('FailedToLoadQualityProfilesFromApi'));
   } else if (uiSettingsError) {
-    errorMessage = getErrorMessage(uiSettingsError, 'Failed to load UI settings from API');
+    errorMessage = getErrorMessage(uiSettingsError, translate('FailedToLoadUiSettingsFromApi'));
   } else if (systemStatusError) {
-    errorMessage = getErrorMessage(uiSettingsError, 'Failed to load system status from API');
+    errorMessage = getErrorMessage(uiSettingsError, translate('FailedToLoadSystemStatusFromApi'));
   }
 
   return (
@@ -43,7 +44,7 @@ function ErrorPage(props) {
       </div>
 
       <div className={styles.version}>
-        Version {version}
+        {translate('VersionNumber', { version })}
       </div>
     </div>
   );
@@ -52,11 +53,11 @@ function ErrorPage(props) {
 ErrorPage.propTypes = {
   version: PropTypes.string.isRequired,
   isLocalStorageSupported: PropTypes.bool.isRequired,
+  translationsError: PropTypes.object,
   seriesError: PropTypes.object,
   customFiltersError: PropTypes.object,
   tagsError: PropTypes.object,
   qualityProfilesError: PropTypes.object,
-  languageProfilesError: PropTypes.object,
   uiSettingsError: PropTypes.object,
   systemStatusError: PropTypes.object
 };

@@ -1,15 +1,18 @@
 import _ from 'lodash';
+import React from 'react';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { sortDirections } from 'Helpers/Props';
-import { createThunk, handleThunks } from 'Store/thunks';
-import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
-import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
+import Icon from 'Components/Icon';
 import episodeEntities from 'Episode/episodeEntities';
+import { icons, sortDirections } from 'Helpers/Props';
+import { createThunk, handleThunks } from 'Store/thunks';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import translate from 'Utilities/String/translate';
+import { updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
-import { updateItem } from './baseActions';
+import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
+import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
 
 //
 // Variables
@@ -30,83 +33,119 @@ export const defaultState = {
   columns: [
     {
       name: 'monitored',
-      columnLabel: 'Monitored',
+      columnLabel: () => translate('Monitored'),
       isVisible: true,
       isModifiable: false
     },
     {
       name: 'episodeNumber',
       label: '#',
-      isVisible: true
+      isVisible: true,
+      isSortable: true
     },
     {
       name: 'title',
-      label: 'Title',
-      isVisible: true
+      label: () => translate('Title'),
+      isVisible: true,
+      isSortable: true
     },
     {
       name: 'path',
-      label: 'Path',
-      isVisible: false
+      label: () => translate('Path'),
+      isVisible: false,
+      isSortable: true
     },
     {
       name: 'relativePath',
-      label: 'Relative Path',
-      isVisible: false
+      label: () => translate('RelativePath'),
+      isVisible: false,
+      isSortable: true
     },
     {
       name: 'airDateUtc',
-      label: 'Air Date',
-      isVisible: true
+      label: () => translate('AirDate'),
+      isVisible: true,
+      isSortable: true
     },
     {
-      name: 'language',
-      label: 'Language',
+      name: 'runtime',
+      label: () => translate('Runtime'),
+      isVisible: false,
+      isSortable: true
+    },
+    {
+      name: 'languages',
+      label: () => translate('Languages'),
       isVisible: false
     },
     {
       name: 'audioInfo',
-      label: 'Audio Info',
+      label: () => translate('AudioInfo'),
       isVisible: false
     },
     {
       name: 'videoCodec',
-      label: 'Video Codec',
+      label: () => translate('VideoCodec'),
       isVisible: false
     },
     {
       name: 'videoDynamicRangeType',
-      label: 'Video Dynamic Range',
+      label: () => translate('VideoDynamicRange'),
       isVisible: false
     },
     {
       name: 'audioLanguages',
-      label: 'Audio Languages',
+      label: () => translate('AudioLanguages'),
       isVisible: false
     },
     {
       name: 'subtitleLanguages',
-      label: 'Subtitle Languages',
+      label: () => translate('SubtitleLanguages'),
       isVisible: false
     },
     {
       name: 'size',
-      label: 'Size',
-      isVisible: false
+      label: () => translate('Size'),
+      isVisible: false,
+      isSortable: true
     },
     {
       name: 'releaseGroup',
-      label: 'Release Group',
+      label: () => translate('ReleaseGroup'),
+      isVisible: false
+    },
+    {
+      name: 'customFormats',
+      label: () => translate('Formats'),
+      isVisible: false
+    },
+    {
+      name: 'customFormatScore',
+      columnLabel: () => translate('CustomFormatScore'),
+      label: React.createElement(Icon, {
+        name: icons.SCORE,
+        title: () => translate('CustomFormatScore')
+      }),
+      isVisible: false,
+      isSortable: true
+    },
+    {
+      name: 'indexerFlags',
+      columnLabel: () => translate('IndexerFlags'),
+      label: React.createElement(Icon, {
+        name: icons.FLAG,
+        title: () => translate('IndexerFlags')
+      }),
       isVisible: false
     },
     {
       name: 'status',
-      label: 'Status',
+      label: () => translate('Status'),
       isVisible: true
     },
     {
       name: 'actions',
-      columnLabel: 'Actions',
+      columnLabel: () => translate('Actions'),
       isVisible: true,
       isModifiable: false
     }
@@ -114,7 +153,9 @@ export const defaultState = {
 };
 
 export const persistState = [
-  'episodes.columns'
+  'episodes.columns',
+  'episodes.sortDirection',
+  'episodes.sortKey'
 ];
 
 //

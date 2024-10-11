@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
-using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MetadataSource;
@@ -40,10 +40,14 @@ namespace NzbDrone.Core.Test.TvTests
             Mocker.GetMock<ISeriesService>()
                   .Setup(s => s.GetSeries(_series.Id))
                   .Returns(_series);
-            
+
             Mocker.GetMock<IProvideSeriesInfo>()
                   .Setup(s => s.GetSeriesInfo(It.IsAny<int>()))
                   .Callback<int>(p => { throw new SeriesNotFoundException(p); });
+
+            Mocker.GetMock<IAutoTaggingService>()
+                .Setup(s => s.GetTagChanges(_series))
+                .Returns(new AutoTaggingChanges());
         }
 
         private void GivenNewSeriesInfo(Series series)
@@ -54,9 +58,10 @@ namespace NzbDrone.Core.Test.TvTests
         }
 
         [Test]
-        public void should_monitor_new_seasons_automatically_if_series_is_monitored()
+        public void should_monitor_new_seasons_automatically_if_monitor_new_items_is_all()
         {
-            _series.Monitored = true;
+            _series.MonitorNewItems = NewItemMonitorTypes.All;
+
             var newSeriesInfo = _series.JsonClone();
             newSeriesInfo.Seasons.Add(Builder<Season>.CreateNew()
                                          .With(s => s.SeasonNumber = 2)
@@ -64,16 +69,17 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(newSeriesInfo);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 2).Monitored == true), It.IsAny<bool>(), It.IsAny<bool>()));
         }
 
         [Test]
-        public void should_not_monitor_new_seasons_automatically_if_series_is_not_monitored()
+        public void should_not_monitor_new_seasons_automatically_if_monitor_new_items_is_none()
         {
-            _series.Monitored = false;
+            _series.MonitorNewItems = NewItemMonitorTypes.None;
+
             var newSeriesInfo = _series.JsonClone();
             newSeriesInfo.Seasons.Add(Builder<Season>.CreateNew()
                 .With(s => s.SeasonNumber = 2)
@@ -81,7 +87,7 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(newSeriesInfo);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 2).Monitored == false), It.IsAny<bool>(), It.IsAny<bool>()));
@@ -97,7 +103,7 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(series);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 0).Monitored == false), It.IsAny<bool>(), It.IsAny<bool>()));
@@ -111,7 +117,7 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(newSeriesInfo);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvRageId == newSeriesInfo.TvRageId), It.IsAny<bool>(), It.IsAny<bool>()));
@@ -125,16 +131,30 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(newSeriesInfo);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvMazeId == newSeriesInfo.TvMazeId), It.IsAny<bool>(), It.IsAny<bool>()));
         }
 
         [Test]
+        public void should_update_tmdb_id_if_changed()
+        {
+            var newSeriesInfo = _series.JsonClone();
+            newSeriesInfo.TmdbId = _series.TmdbId + 1;
+
+            GivenNewSeriesInfo(newSeriesInfo);
+
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
+
+            Mocker.GetMock<ISeriesService>()
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TmdbId == newSeriesInfo.TmdbId), It.IsAny<bool>(), It.IsAny<bool>()));
+        }
+
+        [Test]
         public void should_log_error_if_tvdb_id_not_found()
         {
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Status == SeriesStatusType.Deleted), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
@@ -145,7 +165,7 @@ namespace NzbDrone.Core.Test.TvTests
         [Test]
         public void should_mark_as_deleted_if_tvdb_id_not_found()
         {
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Status == SeriesStatusType.Deleted), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
@@ -158,7 +178,7 @@ namespace NzbDrone.Core.Test.TvTests
         {
             _series.Status = SeriesStatusType.Deleted;
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
@@ -174,7 +194,7 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(newSeriesInfo);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                 .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvdbId == newSeriesInfo.TvdbId), It.IsAny<bool>(), It.IsAny<bool>()));
@@ -200,7 +220,7 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(newSeriesInfo);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2), It.IsAny<bool>(), It.IsAny<bool>()));
@@ -220,11 +240,10 @@ namespace NzbDrone.Core.Test.TvTests
 
             GivenNewSeriesInfo(newSeriesInfo);
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2), It.IsAny<bool>(), It.IsAny<bool>()));
-
         }
 
         [Test]
@@ -234,7 +253,7 @@ namespace NzbDrone.Core.Test.TvTests
                   .Setup(s => s.GetSeriesInfo(_series.Id))
                   .Throws(new IOException());
 
-            Assert.Throws<IOException>(() => Subject.Execute(new RefreshSeriesCommand(_series.Id)));
+            Assert.Throws<IOException>(() => Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id })));
 
             Mocker.GetMock<IDiskScanService>()
                   .Verify(v => v.Scan(_series), Times.Once());
@@ -249,7 +268,7 @@ namespace NzbDrone.Core.Test.TvTests
                   .Setup(s => s.GetSeriesInfo(_series.Id))
                   .Throws(new SeriesNotFoundException(_series.Id));
 
-            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
 
             Mocker.GetMock<IDiskScanService>()
                   .Verify(v => v.Scan(_series), Times.Never());

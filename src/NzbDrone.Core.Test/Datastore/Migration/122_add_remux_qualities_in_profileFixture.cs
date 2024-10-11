@@ -23,13 +23,13 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                 });
             });
 
-            var profiles = db.Query<Profile122>("SELECT Items FROM Profiles LIMIT 1");
+            var profiles = db.Query<Profile122>("SELECT \"Items\" FROM \"Profiles\" LIMIT 1");
 
             var items = profiles.First().Items;
             items.Should().HaveCount(4);
-            items.Select(v => v.Quality).Should().BeEquivalentTo(7, 20, 19, 21);
-            items.Select(v => v.Allowed).Should().BeEquivalentTo(true, false, true, false);
-            items.Select(v => v.Name).Should().BeEquivalentTo(null, null, null, (string)null);
+            items.Select(v => v.Quality).Should().Equal(7, 20, 19, 21);
+            items.Select(v => v.Allowed).Should().Equal(true, false, true, false);
+            items.Select(v => v.Name).Should().Equal(null, null, null, null);
         }
 
         [Test]
@@ -43,16 +43,16 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                                                        Name = "Bluray",
                                                        Cutoff = 7,
                                                        Items = "[ { \"id\": 1001, \"name\": \"Why?!\", \"allowed\": true, \"items\": [{ \"quality\": 8, \"allowed\": true }, { \"quality\": 7, \"allowed\": true }] }, { \"quality\": 19, \"allowed\": true } ]"
-                });
+                                                   });
             });
 
-            var profiles = db.Query<Profile122>("SELECT Items FROM Profiles LIMIT 1");
+            var profiles = db.Query<Profile122>("SELECT \"Items\" FROM \"Profiles\" LIMIT 1");
 
             var items = profiles.First().Items;
             items.Should().HaveCount(4);
-            items.Select(v => v.Quality).Should().BeEquivalentTo(null, 20, 19, 21);
-            items.Select(v => v.Allowed).Should().BeEquivalentTo(true, false, true, false);
-            items.Select(v => v.Name).Should().BeEquivalentTo("Why?!", null, null, null);
+            items.Select(v => v.Quality).Should().Equal(null, 20, 19, 21);
+            items.Select(v => v.Allowed).Should().Equal(true, false, true, false);
+            items.Select(v => v.Name).Should().Equal("Why?!", null, null, null);
         }
     }
 }

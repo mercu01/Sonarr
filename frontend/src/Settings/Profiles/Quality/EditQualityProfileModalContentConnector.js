@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
+import { fetchQualityProfileSchema, saveQualityProfile, setQualityProfileValue } from 'Store/Actions/settingsActions';
 import createProfileInUseSelector from 'Store/Selectors/createProfileInUseSelector';
 import createProviderSettingsSelector from 'Store/Selectors/createProviderSettingsSelector';
-import { fetchQualityProfileSchema, setQualityProfileValue, saveQualityProfile } from 'Store/Actions/settingsActions';
 import EditQualityProfileModalContent from './EditQualityProfileModalContent';
 
 function getQualityItemGroupId(qualityProfile) {
@@ -61,14 +61,46 @@ function createQualitiesSelector() {
   );
 }
 
+function createFormatsSelector() {
+  return createSelector(
+    createProviderSettingsSelector('qualityProfiles'),
+    (customFormat) => {
+      const items = customFormat.item.formatItems;
+      if (!items || !items.value) {
+        return [];
+      }
+
+      return _.reduceRight(items.value, (result, { id, name, format, score }) => {
+        if (id) {
+          result.push({
+            key: id,
+            value: name,
+            score
+          });
+        } else {
+          result.push({
+            key: format,
+            value: name,
+            score
+          });
+        }
+
+        return result;
+      }, []);
+    }
+  );
+}
+
 function createMapStateToProps() {
   return createSelector(
     createProviderSettingsSelector('qualityProfiles'),
     createQualitiesSelector(),
+    createFormatsSelector(),
     createProfileInUseSelector('qualityProfileId'),
-    (qualityProfile, qualities, isInUse) => {
+    (qualityProfile, qualities, customFormats, isInUse) => {
       return {
         qualities,
+        customFormats,
         ...qualityProfile,
         isInUse
       };
@@ -135,14 +167,14 @@ class EditQualityProfileModalContentConnector extends Component {
 
       this.props.setQualityProfileValue({ name: 'cutoff', value: cutoffId });
     }
-  }
+  };
 
   //
   // Listeners
 
   onInputChange = ({ name, value }) => {
     this.props.setQualityProfileValue({ name, value });
-  }
+  };
 
   onCutoffChange = ({ name, value }) => {
     const id = parseInt(value);
@@ -157,11 +189,11 @@ class EditQualityProfileModalContentConnector extends Component {
     const cutoffId = item.quality ? item.quality.id : item.id;
 
     this.props.setQualityProfileValue({ name, value: cutoffId });
-  }
+  };
 
   onSavePress = () => {
     this.props.saveQualityProfile({ id: this.props.id });
-  }
+  };
 
   onQualityProfileItemAllowedChange = (id, allowed) => {
     const qualityProfile = _.cloneDeep(this.props.item);
@@ -176,7 +208,20 @@ class EditQualityProfileModalContentConnector extends Component {
     });
 
     this.ensureCutoff(qualityProfile);
-  }
+  };
+
+  onQualityProfileFormatItemScoreChange = (id, score) => {
+    const qualityProfile = _.cloneDeep(this.props.item);
+    const formatItems = qualityProfile.formatItems.value;
+    const item = _.find(qualityProfile.formatItems.value, (i) => i.format === id);
+
+    item.score = score;
+
+    this.props.setQualityProfileValue({
+      name: 'formatItems',
+      value: formatItems
+    });
+  };
 
   onItemGroupAllowedChange = (id, allowed) => {
     const qualityProfile = _.cloneDeep(this.props.item);
@@ -196,7 +241,7 @@ class EditQualityProfileModalContentConnector extends Component {
     });
 
     this.ensureCutoff(qualityProfile);
-  }
+  };
 
   onItemGroupNameChange = (id, name) => {
     const qualityProfile = _.cloneDeep(this.props.item);
@@ -209,7 +254,7 @@ class EditQualityProfileModalContentConnector extends Component {
       name: 'items',
       value: items
     });
-  }
+  };
 
   onCreateGroupPress = (id) => {
     const qualityProfile = _.cloneDeep(this.props.item);
@@ -236,7 +281,7 @@ class EditQualityProfileModalContentConnector extends Component {
     });
 
     this.ensureCutoff(qualityProfile);
-  }
+  };
 
   onDeleteGroupPress = (id) => {
     const qualityProfile = _.cloneDeep(this.props.item);
@@ -253,7 +298,7 @@ class EditQualityProfileModalContentConnector extends Component {
     });
 
     this.ensureCutoff(qualityProfile);
-  }
+  };
 
   onQualityProfileItemDragMove = (options) => {
     const {
@@ -339,7 +384,7 @@ class EditQualityProfileModalContentConnector extends Component {
         dropPosition
       });
     }
-  }
+  };
 
   onQualityProfileItemDragEnd = (didDrop) => {
     const {
@@ -392,11 +437,11 @@ class EditQualityProfileModalContentConnector extends Component {
       dropQualityIndex: null,
       dropPosition: null
     });
-  }
+  };
 
   onToggleEditGroupsMode = () => {
     this.setState({ editGroups: !this.state.editGroups });
-  }
+  };
 
   //
   // Render
@@ -420,6 +465,7 @@ class EditQualityProfileModalContentConnector extends Component {
         onItemGroupNameChange={this.onItemGroupNameChange}
         onQualityProfileItemDragMove={this.onQualityProfileItemDragMove}
         onQualityProfileItemDragEnd={this.onQualityProfileItemDragEnd}
+        onQualityProfileFormatItemScoreChange={this.onQualityProfileFormatItemScoreChange}
         onToggleEditGroupsMode={this.onToggleEditGroupsMode}
       />
     );

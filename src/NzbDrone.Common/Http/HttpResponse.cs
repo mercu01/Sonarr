@@ -9,28 +9,31 @@ namespace NzbDrone.Common.Http
 {
     public class HttpResponse
     {
-        private static readonly Regex RegexSetCookie = new Regex("^(.*?)=(.*?)(?:;|$)", RegexOptions.Compiled);
+        private static readonly Regex RegexSetCookie = new ("^(.*?)=(.*?)(?:;|$)", RegexOptions.Compiled);
 
-        public HttpResponse(HttpRequest request, HttpHeader headers, byte[] binaryData, HttpStatusCode statusCode = HttpStatusCode.OK)
+        public HttpResponse(HttpRequest request, HttpHeader headers, byte[] binaryData, HttpStatusCode statusCode = HttpStatusCode.OK, Version version = null)
         {
             Request = request;
             Headers = headers;
             ResponseData = binaryData;
             StatusCode = statusCode;
+            Version = version;
         }
 
-        public HttpResponse(HttpRequest request, HttpHeader headers, string content, HttpStatusCode statusCode = HttpStatusCode.OK)
+        public HttpResponse(HttpRequest request, HttpHeader headers, string content, HttpStatusCode statusCode = HttpStatusCode.OK, Version version = null)
         {
             Request = request;
             Headers = headers;
             ResponseData = Headers.GetEncodingFromContentType().GetBytes(content);
             _content = content;
             StatusCode = statusCode;
+            Version = version;
         }
 
         public HttpRequest Request { get; private set; }
         public HttpHeader Headers { get; private set; }
         public HttpStatusCode StatusCode { get; private set; }
+        public Version Version { get; private set; }
         public byte[] ResponseData { get; private set; }
 
         private string _content;
@@ -48,19 +51,21 @@ namespace NzbDrone.Common.Http
             }
         }
 
-
         public bool HasHttpError => (int)StatusCode >= 400;
+
+        public bool HasHttpServerError => (int)StatusCode >= 500;
 
         public bool HasHttpRedirect => StatusCode == HttpStatusCode.Moved ||
                                        StatusCode == HttpStatusCode.MovedPermanently ||
                                        StatusCode == HttpStatusCode.Found ||
                                        StatusCode == HttpStatusCode.TemporaryRedirect ||
                                        StatusCode == HttpStatusCode.RedirectMethod ||
-                                       StatusCode == HttpStatusCode.SeeOther;
+                                       StatusCode == HttpStatusCode.SeeOther ||
+                                       StatusCode == HttpStatusCode.PermanentRedirect;
 
         public string[] GetCookieHeaders()
         {
-            return Headers.GetValues("Set-Cookie") ?? new string[0];
+            return Headers.GetValues("Set-Cookie") ?? Array.Empty<string>();
         }
 
         public Dictionary<string, string> GetCookies()
@@ -82,7 +87,7 @@ namespace NzbDrone.Common.Http
 
         public override string ToString()
         {
-            var result = string.Format("Res: [{0}] {1}: {2}.{3} ({4} bytes)", Request.Method, Request.Url, (int)StatusCode, StatusCode, ResponseData?.Length ?? 0);
+            var result = $"Res: HTTP/{Version} [{Request.Method}] {Request.Url}: {(int)StatusCode}.{StatusCode} ({ResponseData?.Length ?? 0} bytes)";
 
             if (HasHttpError && Headers.ContentType.IsNotNullOrWhiteSpace() && !Headers.ContentType.Equals("text/html", StringComparison.InvariantCultureIgnoreCase))
             {
@@ -93,11 +98,11 @@ namespace NzbDrone.Common.Http
         }
     }
 
-
-    public class HttpResponse<T> : HttpResponse where T : new()
+    public class HttpResponse<T> : HttpResponse
+        where T : new()
     {
         public HttpResponse(HttpResponse response)
-            : base(response.Request, response.Headers, response.ResponseData, response.StatusCode)
+            : base(response.Request, response.Headers, response.ResponseData, response.StatusCode, response.Version)
         {
             Resource = Json.Deserialize<T>(response.Content);
         }

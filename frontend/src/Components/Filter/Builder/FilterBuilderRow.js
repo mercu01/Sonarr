@@ -1,16 +1,20 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { filterBuilderTypes, filterBuilderValueTypes, icons } from 'Helpers/Props';
 import SelectInput from 'Components/Form/SelectInput';
 import IconButton from 'Components/Link/IconButton';
+import { filterBuilderTypes, filterBuilderValueTypes, icons } from 'Helpers/Props';
+import sortByProp from 'Utilities/Array/sortByProp';
 import BoolFilterBuilderRowValue from './BoolFilterBuilderRowValue';
 import DateFilterBuilderRowValue from './DateFilterBuilderRowValue';
 import FilterBuilderRowValueConnector from './FilterBuilderRowValueConnector';
+import HistoryEventTypeFilterBuilderRowValue from './HistoryEventTypeFilterBuilderRowValue';
 import IndexerFilterBuilderRowValueConnector from './IndexerFilterBuilderRowValueConnector';
-import LanguageProfileFilterBuilderRowValueConnector from './LanguageProfileFilterBuilderRowValueConnector';
+import LanguageFilterBuilderRowValue from './LanguageFilterBuilderRowValue';
 import ProtocolFilterBuilderRowValue from './ProtocolFilterBuilderRowValue';
 import QualityFilterBuilderRowValueConnector from './QualityFilterBuilderRowValueConnector';
-import QualityProfileFilterBuilderRowValueConnector from './QualityProfileFilterBuilderRowValueConnector';
+import QualityProfileFilterBuilderRowValue from './QualityProfileFilterBuilderRowValue';
+import SeasonsMonitoredStatusFilterBuilderRowValue from './SeasonsMonitoredStatusFilterBuilderRowValue';
+import SeriesFilterBuilderRowValue from './SeriesFilterBuilderRowValue';
 import SeriesStatusFilterBuilderRowValue from './SeriesStatusFilterBuilderRowValue';
 import SeriesTypeFilterBuilderRowValue from './SeriesTypeFilterBuilderRowValue';
 import TagFilterBuilderRowValueConnector from './TagFilterBuilderRowValueConnector';
@@ -58,11 +62,14 @@ function getRowValueConnector(selectedFilterBuilderProp) {
     case filterBuilderValueTypes.DATE:
       return DateFilterBuilderRowValue;
 
+    case filterBuilderValueTypes.HISTORY_EVENT_TYPE:
+      return HistoryEventTypeFilterBuilderRowValue;
+
     case filterBuilderValueTypes.INDEXER:
       return IndexerFilterBuilderRowValueConnector;
 
-    case filterBuilderValueTypes.LANGUAGE_PROFILE:
-      return LanguageProfileFilterBuilderRowValueConnector;
+    case filterBuilderValueTypes.LANGUAGE:
+      return LanguageFilterBuilderRowValue;
 
     case filterBuilderValueTypes.PROTOCOL:
       return ProtocolFilterBuilderRowValue;
@@ -71,7 +78,13 @@ function getRowValueConnector(selectedFilterBuilderProp) {
       return QualityFilterBuilderRowValueConnector;
 
     case filterBuilderValueTypes.QUALITY_PROFILE:
-      return QualityProfileFilterBuilderRowValueConnector;
+      return QualityProfileFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.SEASONS_MONITORED_STATUS:
+      return SeasonsMonitoredStatusFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.SERIES:
+      return SeriesFilterBuilderRowValue;
 
     case filterBuilderValueTypes.SERIES_STATUS:
       return SeriesStatusFilterBuilderRowValue;
@@ -154,7 +167,7 @@ class FilterBuilderRow extends Component {
 
     this.selectedFilterBuilderProp = selectedFilterBuilderProp;
     onFilterChange(index, filter);
-  }
+  };
 
   onFilterChange = ({ name, value }) => {
     const {
@@ -174,7 +187,7 @@ class FilterBuilderRow extends Component {
     filter[name] = value;
 
     onFilterChange(index, filter);
-  }
+  };
 
   onAddPress = () => {
     const {
@@ -183,7 +196,7 @@ class FilterBuilderRow extends Component {
     } = this.props;
 
     onAddPress(index);
-  }
+  };
 
   onRemovePress = () => {
     const {
@@ -192,7 +205,7 @@ class FilterBuilderRow extends Component {
     } = this.props;
 
     onRemovePress(index);
-  }
+  };
 
   //
   // Render
@@ -210,11 +223,13 @@ class FilterBuilderRow extends Component {
     const selectedFilterBuilderProp = this.selectedFilterBuilderProp;
 
     const keyOptions = filterBuilderProps.map((availablePropFilter) => {
+      const { name, label } = availablePropFilter;
+
       return {
-        key: availablePropFilter.name,
-        value: availablePropFilter.label
+        key: name,
+        value: typeof label === 'function' ? label() : label
       };
-    });
+    }).sort(sortByProp('value'));
 
     const ValueComponent = getRowValueConnector(selectedFilterBuilderProp);
 

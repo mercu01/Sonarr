@@ -1,16 +1,18 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download
 {
     public interface IFailedDownloadService
     {
-        void MarkAsFailed(int historyId);
-        void MarkAsFailed(string downloadId);
+        void MarkAsFailed(int historyId, bool skipRedownload = false);
+        void MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false);
         void Check(TrackedDownload trackedDownload);
         void ProcessFailed(TrackedDownload trackedDownload);
     }
@@ -18,7 +20,6 @@ namespace NzbDrone.Core.Download
     public class FailedDownloadService : IFailedDownloadService
     {
         private readonly IHistoryService _historyService;
-        private readonly ITrackedDownloadService _trackedDownloadService;
         private readonly IEventAggregator _eventAggregator;
 
         public FailedDownloadService(IHistoryService historyService,
@@ -26,42 +27,51 @@ namespace NzbDrone.Core.Download
                                      IEventAggregator eventAggregator)
         {
             _historyService = historyService;
-            _trackedDownloadService = trackedDownloadService;
             _eventAggregator = eventAggregator;
         }
 
-        public void MarkAsFailed(int historyId)
+        public void MarkAsFailed(int historyId, bool skipRedownload = false)
         {
             var history = _historyService.Get(historyId);
 
             var downloadId = history.DownloadId;
+
             if (downloadId.IsNullOrWhiteSpace())
             {
-                PublishDownloadFailedEvent(new List<EpisodeHistory> { history }, "Manually marked as failed");
+                PublishDownloadFailedEvent(history, new List<int> { history.EpisodeId }, "Manually marked as failed", skipRedownload: skipRedownload);
+
+                return;
             }
-            else
+
+            var grabbedHistory = new List<EpisodeHistory>();
+
+            // If the history item is a grabbed item (it should be, at least from the UI) add it as the first history item
+            if (history.EventType == EpisodeHistoryEventType.Grabbed)
             {
-                var grabbedHistory = _historyService.Find(downloadId, EpisodeHistoryEventType.Grabbed).ToList();
-                PublishDownloadFailedEvent(grabbedHistory, "Manually marked as failed");
+                grabbedHistory.Add(history);
             }
+
+            // Add any other history items for the download ID then filter out any duplicate history items.
+            grabbedHistory.AddRange(GetGrabbedHistory(downloadId));
+            grabbedHistory = grabbedHistory.DistinctBy(h => h.Id).ToList();
+
+            PublishDownloadFailedEvent(history, GetEpisodeIds(grabbedHistory), "Manually marked as failed");
         }
 
-        public void MarkAsFailed(string downloadId)
+        public void MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false)
         {
-            var history = _historyService.Find(downloadId, EpisodeHistoryEventType.Grabbed);
+            var history = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
 
             if (history.Any())
             {
-                var trackedDownload = _trackedDownloadService.Find(downloadId);
-
-                PublishDownloadFailedEvent(history, "Manually marked as failed", trackedDownload);
+                PublishDownloadFailedEvent(history.First(), GetEpisodeIds(history), "Manually marked as failed", trackedDownload, skipRedownload: skipRedownload);
             }
         }
 
         public void Check(TrackedDownload trackedDownload)
         {
-            // Only process tracked downloads that are still downloading
-            if (trackedDownload.State != TrackedDownloadState.Downloading)
+            // Only process tracked downloads that are still downloading or import is blocked (if they fail after attempting to be processed)
+            if (trackedDownload.State != TrackedDownloadState.Downloading && trackedDownload.State != TrackedDownloadState.ImportBlocked)
             {
                 return;
             }
@@ -69,9 +79,7 @@ namespace NzbDrone.Core.Download
             if (trackedDownload.DownloadItem.IsEncrypted ||
                 trackedDownload.DownloadItem.Status == DownloadItemStatus.Failed)
             {
-                var grabbedItems = _historyService
-                                   .Find(trackedDownload.DownloadItem.DownloadId, EpisodeHistoryEventType.Grabbed)
-                                   .ToList();
+                var grabbedItems = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
 
                 if (grabbedItems.Empty())
                 {
@@ -90,9 +98,7 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            var grabbedItems = _historyService
-                               .Find(trackedDownload.DownloadItem.DownloadId, EpisodeHistoryEventType.Grabbed)
-                               .ToList();
+            var grabbedItems = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
 
             if (grabbedItems.Empty())
             {
@@ -111,17 +117,17 @@ namespace NzbDrone.Core.Download
             }
 
             trackedDownload.State = TrackedDownloadState.Failed;
-            PublishDownloadFailedEvent(grabbedItems, failure, trackedDownload);
+            PublishDownloadFailedEvent(grabbedItems.First(), GetEpisodeIds(grabbedItems), failure, trackedDownload);
         }
 
-        private void PublishDownloadFailedEvent(List<EpisodeHistory> historyItems, string message, TrackedDownload trackedDownload = null)
+        private void PublishDownloadFailedEvent(EpisodeHistory historyItem, List<int> episodeIds, string message, TrackedDownload trackedDownload = null, bool skipRedownload = false)
         {
-            var historyItem = historyItems.First();
+            Enum.TryParse(historyItem.Data.GetValueOrDefault(EpisodeHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
 
             var downloadFailedEvent = new DownloadFailedEvent
             {
                 SeriesId = historyItem.SeriesId,
-                EpisodeIds = historyItems.Select(h => h.EpisodeId).ToList(),
+                EpisodeIds = episodeIds,
                 Quality = historyItem.Quality,
                 SourceTitle = historyItem.SourceTitle,
                 DownloadClient = historyItem.Data.GetValueOrDefault(EpisodeHistory.DOWNLOAD_CLIENT),
@@ -129,10 +135,25 @@ namespace NzbDrone.Core.Download
                 Message = message,
                 Data = historyItem.Data,
                 TrackedDownload = trackedDownload,
-                Language = historyItem.Language
+                Languages = historyItem.Languages,
+                SkipRedownload = skipRedownload,
+                ReleaseSource = releaseSource,
             };
 
             _eventAggregator.PublishEvent(downloadFailedEvent);
+        }
+
+        private List<int> GetEpisodeIds(List<EpisodeHistory> historyItems)
+        {
+            return historyItems.Select(h => h.EpisodeId).Distinct().ToList();
+        }
+
+        private List<EpisodeHistory> GetGrabbedHistory(string downloadId)
+        {
+            // Sort by date so items are always in the same order
+            return _historyService.Find(downloadId, EpisodeHistoryEventType.Grabbed)
+                .OrderByDescending(h => h.Date)
+                .ToList();
         }
     }
 }

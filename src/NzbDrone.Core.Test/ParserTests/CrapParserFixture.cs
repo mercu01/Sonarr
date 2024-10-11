@@ -1,13 +1,12 @@
 using System;
+using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
-using System.Text;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class CrapParserFixture : CoreTest
     {
@@ -40,23 +39,32 @@ namespace NzbDrone.Core.Test.ParserTests
             ExceptionVerification.IgnoreWarns();
         }
 
+        [TestCase("علم نف) أ.دعادل الأبيض ٢٠٢٤ ٣ ٣")]
+        [TestCase("ror-240618_1007-1022-")]
+        public void should_parse_unknown_formats_without_error(string title)
+        {
+            Parser.Parser.ParseTitle(title).Should().NotBeNull();
+        }
+
         [Test]
         public void should_not_parse_md5()
         {
-            string hash = "CRAPPY TEST SEED";
+            var hash = "CRAPPY TEST SEED";
 
             var hashAlgo = System.Security.Cryptography.MD5.Create();
 
             var repetitions = 100;
             var success = 0;
-            for (int i = 0; i < repetitions; i++)
+            for (var i = 0; i < repetitions; i++)
             {
                 var hashData = hashAlgo.ComputeHash(System.Text.Encoding.Default.GetBytes(hash));
 
                 hash = BitConverter.ToString(hashData).Replace("-", "");
 
                 if (Parser.Parser.ParseTitle(hash) == null)
+                {
                     success++;
+                }
             }
 
             success.Should().Be(repetitions);
@@ -66,23 +74,25 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase(40)]
         public void should_not_parse_random(int length)
         {
-            string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
             var hashAlgo = new Random();
 
             var repetitions = 500;
             var success = 0;
-            for (int i = 0; i < repetitions; i++)
+            for (var i = 0; i < repetitions; i++)
             {
-                StringBuilder hash = new StringBuilder(length);
+                var hash = new StringBuilder(length);
 
-                for (int x = 0; x < length; x++)
+                for (var x = 0; x < length; x++)
                 {
                     hash.Append(charset[hashAlgo.Next() % charset.Length]);
                 }
 
                 if (Parser.Parser.ParseTitle(hash.ToString()) == null)
+                {
                     success++;
+                }
             }
 
             success.Should().Be(repetitions);

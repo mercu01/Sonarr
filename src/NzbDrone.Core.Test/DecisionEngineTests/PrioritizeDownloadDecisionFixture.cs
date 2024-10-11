@@ -1,23 +1,21 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Moq;
-using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Profiles.Delay;
-using NzbDrone.Core.Tv;
-using NzbDrone.Core.Profiles.Qualities;
-using NzbDrone.Core.Qualities;
-using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.DecisionEngine;
-using NUnit.Framework;
-using FluentAssertions;
 using FizzWare.NBuilder;
+using FluentAssertions;
+using Moq;
+using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Profiles.Languages;
-using NzbDrone.Core.Test.Languages;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Delay;
+using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
@@ -28,6 +26,17 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void Setup()
         {
             GivenPreferredDownloadProtocol(DownloadProtocol.Usenet);
+
+            Mocker.GetMock<IQualityDefinitionService>()
+                .Setup(s => s.Get(It.IsAny<Quality>()))
+                .Returns(new QualityDefinition { PreferredSize = null });
+        }
+
+        private void GivenPreferredSize(double? size)
+        {
+            Mocker.GetMock<IQualityDefinitionService>()
+                .Setup(s => s.Get(It.IsAny<Quality>()))
+                .Returns(new QualityDefinition { PreferredSize = size });
         }
 
         private Episode GivenEpisode(int id)
@@ -43,7 +52,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var remoteEpisode = new RemoteEpisode();
             remoteEpisode.ParsedEpisodeInfo = new ParsedEpisodeInfo();
             remoteEpisode.ParsedEpisodeInfo.Quality = quality;
-            remoteEpisode.ParsedEpisodeInfo.Language = language;
+            remoteEpisode.ParsedEpisodeInfo.Languages = new List<Language> { language };
 
             remoteEpisode.Episodes = new List<Episode>();
             remoteEpisode.Episodes.AddRange(episodes);
@@ -55,14 +64,10 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             remoteEpisode.Release.IndexerPriority = indexerPriority;
 
             remoteEpisode.Series = Builder<Series>.CreateNew()
+                                                  .With(e => e.Runtime = 60)
                                                   .With(e => e.QualityProfile = new QualityProfile
                                                   {
                                                       Items = Qualities.QualityFixture.GetDefaultQualities()
-                                                  })
-                                                  .With(l => l.LanguageProfile = new LanguageProfile
-                                                  {
-                                                      Languages = LanguageFixture.GetDefaultLanguages(),
-                                                      Cutoff = Language.Spanish
                                                   })
                                                   .Build();
 
@@ -168,11 +173,48 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
+        public void should_order_by_closest_to_preferred_size_if_both_under()
+        {
+            // 200 MB/Min * 60 Min Runtime = 12000 MB
+            GivenPreferredSize(200);
+
+            var remoteEpisodeSmall = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 1200.Megabytes(), age: 1);
+            var remoteEpisodeLarge = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 10000.Megabytes(), age: 1);
+
+            var decisions = new List<DownloadDecision>();
+            decisions.Add(new DownloadDecision(remoteEpisodeSmall));
+            decisions.Add(new DownloadDecision(remoteEpisodeLarge));
+
+            var qualifiedReports = Subject.PrioritizeDecisions(decisions);
+            qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisodeLarge);
+        }
+
+        [Test]
+        public void should_order_by_closest_to_preferred_size_if_preferred_is_in_between()
+        {
+            // 46 MB/Min * 60 Min Runtime = 6900 MB
+            GivenPreferredSize(46);
+
+            var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 500.Megabytes(), age: 1);
+            var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 2000.Megabytes(), age: 1);
+            var remoteEpisode3 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 3000.Megabytes(), age: 1);
+            var remoteEpisode4 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 5000.Megabytes(), age: 1);
+
+            var decisions = new List<DownloadDecision>();
+            decisions.Add(new DownloadDecision(remoteEpisode1));
+            decisions.Add(new DownloadDecision(remoteEpisode2));
+            decisions.Add(new DownloadDecision(remoteEpisode3));
+            decisions.Add(new DownloadDecision(remoteEpisode4));
+
+            var qualifiedReports = Subject.PrioritizeDecisions(decisions);
+            qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisode3);
+        }
+
+        [Test]
         public void should_order_by_youngest()
         {
             var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, age: 10);
             var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, age: 5);
-
 
             var decisions = new List<DownloadDecision>();
             decisions.Add(new DownloadDecision(remoteEpisode1));
@@ -299,7 +341,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             decisions.Add(new DownloadDecision(remoteEpisode2));
 
             var qualifiedReports = Subject.PrioritizeDecisions(decisions);
-            ((TorrentInfo) qualifiedReports.First().RemoteEpisode.Release).Seeders.Should().Be(torrentInfo2.Seeders);
+            ((TorrentInfo)qualifiedReports.First().RemoteEpisode.Release).Seeders.Should().Be(torrentInfo2.Seeders);
         }
 
         [Test]
@@ -314,7 +356,6 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             torrentInfo1.DownloadProtocol = DownloadProtocol.Torrent;
             torrentInfo1.Seeders = 10;
             torrentInfo1.Peers = 10;
-
 
             var torrentInfo2 = torrentInfo1.JsonClone();
             torrentInfo2.Peers = 100;
@@ -342,7 +383,6 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             torrentInfo1.DownloadProtocol = DownloadProtocol.Torrent;
             torrentInfo1.Seeders = 0;
             torrentInfo1.Peers = 10;
-
 
             var torrentInfo2 = torrentInfo1.JsonClone();
             torrentInfo2.Seeders = 0;
@@ -385,7 +425,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             decisions.Add(new DownloadDecision(remoteEpisode2));
 
             var qualifiedReports = Subject.PrioritizeDecisions(decisions);
-            ((TorrentInfo) qualifiedReports.First().RemoteEpisode.Release).Should().Be(torrentInfo1);
+            ((TorrentInfo)qualifiedReports.First().RemoteEpisode.Release).Should().Be(torrentInfo1);
         }
 
         [Test]
@@ -438,24 +478,6 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
-        public void should_order_by_language()
-        {
-            var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English);
-            var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.French);
-            var remoteEpisode3 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.German);
-
-
-            var decisions = new List<DownloadDecision>();
-            decisions.Add(new DownloadDecision(remoteEpisode1));
-            decisions.Add(new DownloadDecision(remoteEpisode2));
-            decisions.Add(new DownloadDecision(remoteEpisode3));
-
-            var qualifiedReports = Subject.PrioritizeDecisions(decisions);
-            qualifiedReports.First().RemoteEpisode.ParsedEpisodeInfo.Language.Should().Be(Language.French);
-            qualifiedReports.Last().RemoteEpisode.ParsedEpisodeInfo.Language.Should().Be(Language.German);
-        }
-
-        [Test]
         public void should_put_higher_quality_before_lower_always()
         {
             var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.SDTV), Language.French);
@@ -475,15 +497,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p), Language.English);
             var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p), Language.English);
 
-            remoteEpisode1.PreferredWordScore = 10;
-            remoteEpisode2.PreferredWordScore = 0;
+            remoteEpisode1.CustomFormatScore = 10;
+            remoteEpisode2.CustomFormatScore = 0;
 
             var decisions = new List<DownloadDecision>();
             decisions.Add(new DownloadDecision(remoteEpisode1));
             decisions.Add(new DownloadDecision(remoteEpisode2));
 
             var qualifiedReports = Subject.PrioritizeDecisions(decisions);
-            qualifiedReports.First().RemoteEpisode.PreferredWordScore.Should().Be(10);
+            qualifiedReports.First().RemoteEpisode.CustomFormatScore.Should().Be(10);
         }
 
         [Test]
@@ -496,8 +518,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(1)), Language.English);
             var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(2)), Language.English);
 
-            remoteEpisode1.PreferredWordScore = 10;
-            remoteEpisode2.PreferredWordScore = 0;
+            remoteEpisode1.CustomFormatScore = 10;
+            remoteEpisode2.CustomFormatScore = 0;
 
             var decisions = new List<DownloadDecision>();
             decisions.Add(new DownloadDecision(remoteEpisode1));
@@ -517,8 +539,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(1)), Language.English);
             var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(2)), Language.English);
 
-            remoteEpisode1.PreferredWordScore = 10;
-            remoteEpisode2.PreferredWordScore = 0;
+            remoteEpisode1.CustomFormatScore = 10;
+            remoteEpisode2.CustomFormatScore = 0;
 
             var decisions = new List<DownloadDecision>();
             decisions.Add(new DownloadDecision(remoteEpisode1));
@@ -538,8 +560,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(1)), Language.English);
             var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(2)), Language.English);
 
-            remoteEpisode1.PreferredWordScore = 10;
-            remoteEpisode2.PreferredWordScore = 0;
+            remoteEpisode1.CustomFormatScore = 10;
+            remoteEpisode2.CustomFormatScore = 0;
 
             var decisions = new List<DownloadDecision>();
             decisions.Add(new DownloadDecision(remoteEpisode1));
@@ -548,7 +570,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var qualifiedReports = Subject.PrioritizeDecisions(decisions);
             qualifiedReports.First().RemoteEpisode.ParsedEpisodeInfo.Quality.Quality.Should().Be(Quality.WEBDL1080p);
             qualifiedReports.First().RemoteEpisode.ParsedEpisodeInfo.Quality.Revision.Version.Should().Be(1);
-            qualifiedReports.First().RemoteEpisode.PreferredWordScore.Should().Be(10);
+            qualifiedReports.First().RemoteEpisode.CustomFormatScore.Should().Be(10);
         }
 
         [Test]
@@ -561,8 +583,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var remoteEpisode1 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(1, 0)), Language.English);
             var remoteEpisode2 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(1, 1)), Language.English);
 
-            remoteEpisode1.PreferredWordScore = 10;
-            remoteEpisode2.PreferredWordScore = 0;
+            remoteEpisode1.CustomFormatScore = 10;
+            remoteEpisode2.CustomFormatScore = 0;
 
             var decisions = new List<DownloadDecision>();
             decisions.Add(new DownloadDecision(remoteEpisode1));
@@ -572,7 +594,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             qualifiedReports.First().RemoteEpisode.ParsedEpisodeInfo.Quality.Quality.Should().Be(Quality.WEBDL1080p);
             qualifiedReports.First().RemoteEpisode.ParsedEpisodeInfo.Quality.Revision.Version.Should().Be(1);
             qualifiedReports.First().RemoteEpisode.ParsedEpisodeInfo.Quality.Revision.Real.Should().Be(0);
-            qualifiedReports.First().RemoteEpisode.PreferredWordScore.Should().Be(10);
+            qualifiedReports.First().RemoteEpisode.CustomFormatScore.Should().Be(10);
         }
 
         [Test]
@@ -583,7 +605,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var remoteEpisode3 = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.WEBDL1080p, new Revision(1)), Language.English, indexerPriority: 1);
 
             var decisions = new List<DownloadDecision>();
-            decisions.AddRange(new [] { new DownloadDecision(remoteEpisode1), new DownloadDecision(remoteEpisode2), new DownloadDecision(remoteEpisode3) });
+            decisions.AddRange(new[] { new DownloadDecision(remoteEpisode1), new DownloadDecision(remoteEpisode2), new DownloadDecision(remoteEpisode3) });
 
             var qualifiedReports = Subject.PrioritizeDecisions(decisions);
             qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisode3);

@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Update
         private readonly IConfigFileProvider _configFileProvider;
         private readonly IRuntimeInfo _runtimeInfo;
         private readonly IBackupService _backupService;
-
+        private readonly IOsInfo _osInfo;
 
         public InstallUpdateService(ICheckUpdateService checkUpdateService,
                                     IAppFolderInfo appFolderInfo,
@@ -53,12 +53,14 @@ namespace NzbDrone.Core.Update
                                     IConfigFileProvider configFileProvider,
                                     IRuntimeInfo runtimeInfo,
                                     IBackupService backupService,
+                                    IOsInfo osInfo,
                                     Logger logger)
         {
             if (configFileProvider == null)
             {
                 throw new ArgumentNullException(nameof(configFileProvider));
             }
+
             _checkUpdateService = checkUpdateService;
             _appFolderInfo = appFolderInfo;
             _commandQueueManager = commandQueueManager;
@@ -73,6 +75,7 @@ namespace NzbDrone.Core.Update
             _configFileProvider = configFileProvider;
             _runtimeInfo = runtimeInfo;
             _backupService = backupService;
+            _osInfo = osInfo;
             _logger = logger;
         }
 
@@ -80,7 +83,7 @@ namespace NzbDrone.Core.Update
         {
             EnsureAppDataSafety();
 
-            if (OsInfo.IsWindows || _configFileProvider.UpdateMechanism != UpdateMechanism.Script)
+            if (_configFileProvider.UpdateMechanism != UpdateMechanism.Script)
             {
                 var startupFolder = _appFolderInfo.StartUpFolder;
                 var uiFolder = Path.Combine(startupFolder, "UI");
@@ -102,7 +105,13 @@ namespace NzbDrone.Core.Update
                 return false;
             }
 
+            var tempFolder = _appFolderInfo.TempFolder;
             var updateSandboxFolder = _appFolderInfo.GetUpdateSandboxFolder();
+
+            if (_diskProvider.GetTotalSize(tempFolder) < 1.Gigabytes())
+            {
+                _logger.Warn("Temporary location '{0}' has less than 1 GB free space, Sonarr may not be able to update itself.", tempFolder);
+            }
 
             var packageDestination = Path.Combine(updateSandboxFolder, updatePackage.FileName);
 
@@ -134,7 +143,7 @@ namespace NzbDrone.Core.Update
 
             _backupService.Backup(BackupType.Update);
 
-            if (OsInfo.IsNotWindows && _configFileProvider.UpdateMechanism == UpdateMechanism.Script)
+            if (_configFileProvider.UpdateMechanism == UpdateMechanism.Script)
             {
                 InstallUpdateWithScript(updateSandboxFolder);
                 return true;
@@ -149,6 +158,12 @@ namespace NzbDrone.Core.Update
             {
                 _logger.Warn("Update client {0} does not exist, aborting update.", updateClientExePath);
                 return false;
+            }
+
+            // Set executable flag on update app
+            if (OsInfo.IsOsx || OsInfo.IsLinux)
+            {
+                _diskProvider.SetFilePermissions(updateClientExePath, "755", null);
             }
 
             _logger.Info("Starting update client {0}", updateClientExePath);
@@ -216,7 +231,7 @@ namespace NzbDrone.Core.Update
             }
         }
 
-        private UpdatePackage GetUpdatePackage(CommandTrigger updateTrigger)
+        private UpdatePackage GetUpdatePackage(CommandTrigger updateTrigger, bool installMajorUpdate)
         {
             _logger.ProgressDebug("Checking for updates");
 
@@ -228,12 +243,23 @@ namespace NzbDrone.Core.Update
                 return null;
             }
 
-            if (OsInfo.IsNotWindows && !_configFileProvider.UpdateAutomatically && updateTrigger != CommandTrigger.Manual)
+            if (latestAvailable.Version.Major > BuildInfo.Version.Major && !installMajorUpdate)
             {
-                _logger.ProgressDebug("Auto-update not enabled, not installing available update");
+                _logger.ProgressInfo("Unable to install major update, please update update manually from System: Updates");
                 return null;
             }
 
+            if (!_configFileProvider.UpdateAutomatically && updateTrigger != CommandTrigger.Manual)
+            {
+                _logger.ProgressDebug("Auto-update not enabled, not installing available update.");
+                return null;
+            }
+
+            if (_configFileProvider.UpdateMechanism == UpdateMechanism.BuiltIn && _deploymentInfoProvider.PackageUpdateMechanism == UpdateMechanism.Docker)
+            {
+                _logger.ProgressDebug("Built-In updater disabled inside a docker container. Please update the container image.");
+                return null;
+            }
 
             // Safety net, ConfigureUpdateMechanism should take care of invalid settings
             if (_configFileProvider.UpdateMechanism == UpdateMechanism.BuiltIn && _deploymentInfoProvider.IsExternalUpdateMechanism)
@@ -252,7 +278,7 @@ namespace NzbDrone.Core.Update
 
         public void Execute(ApplicationUpdateCheckCommand message)
         {
-            if (GetUpdatePackage(message.Trigger) != null)
+            if (GetUpdatePackage(message.Trigger, true) != null)
             {
                 _commandQueueManager.Push(new ApplicationUpdateCommand(), trigger: message.Trigger);
             }
@@ -260,7 +286,7 @@ namespace NzbDrone.Core.Update
 
         public void Execute(ApplicationUpdateCommand message)
         {
-            var latestAvailable = GetUpdatePackage(message.Trigger);
+            var latestAvailable = GetUpdatePackage(message.Trigger, message.InstallMajorUpdate);
 
             if (latestAvailable != null)
             {
@@ -317,7 +343,6 @@ namespace NzbDrone.Core.Update
                     _diskProvider.DeleteFile(updateMarker);
                     return;
                 }
-
 
                 _logger.Info("Installing post-install update from {0} to {1}", BuildInfo.Version, latestAvailable.Version);
                 _diskProvider.DeleteFile(updateMarker);

@@ -1,19 +1,22 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import HistoryDetails from 'Activity/History/Details/HistoryDetails';
+import HistoryEventTypeCell from 'Activity/History/HistoryEventTypeCell';
 import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
-import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellConnector';
-import TableRow from 'Components/Table/TableRow';
+import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import TableRow from 'Components/Table/TableRow';
 import Popover from 'Components/Tooltip/Popover';
-import EpisodeLanguage from 'Episode/EpisodeLanguage';
-import EpisodeQuality from 'Episode/EpisodeQuality';
+import EpisodeFormats from 'Episode/EpisodeFormats';
+import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeNumber from 'Episode/EpisodeNumber';
+import EpisodeQuality from 'Episode/EpisodeQuality';
 import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
-import HistoryDetailsConnector from 'Activity/History/Details/HistoryDetailsConnector';
-import HistoryEventTypeCell from 'Activity/History/HistoryEventTypeCell';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
+import translate from 'Utilities/String/translate';
 import styles from './SeriesHistoryRow.css';
 
 function getTitle(eventType) {
@@ -46,16 +49,16 @@ class SeriesHistoryRow extends Component {
 
   onMarkAsFailedPress = () => {
     this.setState({ isMarkAsFailedModalOpen: true });
-  }
+  };
 
   onConfirmMarkAsFailed = () => {
     this.props.onMarkAsFailedPress(this.props.id);
     this.setState({ isMarkAsFailedModalOpen: false });
-  }
+  };
 
   onMarkAsFailedModalClose = () => {
     this.setState({ isMarkAsFailedModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -64,15 +67,17 @@ class SeriesHistoryRow extends Component {
     const {
       eventType,
       sourceTitle,
-      language,
-      languageCutoffNotMet,
+      languages,
       quality,
       qualityCutoffNotMet,
+      customFormats,
       date,
       data,
+      downloadId,
       fullSeries,
       series,
-      episode
+      episode,
+      customFormatScore
     } = this.props;
 
     const {
@@ -80,6 +85,10 @@ class SeriesHistoryRow extends Component {
     } = this.state;
 
     const EpisodeComponent = fullSeries ? SeasonEpisodeNumber : EpisodeNumber;
+
+    if (!series || !episode) {
+      return null;
+    }
 
     return (
       <TableRow>
@@ -106,10 +115,7 @@ class SeriesHistoryRow extends Component {
         </TableRowCell>
 
         <TableRowCell>
-          <EpisodeLanguage
-            language={language}
-            isCutoffNotMet={languageCutoffNotMet}
-          />
+          <EpisodeLanguages languages={languages} />
         </TableRowCell>
 
         <TableRowCell>
@@ -119,11 +125,21 @@ class SeriesHistoryRow extends Component {
           />
         </TableRowCell>
 
-        <RelativeDateCellConnector
+        <TableRowCell>
+          <EpisodeFormats formats={customFormats} />
+        </TableRowCell>
+
+        <TableRowCell>
+          {formatCustomFormatScore(customFormatScore, customFormats.length)}
+        </TableRowCell>
+
+        <RelativeDateCell
           date={date}
+          includeSeconds={true}
+          includeTime={true}
         />
 
-        <TableRowCell className={styles.details}>
+        <TableRowCell className={styles.actions}>
           <Popover
             anchor={
               <Icon
@@ -132,22 +148,22 @@ class SeriesHistoryRow extends Component {
             }
             title={getTitle(eventType)}
             body={
-              <HistoryDetailsConnector
+              <HistoryDetails
                 eventType={eventType}
                 sourceTitle={sourceTitle}
                 data={data}
+                downloadId={downloadId}
               />
             }
             position={tooltipPositions.LEFT}
           />
-        </TableRowCell>
 
-        <TableRowCell className={styles.actions}>
           {
             eventType === 'grabbed' &&
               <IconButton
-                title="Mark as failed"
+                title={translate('MarkAsFailed')}
                 name={icons.REMOVE}
+                size={14}
                 onPress={this.onMarkAsFailedPress}
               />
           }
@@ -156,9 +172,9 @@ class SeriesHistoryRow extends Component {
         <ConfirmModal
           isOpen={isMarkAsFailedModalOpen}
           kind={kinds.DANGER}
-          title="Mark as Failed"
-          message={`Are you sure you want to mark '${sourceTitle}' as failed?`}
-          confirmLabel="Mark as Failed"
+          title={translate('MarkAsFailed')}
+          message={translate('MarkAsFailedConfirmation', { sourceTitle })}
+          confirmLabel={translate('MarkAsFailed')}
           onConfirm={this.onConfirmMarkAsFailed}
           onCancel={this.onMarkAsFailedModalClose}
         />
@@ -171,15 +187,17 @@ SeriesHistoryRow.propTypes = {
   id: PropTypes.number.isRequired,
   eventType: PropTypes.string.isRequired,
   sourceTitle: PropTypes.string.isRequired,
-  language: PropTypes.object.isRequired,
-  languageCutoffNotMet: PropTypes.bool.isRequired,
+  languages: PropTypes.arrayOf(PropTypes.object),
   quality: PropTypes.object.isRequired,
   qualityCutoffNotMet: PropTypes.bool.isRequired,
+  customFormats: PropTypes.arrayOf(PropTypes.object),
   date: PropTypes.string.isRequired,
   data: PropTypes.object.isRequired,
+  downloadId: PropTypes.string,
   fullSeries: PropTypes.bool.isRequired,
   series: PropTypes.object.isRequired,
   episode: PropTypes.object.isRequired,
+  customFormatScore: PropTypes.number.isRequired,
   onMarkAsFailedPress: PropTypes.func.isRequired
 };
 

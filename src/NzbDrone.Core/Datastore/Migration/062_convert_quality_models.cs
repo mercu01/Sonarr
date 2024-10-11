@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Data;
 using FluentMigrator;
 using NzbDrone.Common.Serializer;
@@ -26,27 +26,28 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             var qualitiesToUpdate = new Dictionary<string, string>();
 
-            using (IDbCommand qualityModelCmd = conn.CreateCommand())
+            using (var qualityModelCmd = conn.CreateCommand())
             {
                 qualityModelCmd.Transaction = tran;
-                qualityModelCmd.CommandText = @"SELECT Distinct Quality FROM " + tableName;
+                qualityModelCmd.CommandText = $"SELECT Distinct \"Quality\" FROM \"{tableName}\"";
 
-                using (IDataReader qualityModelReader = qualityModelCmd.ExecuteReader())
+                using (var qualityModelReader = qualityModelCmd.ExecuteReader())
                 {
                     while (qualityModelReader.Read())
                     {
                         var qualityJson = qualityModelReader.GetString(0);
 
-                        LegacyQualityModel062 quality;
-
-                        if (!Json.TryDeserialize<LegacyQualityModel062>(qualityJson, out quality))
+                        if (!Json.TryDeserialize<LegacyQualityModel062>(qualityJson, out var quality))
                         {
                             continue;
                         }
 
                         var newQualityModel = new QualityModel062 { Quality = quality.Quality, Revision = new Revision() };
                         if (quality.Proper)
+                        {
                             newQualityModel.Revision.Version = 2;
+                        }
+
                         var newQualityJson = newQualityModel.ToJson();
 
                         qualitiesToUpdate.Add(qualityJson, newQualityJson);
@@ -56,10 +57,10 @@ namespace NzbDrone.Core.Datastore.Migration
 
             foreach (var quality in qualitiesToUpdate)
             {
-                using (IDbCommand updateCmd = conn.CreateCommand())
+                using (var updateCmd = conn.CreateCommand())
                 {
                     updateCmd.Transaction = tran;
-                    updateCmd.CommandText = "UPDATE " + tableName + " SET Quality = ? WHERE Quality = ?";
+                    updateCmd.CommandText = "UPDATE \"" + tableName + "\" SET \"Quality\" = ? WHERE \"Quality\" = ?";
                     updateCmd.AddParameter(quality.Value);
                     updateCmd.AddParameter(quality.Key);
 

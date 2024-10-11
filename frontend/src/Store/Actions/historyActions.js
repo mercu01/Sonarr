@@ -1,15 +1,16 @@
 import React from 'react';
 import { createAction } from 'redux-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
-import { filterTypes, icons, sortDirections } from 'Helpers/Props';
 import Icon from 'Components/Icon';
+import { filterBuilderTypes, filterBuilderValueTypes, filterTypes, icons, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
-import createClearReducer from './Creators/Reducers/createClearReducer';
-import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import serverSideCollectionHandlers from 'Utilities/State/serverSideCollectionHandlers';
+import translate from 'Utilities/String/translate';
+import { updateItem } from './baseActions';
 import createHandleActions from './Creators/createHandleActions';
 import createServerSideCollectionHandlers from './Creators/createServerSideCollectionHandlers';
-import { updateItem } from './baseActions';
+import createClearReducer from './Creators/Reducers/createClearReducer';
+import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
 
 //
 // Variables
@@ -31,74 +32,80 @@ export const defaultState = {
   columns: [
     {
       name: 'eventType',
-      columnLabel: 'Event Type',
+      columnLabel: () => translate('EventType'),
       isVisible: true,
       isModifiable: false
     },
     {
       name: 'series.sortTitle',
-      label: 'Series',
+      label: () => translate('Series'),
       isSortable: true,
       isVisible: true
     },
     {
       name: 'episode',
-      label: 'Episode',
+      label: () => translate('Episode'),
       isVisible: true
     },
     {
-      name: 'episodeTitle',
-      label: 'Episode Title',
+      name: 'episodes.title',
+      label: () => translate('EpisodeTitle'),
       isVisible: true
     },
     {
-      name: 'language',
-      label: 'Language',
+      name: 'languages',
+      label: () => translate('Languages'),
       isVisible: false
     },
     {
       name: 'quality',
-      label: 'Quality',
+      label: () => translate('Quality'),
+      isVisible: true
+    },
+    {
+      name: 'customFormats',
+      label: () => translate('Formats'),
+      isSortable: false,
       isVisible: true
     },
     {
       name: 'date',
-      label: 'Date',
+      label: () => translate('Date'),
       isSortable: true,
       isVisible: true
     },
     {
       name: 'downloadClient',
-      label: 'Download Client',
+      label: () => translate('DownloadClient'),
       isVisible: false
     },
     {
       name: 'indexer',
-      label: 'Indexer',
+      label: () => translate('Indexer'),
       isVisible: false
     },
     {
       name: 'releaseGroup',
-      label: 'Release Group',
+      label: () => translate('ReleaseGroup'),
       isVisible: false
     },
     {
       name: 'sourceTitle',
-      label: 'Source Title',
+      label: () => translate('SourceTitle'),
       isVisible: false
     },
     {
-      name: 'preferredWordScore',
-      columnLabel: 'Preferred Word Score',
+      name: 'customFormatScore',
+      columnLabel: () => translate('CustomFormatScore'),
       label: React.createElement(Icon, {
         name: icons.SCORE,
-        title: 'Preferred word score'
+        title: () => translate('CustomFormatScore')
       }),
       isVisible: false
     },
     {
       name: 'details',
-      columnLabel: 'Details',
+      columnLabel: () => translate('Details'),
       isVisible: true,
       isModifiable: false
     }
@@ -109,12 +116,12 @@ export const defaultState = {
   filters: [
     {
       key: 'all',
-      label: 'All',
+      label: () => translate('All'),
       filters: []
     },
     {
       key: 'grabbed',
-      label: 'Grabbed',
+      label: () => translate('Grabbed'),
       filters: [
         {
           key: 'eventType',
@@ -125,7 +132,7 @@ export const defaultState = {
     },
     {
       key: 'imported',
-      label: 'Imported',
+      label: () => translate('Imported'),
       filters: [
         {
           key: 'eventType',
@@ -136,7 +143,7 @@ export const defaultState = {
     },
     {
       key: 'failed',
-      label: 'Failed',
+      label: () => translate('Failed'),
       filters: [
         {
           key: 'eventType',
@@ -147,7 +154,7 @@ export const defaultState = {
     },
     {
       key: 'deleted',
-      label: 'Deleted',
+      label: () => translate('Deleted'),
       filters: [
         {
           key: 'eventType',
@@ -158,7 +165,7 @@ export const defaultState = {
     },
     {
       key: 'renamed',
-      label: 'Renamed',
+      label: () => translate('Renamed'),
       filters: [
         {
           key: 'eventType',
@@ -169,7 +176,7 @@ export const defaultState = {
     },
     {
       key: 'ignored',
-      label: 'Ignored',
+      label: () => translate('Ignored'),
       filters: [
         {
           key: 'eventType',
@@ -177,6 +184,33 @@ export const defaultState = {
           type: filterTypes.EQUAL
         }
       ]
+    }
+  ],
+
+  filterBuilderProps: [
+    {
+      name: 'eventType',
+      label: () => translate('EventType'),
+      type: filterBuilderTypes.EQUAL,
+      valueType: filterBuilderValueTypes.HISTORY_EVENT_TYPE
+    },
+    {
+      name: 'seriesIds',
+      label: () => translate('Series'),
+      type: filterBuilderTypes.EQUAL,
+      valueType: filterBuilderValueTypes.SERIES
+    },
+    {
+      name: 'quality',
+      label: () => translate('Quality'),
+      type: filterBuilderTypes.EQUAL,
+      valueType: filterBuilderValueTypes.QUALITY
+    },
+    {
+      name: 'languages',
+      label: () => translate('Languages'),
+      type: filterBuilderTypes.CONTAINS,
+      valueType: filterBuilderValueTypes.LANGUAGE
     }
   ]
 

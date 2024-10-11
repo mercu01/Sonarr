@@ -7,7 +7,6 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class DailyEpisodeParserFixture : CoreTest
     {
@@ -25,7 +24,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The_Series_US_04.28.2014_hdtv.x264.Poke.mp4", "The Series US", 2014, 4, 28)]
         [TestCase("A.Late.Talk.Show.140722.720p.HDTV.x264-YesTV", "A Late Talk Show", 2014, 07, 22)]
         [TestCase("A_Late_Talk_Show_140722_720p_HDTV_x264-YesTV", "A Late Talk Show", 2014, 07, 22)]
-        //[TestCase("Corrie.07.01.15", "Corrie", 2015, 1, 7)]
+
+        // [TestCase("Corrie.07.01.15", "Corrie", 2015, 1, 7)]
         [TestCase("The Show Series 2015 02 09 WEBRIP s01e13", "The Show Series", 2015, 2, 9)]
         [TestCase("Tree_Series_2018_06_22_Seth_Meyers_720p_HEVC_x265-MeGusta", "Tree Series", 2018, 6, 22)]
         [TestCase("20161024- Exotic Payback.21x41_720.mkv", "", 2016, 10, 24)]
@@ -33,7 +33,10 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("2019_08_20_1080_all.mp4", "", 2019, 8, 20)]
         [TestCase("Series and Title 20201013 Ep7432 [720p WebRip (x264)] [SUBS]", "Series and Title", 2020, 10, 13)]
         [TestCase("Series Title (1955) - 1954-01-23 05 00 00 - Cottage for Sale.ts", "Series Title (1955)", 1954, 1, 23)]
-        //[TestCase("", "", 0, 0, 0)]
+        [TestCase("Series Title - 30-04-2024 HDTV 1080p H264 AAC", "Series Title", 2024, 4, 30)]
+        [TestCase("Series On TitleClub E76 2024 08 08 1080p WEB H264-RnB96 [TJET]", "Series On TitleClub", 2024, 8, 8)]
+
+        // [TestCase("", "", 0, 0, 0)]
         public void should_parse_daily_episode(string postTitle, string title, int year, int month, int day)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -98,6 +101,14 @@ namespace NzbDrone.Core.Test.ParserTests
             var title = string.Format("{0:yyyy.MM.dd} - A Talk Show - HD TV.mkv", DateTime.Now.AddDays(2));
 
             Parser.Parser.ParseTitle(title).Should().BeNull();
+        }
+
+        [TestCase("Tmc - Quotidien - 05-06-2024 HDTV 1080p H264 AAC")]
+
+        // [TestCase("", "", 0, 0, 0)]
+        public void should_not_parse_ambiguous_daily_episode(string postTitle)
+        {
+            Parser.Parser.ParseTitle(postTitle).Should().BeNull();
         }
     }
 }

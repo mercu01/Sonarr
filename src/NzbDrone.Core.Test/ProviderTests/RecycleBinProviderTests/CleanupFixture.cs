@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+using System;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
@@ -10,7 +9,7 @@ using NzbDrone.Core.Test.Framework;
 namespace NzbDrone.Core.Test.ProviderTests.RecycleBinProviderTests
 {
     [TestFixture]
-    
+
     public class CleanupFixture : CoreTest
     {
         private const string RecycleBin = @"C:\Test\RecycleBin";
@@ -40,10 +39,10 @@ namespace NzbDrone.Core.Test.ProviderTests.RecycleBinProviderTests
             Mocker.GetMock<IConfigService>().SetupGet(s => s.RecycleBinCleanupDays).Returns(7);
 
             Mocker.GetMock<IDiskProvider>().Setup(s => s.GetDirectories(RecycleBin))
-                    .Returns(new [] { @"C:\Test\RecycleBin\Folder1", @"C:\Test\RecycleBin\Folder2", @"C:\Test\RecycleBin\Folder3" });
+                    .Returns(new[] { @"C:\Test\RecycleBin\Folder1", @"C:\Test\RecycleBin\Folder2", @"C:\Test\RecycleBin\Folder3" });
 
-            Mocker.GetMock<IDiskProvider>().Setup(s => s.GetFiles(RecycleBin, SearchOption.AllDirectories))
-                    .Returns(new [] { @"C:\Test\RecycleBin\File1.avi", @"C:\Test\RecycleBin\File2.mkv" });
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.GetFiles(RecycleBin, true))
+                    .Returns(new[] { @"C:\Test\RecycleBin\File1.avi", @"C:\Test\RecycleBin\File2.mkv" });
         }
 
         [Test]

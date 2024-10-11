@@ -1,7 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Newtonsoft.Json.Linq;
 using NzbDrone.Common.Serializer;
 
@@ -19,7 +15,8 @@ namespace NzbDrone.Common.Instrumentation
                     json[i] = new JValue(CleanseLogMessage.Cleanse(text));
                 }
             }
-            foreach (JToken token in json)
+
+            foreach (var token in json)
             {
                 Visit(token);
             }

@@ -1,4 +1,3 @@
-using System;
 using NLog;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
@@ -29,13 +28,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
 
             try
             {
-                var sample = _detectSample.IsSample(localEpisode.Series, localEpisode.Path, localEpisode.IsSpecial);
+                var sample = _detectSample.IsSample(localEpisode);
 
                 if (sample == DetectSampleResult.Sample)
                 {
                     return Decision.Reject("Sample");
                 }
-
                 else if (sample == DetectSampleResult.Indeterminate)
                 {
                     return Decision.Reject("Unable to determine if file is a sample");

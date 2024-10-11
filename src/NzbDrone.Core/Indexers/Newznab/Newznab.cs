@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FluentValidation;
+using System.Threading.Tasks;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
@@ -20,13 +21,19 @@ namespace NzbDrone.Core.Indexers.Newznab
         public override string Name => "Newznab";
 
         public override DownloadProtocol Protocol => DownloadProtocol.Usenet;
+        public override int PageSize => GetProviderPageSize();
 
-        public override int PageSize => _capabilitiesProvider.GetCapabilities(Settings).DefaultPageSize;
+        public Newznab(INewznabCapabilitiesProvider capabilitiesProvider, IHttpClient httpClient, IIndexerStatusService indexerStatusService, IConfigService configService, IParsingService parsingService, Logger logger, ILocalizationService localizationService)
+            : base(httpClient, indexerStatusService, configService, parsingService, logger, localizationService)
+        {
+            _capabilitiesProvider = capabilitiesProvider;
+        }
 
         public override IIndexerRequestGenerator GetRequestGenerator()
         {
             return new NewznabRequestGenerator(_capabilitiesProvider)
             {
+                Definition = Definition,
                 PageSize = PageSize,
                 Settings = Settings
             };
@@ -42,40 +49,32 @@ namespace NzbDrone.Core.Indexers.Newznab
             get
             {
                 yield return GetDefinition("DOGnzb", GetSettings("https://api.dognzb.cr"));
-                yield return GetDefinition("DrunkenSlug", GetSettings("https://api.drunkenslug.com"));
+                yield return GetDefinition("DrunkenSlug", GetSettings("https://drunkenslug.com"));
                 yield return GetDefinition("Nzb.su", GetSettings("https://api.nzb.su"));
                 yield return GetDefinition("NZBCat", GetSettings("https://nzb.cat"));
-                yield return GetDefinition("NZBFinder.ws", GetSettings("https://nzbfinder.ws", categories: new[] { 5010, 5030, 5040, 5045, 5090 }));
+                yield return GetDefinition("NZBFinder.ws", GetSettings("https://nzbfinder.ws", categories: new[] { 5030, 5040, 5045 }));
                 yield return GetDefinition("NZBgeek", GetSettings("https://api.nzbgeek.info"));
                 yield return GetDefinition("nzbplanet.net", GetSettings("https://api.nzbplanet.net"));
-                yield return GetDefinition("omgwtfnzbs", GetSettings("https://api.omgwtfnzbs.me"));
-                yield return GetDefinition("OZnzb.com", GetSettings("https://api.oznzb.com"));
                 yield return GetDefinition("SimplyNZBs", GetSettings("https://simplynzbs.com"));
                 yield return GetDefinition("Tabula Rasa", GetSettings("https://www.tabula-rasa.pw", apiPath: @"/api/v1/api"));
-                yield return GetDefinition("AnimeTosho Usenet", GetSettings("https://feed.animetosho.org", apiPath: @"/nabapi", categories: new int[0], animeCategories: new[] { 5070 }));
+                yield return GetDefinition("AnimeTosho Usenet", GetSettings("https://feed.animetosho.org", apiPath: @"/nabapi", categories: Array.Empty<int>(), animeCategories: new[] { 5070 }));
             }
-        }
-
-        public Newznab(INewznabCapabilitiesProvider capabilitiesProvider, IHttpClient httpClient, IIndexerStatusService indexerStatusService, IConfigService configService, IParsingService parsingService, Logger logger)
-            : base(httpClient, indexerStatusService, configService, parsingService, logger)
-        {
-            _capabilitiesProvider = capabilitiesProvider;
         }
 
         private IndexerDefinition GetDefinition(string name, NewznabSettings settings)
         {
             return new IndexerDefinition
-                   {
-                       EnableRss = false,
-                       EnableAutomaticSearch = false,
-                       EnableInteractiveSearch = false,
-                       Name = name,
-                       Implementation = GetType().Name,
-                       Settings = settings,
-                       Protocol = DownloadProtocol.Usenet,
-                       SupportsRss = SupportsRss,
-                       SupportsSearch = SupportsSearch
-                   };
+            {
+                EnableRss = false,
+                EnableAutomaticSearch = false,
+                EnableInteractiveSearch = false,
+                Name = name,
+                Implementation = GetType().Name,
+                Settings = settings,
+                Protocol = DownloadProtocol.Usenet,
+                SupportsRss = SupportsRss,
+                SupportsSearch = SupportsSearch
+            };
         }
 
         private NewznabSettings GetSettings(string url, string apiPath = null, int[] categories = null, int[] animeCategories = null)
@@ -100,10 +99,15 @@ namespace NzbDrone.Core.Indexers.Newznab
             return settings;
         }
 
-        protected override void Test(List<ValidationFailure> failures)
+        protected override async Task Test(List<ValidationFailure> failures)
         {
-            base.Test(failures);
-            if (failures.HasErrors()) return;
+            await base.Test(failures);
+
+            if (failures.HasErrors())
+            {
+                return;
+            }
+
             failures.AddIfNotNull(TestCapabilities());
         }
 
@@ -125,13 +129,13 @@ namespace NzbDrone.Core.Indexers.Newznab
                     return null;
                 }
 
-                return new ValidationFailure(string.Empty, "Indexer does not support required search parameters");
+                return new ValidationFailure(string.Empty, _localizationService.GetLocalizedString("IndexerValidationSearchParametersNotSupported"));
             }
             catch (Exception ex)
             {
                 _logger.Warn(ex, "Unable to connect to indexer: " + ex.Message);
 
-                return new ValidationFailure(string.Empty, "Unable to connect to indexer, check the log for more details");
+                return new ValidationFailure(string.Empty, _localizationService.GetLocalizedString("IndexerValidationUnableToConnect", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
         }
 
@@ -159,6 +163,18 @@ namespace NzbDrone.Core.Indexers.Newznab
             }
 
             return base.RequestAction(action, query);
+        }
+
+        private int GetProviderPageSize()
+        {
+            try
+            {
+                return Math.Min(100, Math.Max(_capabilitiesProvider.GetCapabilities(Settings).DefaultPageSize, _capabilitiesProvider.GetCapabilities(Settings).MaxPageSize));
+            }
+            catch
+            {
+                return 100;
+            }
         }
     }
 }

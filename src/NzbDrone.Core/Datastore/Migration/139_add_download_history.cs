@@ -28,19 +28,22 @@ namespace NzbDrone.Core.Datastore.Migration
             Create.Index().OnTable("DownloadHistory").OnColumn("SeriesId");
             Create.Index().OnTable("DownloadHistory").OnColumn("DownloadId");
 
-            Execute.WithConnection(InitialImportedDownloadHistory);
+            IfDatabase("sqlite").Execute.WithConnection(InitialImportedDownloadHistory);
         }
 
         private static readonly Dictionary<int, int> EventTypeMap = new Dictionary<int, int>()
         {
             // EpisodeHistoryType.Grabbed -> DownloadHistoryType.Grabbed
-            {1, 1},
+            { 1, 1 },
+
             // EpisodeHistoryType.DownloadFolderImported -> DownloadHistoryType.DownloadImported
-            {3, 2},
+            { 3, 2 },
+
             // EpisodeHistoryType.DownloadFailed -> DownloadHistoryType.DownloadFailed
-            {4, 3},
+            { 4, 3 },
+
             // EpisodeHistoryType.DownloadIgnored -> DownloadHistoryType.DownloadIgnored
-            {7, 4}
+            { 7, 4 }
         };
 
         private void InitialImportedDownloadHistory(IDbConnection conn, IDbTransaction tran)

@@ -9,10 +9,6 @@ namespace NzbDrone.Core.ImportLists.Trakt.List
         public TraktListSettings Settings { get; set; }
         public string ClientId { get; set; }
 
-        public TraktListRequestGenerator()
-        {
-        }
-
         public virtual ImportListPageableRequestChain GetListItems()
         {
             var pageableRequests = new ImportListPageableRequestChain();
@@ -28,7 +24,7 @@ namespace NzbDrone.Core.ImportLists.Trakt.List
 
             link += $"/users/{Settings.Username.Trim()}/lists/{Settings.Listname.ToUrlSlug()}/items/shows?limit={Settings.Limit}";
 
-            var request = new ImportListRequest($"{link}", HttpAccept.Json);
+            var request = new ImportListRequest(link, HttpAccept.Json);
 
             request.HttpRequest.Headers.Add("trakt-api-version", "2");
             request.HttpRequest.Headers.Add("trakt-api-key", ClientId);

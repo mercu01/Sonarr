@@ -1,19 +1,21 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import { sizes } from 'Helpers/Props';
 import styles from './FormLabel.css';
 
-function FormLabel({
-  children,
-  className,
-  errorClassName,
-  size,
-  name,
-  hasError,
-  isAdvanced,
-  ...otherProps
-}) {
+function FormLabel(props) {
+  const {
+    children,
+    className,
+    errorClassName,
+    size,
+    name,
+    hasError,
+    isAdvanced,
+    ...otherProps
+  } = props;
+
   return (
     <label
       {...otherProps}
@@ -31,13 +33,13 @@ function FormLabel({
 }
 
 FormLabel.propTypes = {
-  children: PropTypes.node.isRequired,
+  children: PropTypes.oneOfType([PropTypes.node, PropTypes.string]).isRequired,
   className: PropTypes.string,
   errorClassName: PropTypes.string,
   size: PropTypes.oneOf(sizes.all),
   name: PropTypes.string,
   hasError: PropTypes.bool,
-  isAdvanced: PropTypes.bool.isRequired
+  isAdvanced: PropTypes.bool
 };
 
 FormLabel.defaultProps = {

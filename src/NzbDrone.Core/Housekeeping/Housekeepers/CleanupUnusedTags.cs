@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
-using Marr.Data;
-using NzbDrone.Common.Extensions;
-using NzbDrone.Common.Serializer;
+using Dapper;
+using NzbDrone.Core.AutoTagging;
+using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.Housekeeping.Housekeepers
@@ -10,32 +11,66 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
     public class CleanupUnusedTags : IHousekeepingTask
     {
         private readonly IMainDatabase _database;
+        private readonly IAutoTaggingRepository _autoTaggingRepository;
 
-        public CleanupUnusedTags(IMainDatabase database)
+        public CleanupUnusedTags(IMainDatabase database, IAutoTaggingRepository autoTaggingRepository)
         {
             _database = database;
+            _autoTaggingRepository = autoTaggingRepository;
         }
 
         public void Clean()
         {
-            var mapper = _database.GetDataMapper();
-
-            var usedTags = new[] { "Series", "Notifications", "DelayProfiles", "ReleaseProfiles", "ImportLists", "Indexers" }
+            using var mapper = _database.OpenConnection();
+            var usedTags = new[]
+                {
+                    "Series", "Notifications", "DelayProfiles", "ReleaseProfiles", "ImportLists", "Indexers",
+                    "AutoTagging", "DownloadClients"
+                }
                 .SelectMany(v => GetUsedTags(v, mapper))
+                .Concat(GetAutoTaggingTagSpecificationTags(mapper))
                 .Distinct()
-                .ToList();
+                .ToArray();
 
-            var usedTagsList = usedTags.Select(d => d.ToString()).Join(",");
+            var usedTagsList = string.Join(",", usedTags.Select(d => d.ToString()).ToArray());
 
-            mapper.ExecuteNonQuery($"DELETE FROM Tags WHERE NOT Id IN ({usedTagsList})");
+            if (_database.DatabaseType == DatabaseType.PostgreSQL)
+            {
+                mapper.Execute($"DELETE FROM \"Tags\" WHERE NOT \"Id\" = ANY (\'{{{usedTagsList}}}\'::int[])");
+            }
+            else
+            {
+                mapper.Execute($"DELETE FROM \"Tags\" WHERE NOT \"Id\" IN ({usedTagsList})");
+            }
         }
 
-        private int[] GetUsedTags(string table, IDataMapper mapper)
+        private int[] GetUsedTags(string table, IDbConnection mapper)
         {
-            return mapper.ExecuteReader($"SELECT DISTINCT Tags FROM {table} WHERE NOT Tags = '[]' AND NOT Tags IS NULL", reader => reader.GetString(0))
-                         .SelectMany(Json.Deserialize<List<int>>)
-                         .Distinct()
-                         .ToArray();
+            return mapper
+                .Query<List<int>>(
+                    $"SELECT DISTINCT \"Tags\" FROM \"{table}\" WHERE NOT \"Tags\" = '[]' AND NOT \"Tags\" IS NULL")
+                .SelectMany(x => x)
+                .Distinct()
+                .ToArray();
+        }
+
+        private List<int> GetAutoTaggingTagSpecificationTags(IDbConnection mapper)
+        {
+            var tags = new List<int>();
+            var autoTags = _autoTaggingRepository.All();
+
+            foreach (var autoTag in autoTags)
+            {
+                foreach (var specification in autoTag.Specifications)
+                {
+                    if (specification is TagSpecification tagSpec)
+                    {
+                        tags.Add(tagSpec.Value);
+                    }
+                }
+            }
+
+            return tags;
         }
     }
 }

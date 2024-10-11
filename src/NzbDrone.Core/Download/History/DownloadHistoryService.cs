@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.IO;
 using System.Linq;
 using NzbDrone.Common.Extensions;
@@ -24,7 +23,6 @@ namespace NzbDrone.Core.Download.History
                                           IHandle<DownloadFailedEvent>,
                                           IHandle<DownloadIgnoredEvent>,
                                           IHandle<SeriesDeletedEvent>
-
     {
         private readonly IDownloadHistoryRepository _repository;
         private readonly IHistoryService _historyService;
@@ -118,7 +116,7 @@ namespace NzbDrone.Core.Download.History
             history.Data.Add("Indexer", message.Episode.Release.Indexer);
             history.Data.Add("DownloadClient", message.DownloadClient);
             history.Data.Add("DownloadClientName", message.DownloadClientName);
-            history.Data.Add("PreferredWordScore", message.Episode.PreferredWordScore.ToString());
+            history.Data.Add("CustomFormatScore", message.Episode.CustomFormatScore.ToString());
 
             _repository.Insert(history);
         }
@@ -231,7 +229,7 @@ namespace NzbDrone.Core.Download.History
 
         public void Handle(SeriesDeletedEvent message)
         {
-            _repository.DeleteBySeriesId(message.Series.Id);
+            _repository.DeleteBySeriesIds(message.Series.Select(m => m.Id).ToList());
         }
     }
 }

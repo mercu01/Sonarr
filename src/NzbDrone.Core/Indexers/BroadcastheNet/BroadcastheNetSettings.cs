@@ -1,5 +1,9 @@
-﻿using FluentValidation;
+using System;
+using System.Collections.Generic;
+using Equ;
+using FluentValidation;
 using NzbDrone.Core.Annotations;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Indexers.BroadcastheNet
@@ -11,31 +15,38 @@ namespace NzbDrone.Core.Indexers.BroadcastheNet
             RuleFor(c => c.BaseUrl).ValidRootUrl();
             RuleFor(c => c.ApiKey).NotEmpty();
 
-            RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator(1.0, 24*60, 5*24*60));
+            RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator(1.0, 24 * 60, 5 * 24 * 60));
         }
     }
 
-    public class BroadcastheNetSettings : ITorrentIndexerSettings
+    public class BroadcastheNetSettings : PropertywiseEquatable<BroadcastheNetSettings>, ITorrentIndexerSettings
     {
-        private static readonly BroadcastheNetSettingsValidator Validator = new BroadcastheNetSettingsValidator();
+        private static readonly BroadcastheNetSettingsValidator Validator = new ();
 
         public BroadcastheNetSettings()
         {
             BaseUrl = "https://api.broadcasthe.net/";
             MinimumSeeders = IndexerDefaults.MINIMUM_SEEDERS;
+            MultiLanguages = Array.Empty<int>();
         }
 
-        [FieldDefinition(0, Label = "API URL", Advanced = true, HelpText = "Do not change this unless you know what you're doing. Since your API key will be sent to that host.")]
+        [FieldDefinition(0, Label = "IndexerSettingsApiUrl", Advanced = true, HelpText = "IndexerSettingsApiUrlHelpText")]
         public string BaseUrl { get; set; }
 
-        [FieldDefinition(1, Label = "API Key", Privacy = PrivacyLevel.ApiKey)]
+        [FieldDefinition(1, Label = "ApiKey", Privacy = PrivacyLevel.ApiKey)]
         public string ApiKey { get; set; }
 
-        [FieldDefinition(2, Type = FieldType.Number, Label = "Minimum Seeders", HelpText = "Minimum number of seeders required.", Advanced = true)]
+        [FieldDefinition(2, Type = FieldType.Number, Label = "IndexerSettingsMinimumSeeders", HelpText = "IndexerSettingsMinimumSeedersHelpText", Advanced = true)]
         public int MinimumSeeders { get; set; }
 
         [FieldDefinition(3)]
-        public SeedCriteriaSettings SeedCriteria { get; } = new SeedCriteriaSettings();
+        public SeedCriteriaSettings SeedCriteria { get; set; } = new ();
+
+        [FieldDefinition(4, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectBlocklistedTorrentHashes", HelpText = "IndexerSettingsRejectBlocklistedTorrentHashesHelpText", Advanced = true)]
+        public bool RejectBlocklistedTorrentHashesWhileGrabbing { get; set; }
+
+        [FieldDefinition(5, Type = FieldType.Select, SelectOptions = typeof(RealLanguageFieldConverter), Label = "IndexerSettingsMultiLanguageRelease", HelpText = "IndexerSettingsMultiLanguageReleaseHelpText", Advanced = true)]
+        public IEnumerable<int> MultiLanguages { get; set; }
 
         public NzbDroneValidationResult Validate()
         {

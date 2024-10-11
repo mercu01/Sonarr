@@ -18,12 +18,17 @@
 .leftButtons,
 .rightButtons {
   display: flex;
-  flex: 1 0 50%;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+.leftButtons {
+  flex: 0 1 auto;
 }
 
 .rightButtons {
   justify-content: flex-end;
+  flex: 1 1 50%;
 }
 
 .deleteButton {
@@ -37,11 +42,12 @@
   composes: select from '~Components/Form/SelectInput.css';
 
   margin-right: 10px;
+  max-width: 100%;
   width: auto;
 }
 
 .errorMessage {
-  color: $dangerColor;
+  color: var(--dangerColor);
 }
 
 @media only screen and (max-width: $breakpointSmall) {
@@ -49,10 +55,12 @@
     .leftButtons,
     .rightButtons {
       flex-direction: column;
+      gap: 3px;
     }
 
     .leftButtons {
       align-items: flex-start;
+      max-width: fit-content;
     }
 
     .rightButtons {

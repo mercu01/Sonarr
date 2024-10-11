@@ -1,16 +1,18 @@
 import _ from 'lodash';
+import moment from 'moment';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import moment from 'moment';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { filterTypes } from 'Helpers/Props';
-import { createThunk, handleThunks } from 'Store/thunks';
 import * as calendarViews from 'Calendar/calendarViews';
 import * as commandNames from 'Commands/commandNames';
-import createClearReducer from './Creators/Reducers/createClearReducer';
-import createHandleActions from './Creators/createHandleActions';
+import { filterBuilderTypes, filterBuilderValueTypes, filterTypes } from 'Helpers/Props';
+import { createThunk, handleThunks } from 'Store/thunks';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import findSelectedFilters from 'Utilities/Filter/findSelectedFilters';
+import translate from 'Utilities/String/translate';
 import { set, update } from './baseActions';
 import { executeCommandHelper } from './commandActions';
+import createHandleActions from './Creators/createHandleActions';
+import createClearReducer from './Creators/Reducers/createClearReducer';
 
 //
 // Variables
@@ -53,34 +55,49 @@ export const defaultState = {
   filters: [
     {
       key: 'all',
-      label: 'All',
+      label: () => translate('All'),
       filters: [
         {
-          key: 'monitored',
-          value: false,
+          key: 'unmonitored',
+          value: [true],
           type: filterTypes.EQUAL
         }
       ]
     },
     {
       key: 'monitored',
-      label: 'Monitored Only',
+      label: () => translate('MonitoredOnly'),
       filters: [
         {
-          key: 'monitored',
-          value: true,
+          key: 'unmonitored',
+          value: [false],
           type: filterTypes.EQUAL
         }
       ]
     }
+  ],
 
+  filterBuilderProps: [
+    {
+      name: 'unmonitored',
+      label: () => translate('IncludeUnmonitored'),
+      type: filterBuilderTypes.EQUAL,
+      valueType: filterBuilderValueTypes.BOOL
+    },
+    {
+      name: 'tags',
+      label: () => translate('Tags'),
+      type: filterBuilderTypes.CONTAINS,
+      valueType: filterBuilderValueTypes.TAG
+    }
   ]
 };
 
 export const persistState = [
   'calendar.view',
   'calendar.selectedFilterKey',
-  'calendar.options'
+  'calendar.options',
+  'calendar.customFilters'
 ];
 
 //
@@ -192,6 +209,10 @@ function isRangePopulated(start, end, state) {
   return false;
 }
 
+function getCustomFilters(state, type) {
+  return state.customFilters.items.filter((customFilter) => customFilter.type === type);
+}
+
 //
 // Action Creators
 
@@ -213,7 +234,8 @@ export const actionHandlers = handleThunks({
   [FETCH_CALENDAR]: function(getState, payload, dispatch) {
     const state = getState();
     const calendar = state.calendar;
-    const unmonitored = calendar.selectedFilterKey === 'all';
+    const customFilters = getCustomFilters(state, section);
+    const selectedFilters = findSelectedFilters(calendar.selectedFilterKey, calendar.filters, customFilters);
 
     const {
       time = calendar.time,
@@ -240,13 +262,26 @@ export const actionHandlers = handleThunks({
 
     dispatch(set(attrs));
 
+    const requestParams = {
+      start,
+      end
+    };
+
+    selectedFilters.forEach((selectedFilter) => {
+      if (selectedFilter.key === 'unmonitored') {
+        requestParams.unmonitored = selectedFilter.value.includes(true);
+      }
+
+      if (selectedFilter.key === 'tags') {
+        requestParams.tags = selectedFilter.value.join(',');
+      }
+    });
+
+    requestParams.unmonitored = requestParams.unmonitored ?? false;
+
     const promise = createAjaxRequest({
       url: '/calendar',
-      data: {
-        unmonitored,
-        start,
-        end
-      }
+      data: requestParams
     }).request;
 
     promise.done((data) => {

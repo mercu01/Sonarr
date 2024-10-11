@@ -5,7 +5,6 @@ using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class SingleEpisodeParserFixture : CoreTest
     {
@@ -96,20 +95,23 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("1x03 - 274 [1080p BluRay].mkv", "", 1, 3)]
         [TestCase("1x03 - The 112th Congress [1080p BluRay].mkv", "", 1, 3)]
         [TestCase("Series.2012.S02E14.720p.HDTV.X264-DIMENSION [PublicHD].mkv", "Series 2012", 2, 14)]
-        //[TestCase("Sex And The City S6E15 - Catch-38 [RavyDavy].avi", "Sex And The City", 6, 15)] // -38 is getting treated as abs number
+
+        // [TestCase("Sex And The City S6E15 - Catch-38 [RavyDavy].avi", "Sex And The City", 6, 15)] // -38 is getting treated as abs number
         [TestCase("Series.2009.S06E03.720p.HDTV.X264-DIMENSION [PublicHD].mkv", "Series 2009", 6, 3)]
         [TestCase("20-1.2014.S02E01.720p.HDTV.x264-CROOKS", "20-1 2014", 2, 1)]
         [TestCase("Series - S01E09 - Debate 109", "Series", 1, 9)]
         [TestCase("Series - S02E02 - My Maserati Does 185", "Series", 2, 2)]
         [TestCase("6x13 - The Series Show 100th Episode Special", "", 6, 13)]
-        //[TestCase("Series - S01E01 - Genesis 101 [HDTV-720p]", "Series", 1, 1)]
-        //[TestCase("The Series S02E01 HDTV x264-KILLERS [eztv]", "The Series", 2, 1)]
+
+        // [TestCase("Series - S01E01 - Genesis 101 [HDTV-720p]", "Series", 1, 1)]
+        // [TestCase("The Series S02E01 HDTV x264-KILLERS [eztv]", "The Series", 2, 1)]
         [TestCase("The Series And the Show - S41 E10478 - 2014-08-15", "The Series And the Show", 41, 10478)]
         [TestCase("The Series And the Show - S42 E10591 - 2015-01-27", "The Series And the Show", 42, 10591)]
         [TestCase("Series Title [1x05] Episode Title", "Series Title", 1, 5)]
         [TestCase("Series Title [S01E05] Episode Title", "Series Title", 1, 5)]
         [TestCase("Series Title Season 01 Episode 05 720p", "Series Title", 1, 5)]
-        //[TestCase("Off the Series - 101 - Developers (460p.x264.vorbis-2.0) [449].mkv", "Off the Series", 1, 1)]
+
+        // [TestCase("Off the Series - 101 - Developers (460p.x264.vorbis-2.0) [449].mkv", "Off the Series", 1, 1)]
         [TestCase("The Series And the Show - S42 E10713 - 2015-07-20.mp4", "The Series And the Show", 42, 10713)]
         [TestCase("Series.103.hdtv-lol[ettv].mp4", "Series", 1, 3)]
         [TestCase("Series - 01x02 - The Rooster Prince - [itz_theo]", "Series", 1, 2)]
@@ -151,7 +153,30 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.1901][AC3 5.1 Castellano][www.pctnew.com]", "Series Title", 19, 1)]
         [TestCase("Series Title 1x1", "Series Title", 1, 1)]
         [TestCase("1x1", "", 1, 1)]
-        //[TestCase("", "", 0, 0)]
+        [TestCase("Series Title [2022] [S25E13] [PL] [720p] [WEB-DL-CZRG] [x264] ", "Series Title [2022]", 25, 13)]
+        [TestCase("Series T Se.3 afl.3", "Series T", 3, 3)]
+        [TestCase("[Anime Chap] Anime Title! S01E09 [WEB 1080p] {OP & ED Lyrics} - Episode 9 (The Eminence in Shadow)", "Anime Title!", 1, 9)]
+        [TestCase("[Anime Chap] Anime Title! S01E12 [WEB 1080p] {OP & ED Lyrics} - Episode 12 (The Eminence in Shadow)", "Anime Title!", 1, 12)]
+        [TestCase("SeriesTitle-S16E08-10426008-0.mkv", "SeriesTitle", 16, 8)]
+        [TestCase("Series-S07E12-31st_Century_Fox-[Bluray-1080p].mkv", "Series", 7, 12)]
+        [TestCase("TheTitle-S12E13-3_Acts_of_God.mkv", "TheTitle", 12, 13)]
+        [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.408]", "Series Title", 4, 8)]
+        [TestCase("Series Title [HDTV][Cap.104](website.com).avi", "Series Title", 1, 4)]
+        [TestCase("Series Title [HDTV][Cap.402](website.com).avi", "Series Title", 4, 2)]
+        [TestCase("Series Title [HDTV 720p][Cap.101](website.com).mkv", "Series Title", 1, 1)]
+        [TestCase("Босх: Спадок (S2E1) / Series: Legacy (S2E1) (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Series: Legacy", 2, 1)]
+        [TestCase("Босх: Спадок / Series: Legacy / S2E1 of 10 (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Series: Legacy", 2, 1)]
+        [TestCase("Titles.s06e01.1999.BDRip.1080p.Ukr.Eng.AC3.Hurtom.TNU.Tenax555", "Titles", 6, 1)]
+        [TestCase("Titles.s06.01.1999.BDRip.1080p.Ukr.Eng.AC3.Hurtom.TNU.Tenax555", "Titles", 6, 1)]
+        [TestCase("[Judas] Series Title (2024) - S01E14", "Series Title (2024)", 1, 14)]
+        [TestCase("[ReleaseGroup] SeriesTitle S01E1 Webdl 1080p", "SeriesTitle", 1, 1)]
+        [TestCase("[SubsPlus+] Series no Chill - S02E01 (NF WEB 1080p AVC AAC)", "Series no Chill", 2, 1)]
+        [TestCase("[SubsPlus+] Series no Chill - S02E01v2 (NF WEB 1080p AVC AAC)", "Series no Chill", 2, 1)]
+        [TestCase("Series - Temporada 1 - [HDTV 1080p][Cap.101](wolfmax4k.com)", "Series", 1, 1)]
+        [TestCase("Series [HDTV 1080p][Cap.101](wolfmax4k.com)", "Series", 1, 1)]
+        [TestCase("Series [HDTV 1080p][Cap. 101](wolfmax4k.com).mkv", "Series", 1, 1)]
+
+        // [TestCase("", "", 0, 0)]
         public void should_parse_single_episode(string postTitle, string title, int seasonNumber, int episodeNumber)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -162,6 +187,53 @@ namespace NzbDrone.Core.Test.ParserTests
             result.SeriesTitle.Should().Be(title);
             result.AbsoluteEpisodeNumbers.Should().BeEmpty();
             result.FullSeason.Should().BeFalse();
+        }
+
+        [TestCase("221208 ABC123 Series Title Season 39 ep11.mp4", "ABC123 Series Title", 39, 11)]
+        [TestCase("221208 ABC123 Series Title ep34[1080p60 H264].mp4", "ABC123 Series Title", 1, 34)]
+        [TestCase("221205 ABC123 17研究所！ #17.ts", "ABC123 17研究所！", 1, 17)]
+        [TestCase("221201 Series Title! ABC123 ep219[720p.h264].mp4", "Series Title! ABC123", 1, 219)]
+        [TestCase("221206 Series Title! ep08(Tanaka Miku).ts", "Series Title!", 1, 8)]
+        [TestCase("210810 ABC123 Series Title ep05.mp4", "ABC123 Series Title", 1, 5)]
+        [TestCase("221204 乃木坂工事中 ep389.mp4", "乃木坂工事中", 1, 389)]
+        public void should_parse_japanese_variety_show_format(string postTitle, string title, int seasonNumber, int episodeNumber)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.EpisodeNumbers.Should().HaveCount(1);
+            result.SeasonNumber.Should().Be(seasonNumber);
+            result.EpisodeNumbers.First().Should().Be(episodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.AbsoluteEpisodeNumbers.Should().BeEmpty();
+            result.FullSeason.Should().BeFalse();
+        }
+
+        [TestCase("Series Title S01E11.5 [SP]-The Poppies Bloom Red on the Battlefield", "Series Title", 1, 11)]
+        public void should_parse_decimal_number_as_special(string postTitle, string title, int seasonNumber, int episodeNumber)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.EpisodeNumbers.Should().HaveCount(1);
+            result.SeasonNumber.Should().Be(seasonNumber);
+            result.EpisodeNumbers.First().Should().Be(episodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.AbsoluteEpisodeNumbers.Should().BeEmpty();
+            result.FullSeason.Should().BeFalse();
+            result.Special.Should().BeTrue();
+        }
+
+        [TestCase("Series.Title.S06E01b.Fade.Out.Fade.in.Part.2.1080p.DSNP.WEB-DL.AAC2.0.H.264-FLUX", "Series Title", 6, 1)]
+        public void should_parse_split_episode(string postTitle, string title, int seasonNumber, int episodeNumber)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.EpisodeNumbers.Should().HaveCount(1);
+            result.SeasonNumber.Should().Be(seasonNumber);
+            result.EpisodeNumbers.First().Should().Be(episodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.AbsoluteEpisodeNumbers.Should().BeEmpty();
+            result.FullSeason.Should().BeFalse();
+            result.IsSplitEpisode.Should().BeTrue();
         }
     }
 }

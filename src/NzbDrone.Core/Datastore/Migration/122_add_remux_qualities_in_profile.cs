@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using Dapper;
 using FluentMigrator;
 using Newtonsoft.Json;
 using NzbDrone.Common.Serializer;
@@ -23,7 +24,7 @@ namespace NzbDrone.Core.Datastore.Migration
             // Insert 2060p, in case the user grouped Bluray 1080p and 2160p together.
 
             updater.SplitQualityAppend(19, 21); // Bluray2160pRemux after Bluray2160p
-            updater.SplitQualityAppend(7, 20);  // Bluray1080pRemux after Bluray1080p 
+            updater.SplitQualityAppend(7, 20);  // Bluray1080pRemux after Bluray1080p
 
             updater.Commit();
         }
@@ -68,20 +69,16 @@ namespace NzbDrone.Core.Datastore.Migration
 
         public void Commit()
         {
-            foreach (var profile in _changedProfiles)
+            var profilesToUpdate = _changedProfiles.Select(p => new
             {
-                using (var updateProfileCmd = _connection.CreateCommand())
-                {
-                    updateProfileCmd.Transaction = _transaction;
-                    updateProfileCmd.CommandText = "UPDATE Profiles SET Name = ?, Cutoff = ?, Items = ? WHERE Id = ?";
-                    updateProfileCmd.AddParameter(profile.Name);
-                    updateProfileCmd.AddParameter(profile.Cutoff);
-                    updateProfileCmd.AddParameter(profile.Items.ToJson());
-                    updateProfileCmd.AddParameter(profile.Id);
+                Id = p.Id,
+                Name = p.Name,
+                Cutoff = p.Cutoff,
+                Items = p.Items.ToJson()
+            });
 
-                    updateProfileCmd.ExecuteNonQuery();
-                }
-            }
+            var updateSql = $"UPDATE \"Profiles\" SET \"Name\" = @Name, \"Cutoff\" = @Cutoff, \"Items\" = @Items WHERE \"Id\" = @Id";
+            _connection.Execute(updateSql, profilesToUpdate, transaction: _transaction);
 
             _changedProfiles.Clear();
         }
@@ -90,7 +87,10 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             foreach (var profile in _profiles)
             {
-                if (profile.Items.Any(v => v.Quality == quality)) continue;
+                if (profile.Items.Any(v => v.Quality == quality))
+                {
+                    continue;
+                }
 
                 var findIndex = profile.Items.FindIndex(v =>
                 {
@@ -114,7 +114,7 @@ namespace NzbDrone.Core.Datastore.Migration
             using (var getProfilesCmd = _connection.CreateCommand())
             {
                 getProfilesCmd.Transaction = _transaction;
-                getProfilesCmd.CommandText = @"SELECT Id, Name, Cutoff, Items FROM Profiles";
+                getProfilesCmd.CommandText = "SELECT \"Id\", \"Name\", \"Cutoff\", \"Items\" FROM \"Profiles\"";
 
                 using (var profileReader = getProfilesCmd.ExecuteReader())
                 {

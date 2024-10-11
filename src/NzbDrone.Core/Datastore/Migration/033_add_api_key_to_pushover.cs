@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using FluentMigrator;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore.Migration.Framework;
@@ -17,12 +17,12 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void UpdatePushoverSettings(IDbConnection conn, IDbTransaction tran)
         {
-            using (IDbCommand selectCommand = conn.CreateCommand())
+            using (var selectCommand = conn.CreateCommand())
             {
                 selectCommand.Transaction = tran;
-                selectCommand.CommandText = @"SELECT * FROM Notifications WHERE ConfigContract = 'PushoverSettings'";
+                selectCommand.CommandText = "SELECT * FROM \"Notifications\" WHERE \"ConfigContract\" = 'PushoverSettings'";
 
-                using (IDataReader reader = selectCommand.ExecuteReader())
+                using (var reader = selectCommand.ExecuteReader())
                 {
                     while (reader.Read())
                     {
@@ -33,19 +33,19 @@ namespace NzbDrone.Core.Datastore.Migration
                         var settings = Json.Deserialize<PushoverSettingsForV33>(reader.GetString(settingsIndex));
                         settings.ApiKey = API_KEY;
 
-                        //Set priority to high if its currently emergency
+                        // Set priority to high if its currently emergency
                         if (settings.Priority == 2)
                         {
                             settings.Priority = 1;
                         }
 
-                        using (IDbCommand updateCmd = conn.CreateCommand())
+                        using (var updateCmd = conn.CreateCommand())
                         {
-                            var text = string.Format("UPDATE Notifications " +
-                                                     "SET Settings = '{0}'" +
-                                                     "WHERE Id = {1}",
-                                settings.ToJson(), id
-                                );
+                            var text = string.Format("UPDATE \"Notifications\" " +
+                                                     "SET \"Settings\" = '{0}'" +
+                                                     "WHERE \"Id\" = {1}",
+                                settings.ToJson(),
+                                id);
 
                             updateCmd.Transaction = tran;
                             updateCmd.CommandText = text;

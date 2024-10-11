@@ -40,7 +40,6 @@ namespace NzbDrone.Core.Test.UpdateTests
                     Version = new Version("2.0.0.0")
                 };
             }
-
             else
             {
                 _updatePackage = new UpdatePackage
@@ -70,7 +69,7 @@ namespace NzbDrone.Core.Test.UpdateTests
                   .Returns(true);
 
             Mocker.GetMock<IDiskProvider>()
-                  .Setup(v => v.FileExists(It.Is<string>(s => s.EndsWith("Sonarr.Update.exe"))))
+                  .Setup(v => v.FileExists(It.Is<string>(s => s.EndsWith("Sonarr.Update".ProcessNameToExe()))))
                   .Returns(true);
 
             _sandboxFolder = Mocker.GetMock<IAppFolderInfo>().Object.GetUpdateSandboxFolder();
@@ -107,7 +106,6 @@ namespace NzbDrone.Core.Test.UpdateTests
             Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(_sandboxFolder)).Returns(false);
 
             Subject.Execute(new ApplicationUpdateCommand());
-
 
             Mocker.GetMock<IDiskProvider>().Verify(c => c.DeleteFolder(_sandboxFolder, true), Times.Never());
         }
@@ -156,7 +154,7 @@ namespace NzbDrone.Core.Test.UpdateTests
         public void should_return_with_warning_if_updater_doesnt_exists()
         {
             Mocker.GetMock<IDiskProvider>()
-                  .Setup(v => v.FileExists(It.Is<string>(s => s.EndsWith("Sonarr.Update.exe"))))
+                  .Setup(v => v.FileExists(It.Is<string>(s => s.EndsWith("Sonarr.Update".ProcessNameToExe()))))
                   .Returns(false);
 
             Subject.Execute(new ApplicationUpdateCommand());
@@ -174,7 +172,6 @@ namespace NzbDrone.Core.Test.UpdateTests
 
             Subject.Execute(new ApplicationUpdateCommand());
 
-
             ExceptionVerification.AssertNoUnexpectedLogs();
         }
 
@@ -189,7 +186,7 @@ namespace NzbDrone.Core.Test.UpdateTests
         }
 
         [Test]
-        [Platform("Mono")]
+        [Platform(Exclude = "Win")]
         public void should_run_script_if_configured()
         {
             const string scriptPath = "/tmp/nzbdrone/update.sh";
@@ -202,7 +199,7 @@ namespace NzbDrone.Core.Test.UpdateTests
         }
 
         [Test]
-        [Platform("Mono")]
+        [Platform(Exclude = "Win")]
         public void should_throw_if_script_is_not_set()
         {
             const string scriptPath = "/tmp/nzbdrone/update.sh";
@@ -216,7 +213,7 @@ namespace NzbDrone.Core.Test.UpdateTests
         }
 
         [Test]
-        [Platform("Mono")]
+        [Platform(Exclude = "Win")]
         public void should_throw_if_script_is_null()
         {
             const string scriptPath = "/tmp/nzbdrone/update.sh";
@@ -230,7 +227,7 @@ namespace NzbDrone.Core.Test.UpdateTests
         }
 
         [Test]
-        [Platform("Mono")]
+        [Platform(Exclude = "Win")]
         public void should_throw_if_script_path_does_not_exist()
         {
             const string scriptPath = "/tmp/nzbdrone/update.sh";
@@ -247,6 +244,7 @@ namespace NzbDrone.Core.Test.UpdateTests
             Mocker.GetMock<IProcessProvider>().Verify(v => v.Start(scriptPath, It.IsAny<string>(), null, null, null), Times.Never());
         }
 
+        [Ignore("TODO fix")]
         [Test]
         [IntegrationTest]
         public void Should_download_and_extract_to_temp_folder()
@@ -328,6 +326,28 @@ namespace NzbDrone.Core.Test.UpdateTests
 
             Mocker.GetMock<IConfigFileProvider>()
                   .Verify(v => v.SaveConfigDictionary(It.Is<Dictionary<string, object>>(d => d.ContainsKey("Branch") && (string)d["Branch"] == "fake")), Times.Once());
+        }
+
+        [Test]
+        public void should_not_update_with_built_in_updater_inside_docker_container()
+        {
+            Mocker.GetMock<IDeploymentInfoProvider>().Setup(x => x.PackageUpdateMechanism).Returns(UpdateMechanism.Docker);
+
+            Subject.Execute(new ApplicationUpdateCommand());
+
+            Mocker.GetMock<IProcessProvider>()
+                .Verify(c => c.Start(It.IsAny<string>(), It.Is<string>(s => s.StartsWith("12")), null, null, null), Times.Never());
+        }
+
+        [Test]
+        public void should_not_update_with_built_in_updater_when_external_updater_is_configured()
+        {
+            Mocker.GetMock<IDeploymentInfoProvider>().Setup(x => x.IsExternalUpdateMechanism).Returns(true);
+
+            Subject.Execute(new ApplicationUpdateCommand());
+
+            Mocker.GetMock<IProcessProvider>()
+                .Verify(c => c.Start(It.IsAny<string>(), It.Is<string>(s => s.StartsWith("12")), null, null, null), Times.Never());
         }
 
         [TearDown]

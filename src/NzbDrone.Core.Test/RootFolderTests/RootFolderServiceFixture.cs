@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +7,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Core.Organizer;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -17,9 +18,13 @@ namespace NzbDrone.Core.Test.RootFolderTests
     [TestFixture]
     public class RootFolderServiceFixture : CoreTest<RootFolderService>
     {
+        private NamingConfig _namingConfig;
+
         [SetUp]
         public void Setup()
         {
+            _namingConfig = NamingConfig.Default;
+
             Mocker.GetMock<IDiskProvider>()
                   .Setup(m => m.FolderExists(It.IsAny<string>()))
                   .Returns(true);
@@ -31,6 +36,10 @@ namespace NzbDrone.Core.Test.RootFolderTests
             Mocker.GetMock<IRootFolderRepository>()
                   .Setup(s => s.All())
                   .Returns(new List<RootFolder>());
+
+            Mocker.GetMock<INamingConfigService>()
+                  .Setup(c => c.GetConfig())
+                  .Returns(_namingConfig);
         }
 
         private void WithNonExistingFolder()
@@ -46,7 +55,7 @@ namespace NzbDrone.Core.Test.RootFolderTests
         {
             Mocker.GetMock<ISeriesRepository>()
                   .Setup(s => s.AllSeriesPaths())
-                  .Returns(new List<string>());
+                  .Returns(new Dictionary<int, string>());
 
             var root = new RootFolder { Path = path.AsOsAgnostic() };
 
@@ -76,8 +85,7 @@ namespace NzbDrone.Core.Test.RootFolderTests
         public void invalid_folder_path_throws_on_add(string path)
         {
             Assert.Throws<ArgumentException>(() =>
-                    Mocker.Resolve<RootFolderService>().Add(new RootFolder { Id = 0, Path = path })
-                );
+                    Mocker.Resolve<RootFolderService>().Add(new RootFolder { Id = 0, Path = path }));
         }
 
         [Test]
@@ -130,7 +138,7 @@ namespace NzbDrone.Core.Test.RootFolderTests
 
             Mocker.GetMock<ISeriesRepository>()
                   .Setup(s => s.AllSeriesPaths())
-                  .Returns(new List<string>());
+                  .Returns(new Dictionary<int, string>());
 
             Mocker.GetMock<IDiskProvider>()
                   .Setup(s => s.GetDirectories(rootFolder.Path))
@@ -140,6 +148,48 @@ namespace NzbDrone.Core.Test.RootFolderTests
 
             unmappedFolders.Count.Should().BeGreaterThan(0);
             unmappedFolders.Should().NotContain(u => u.Name == subFolder);
+        }
+
+        [Test]
+        public void should_get_unmapped_folders_inside_letter_subfolder()
+        {
+            _namingConfig.SeriesFolderFormat = "{Series TitleFirstCharacter}\\{Series Title}".AsOsAgnostic();
+
+            var rootFolderPath = @"C:\Test\TV".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var subFolderPath = Path.Combine(rootFolderPath, "S");
+
+            var subFolders = new[]
+            {
+                "Series1",
+                "Series2",
+                "Series3",
+            };
+
+            var folders = subFolders.Select(f => Path.Combine(subFolderPath, f)).ToArray();
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolder.Path))
+                .Returns(new[] { subFolderPath });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(subFolderPath))
+                .Returns(folders);
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Count.Should().Be(3);
         }
     }
 }

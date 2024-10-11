@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 using NzbDrone.Core.Update;
 using Sonarr.Http.REST;
 
@@ -9,7 +8,6 @@ namespace Sonarr.Api.V3.Update
 {
     public class UpdateResource : RestResource
     {
-        [JsonConverter(typeof(Newtonsoft.Json.Converters.VersionConverter))]
         public Version Version { get; set; }
 
         public string Branch { get; set; }
@@ -28,7 +26,10 @@ namespace Sonarr.Api.V3.Update
     {
         public static UpdateResource ToResource(this UpdatePackage model)
         {
-            if (model == null) return null;
+            if (model == null)
+            {
+                return null;
+            }
 
             return new UpdateResource
             {
@@ -38,9 +39,10 @@ namespace Sonarr.Api.V3.Update
                 ReleaseDate = model.ReleaseDate,
                 FileName = model.FileName,
                 Url = model.Url,
-                //Installed
-                //Installable
-                //Latest
+
+                // Installed
+                // Installable
+                // Latest
                 Changes = model.Changes,
                 Hash = model.Hash,
             };

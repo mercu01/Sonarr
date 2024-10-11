@@ -1,9 +1,9 @@
-﻿using System.Linq;
+using System.Linq;
 using FluentAssertions;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using NzbDrone.Api.Indexers;
 using NzbDrone.Core.ThingiProvider;
+using Sonarr.Api.V3.Indexers;
 using Sonarr.Http.ClientSchema;
 
 namespace NzbDrone.Integration.Test.ApiTests
@@ -28,18 +28,8 @@ namespace NzbDrone.Integration.Test.ApiTests
 
             schema.Name = name;
             schema.EnableRss = false;
-            schema.EnableSearch = false;
-
-            return schema;
-        }
-
-        private IndexerResource GetNewznabSchemav3(string name = null)
-        {
-            var schema = Indexersv3.Schema().First(v => v.Implementation == "Newznab");
-
-            schema.Name = name;
-            schema.EnableRss = false;
-            schema.EnableSearch = false;
+            schema.EnableAutomaticSearch = false;
+            schema.EnableInteractiveSearch = false;
 
             return schema;
         }
@@ -55,16 +45,6 @@ namespace NzbDrone.Integration.Test.ApiTests
         public void v2_categories_should_be_array()
         {
             var schema = GetNewznabSchemav2();
-
-            var categoriesField = GetCategoriesField(schema);
-            
-            categoriesField.Value.Should().BeOfType<JArray>();
-        }
-
-        [Test]
-        public void v3_categories_should_be_array()
-        {
-            var schema = GetNewznabSchemav3();
 
             var categoriesField = GetCategoriesField(schema);
 
@@ -129,71 +109,6 @@ namespace NzbDrone.Integration.Test.ApiTests
             categoriesField.Value = new object[] { 1000, 1010 };
 
             var result = Indexers.Post(schema);
-
-            var resultArray = GetCategoriesField(result).Value;
-            resultArray.Should().BeOfType<JArray>();
-            resultArray.As<JArray>().ToObject<int[]>().Should().BeEquivalentTo(new[] { 1000, 1010 });
-        }
-
-        [Test]
-        public void v3_categories_should_accept_null()
-        {
-            var schema = GetNewznabSchemav3("Testv3null");
-
-            var categoriesField = GetCategoriesField(schema);
-
-            categoriesField.Value = null;
-
-            var result = Indexersv3.Post(schema);
-
-            var resultArray = GetCategoriesField(result).Value;
-            resultArray.Should().BeOfType<JArray>();
-            resultArray.As<JArray>().Should().BeEmpty();
-        }
-
-        [Test]
-        public void v3_categories_should_accept_emptystring()
-        {
-            var schema = GetNewznabSchemav3("Testv3emptystring");
-
-            var categoriesField = GetCategoriesField(schema);
-
-            categoriesField.Value = "";
-
-            var result = Indexersv3.Post(schema);
-
-            var resultArray = GetCategoriesField(result).Value;
-            resultArray.Should().BeOfType<JArray>();
-            resultArray.As<JArray>().Should().BeEmpty();
-        }
-
-
-        [Test]
-        public void v3_categories_should_accept_string()
-        {
-            var schema = GetNewznabSchemav3("Testv3string");
-
-            var categoriesField = GetCategoriesField(schema);
-
-            categoriesField.Value = "1000,1010";
-
-            var result = Indexersv3.Post(schema);
-
-            var resultArray = GetCategoriesField(result).Value;
-            resultArray.Should().BeOfType<JArray>();
-            resultArray.As<JArray>().ToObject<int[]>().Should().BeEquivalentTo(new[] { 1000, 1010 });
-        }
-
-        [Test]
-        public void v3_categories_should_accept_array()
-        {
-            var schema = GetNewznabSchemav3("Testv3array");
-
-            var categoriesField = GetCategoriesField(schema);
-
-            categoriesField.Value = new object[] { 1000, 1010 };
-
-            var result = Indexersv3.Post(schema);
 
             var resultArray = GetCategoriesField(result).Value;
             resultArray.Should().BeOfType<JArray>();

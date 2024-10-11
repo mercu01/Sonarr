@@ -1,13 +1,15 @@
+import { maxBy } from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes } from 'Helpers/Props';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import Button from 'Components/Link/Button';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import FilterBuilderRow from './FilterBuilderRow';
 import styles from './FilterBuilderModalContent.css';
 
@@ -49,7 +51,7 @@ class FilterBuilderModalContent extends Component {
       if (id) {
         dispatchSetFilter({ selectedFilterKey: id });
       } else {
-        const last = customFilters[customFilters.length -1];
+        const last = maxBy(customFilters, 'id');
         dispatchSetFilter({ selectedFilterKey: last.id });
       }
 
@@ -62,7 +64,7 @@ class FilterBuilderModalContent extends Component {
 
   onLabelChange = ({ value }) => {
     this.setState({ label: value });
-  }
+  };
 
   onFilterChange = (index, filter) => {
     const filters = [...this.state.filters];
@@ -71,7 +73,7 @@ class FilterBuilderModalContent extends Component {
     this.setState({
       filters
     });
-  }
+  };
 
   onAddFilterPress = () => {
     const filters = [...this.state.filters];
@@ -80,7 +82,7 @@ class FilterBuilderModalContent extends Component {
     this.setState({
       filters
     });
-  }
+  };
 
   onRemoveFilterPress = (index) => {
     const filters = [...this.state.filters];
@@ -89,7 +91,7 @@ class FilterBuilderModalContent extends Component {
     this.setState({
       filters
     });
-  }
+  };
 
   onSaveFilterPress = () => {
     const {
@@ -107,7 +109,7 @@ class FilterBuilderModalContent extends Component {
       this.setState({
         labelErrors: [
           {
-            message: 'Label is required'
+            message: translate('LabelIsRequired')
           }
         ]
       });
@@ -121,7 +123,7 @@ class FilterBuilderModalContent extends Component {
       label,
       filters
     });
-  }
+  };
 
   //
   // Render
@@ -145,13 +147,13 @@ class FilterBuilderModalContent extends Component {
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          Custom Filter
+          {translate('CustomFilter')}
         </ModalHeader>
 
         <ModalBody>
           <div className={styles.labelContainer}>
             <div className={styles.label}>
-              Label
+              {translate('Label')}
             </div>
 
             <div className={styles.labelInputContainer}>
@@ -165,7 +167,9 @@ class FilterBuilderModalContent extends Component {
             </div>
           </div>
 
-          <div className={styles.label}>Filters</div>
+          <div className={styles.label}>
+            {translate('Filters')}
+          </div>
 
           <div className={styles.rows}>
             {
@@ -192,7 +196,7 @@ class FilterBuilderModalContent extends Component {
 
         <ModalFooter>
           <Button onPress={onCancelPress}>
-            Cancel
+            {translate('Cancel')}
           </Button>
 
           <SpinnerErrorButton
@@ -200,7 +204,7 @@ class FilterBuilderModalContent extends Component {
             error={saveError}
             onPress={this.onSaveFilterPress}
           >
-            Save
+            {translate('Save')}
           </SpinnerErrorButton>
         </ModalFooter>
       </ModalContent>

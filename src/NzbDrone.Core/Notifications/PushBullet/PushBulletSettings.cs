@@ -1,7 +1,7 @@
+using System;
 using System.Collections.Generic;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
-using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.PushBullet
@@ -14,29 +14,29 @@ namespace NzbDrone.Core.Notifications.PushBullet
         }
     }
 
-    public class PushBulletSettings : IProviderConfig
+    public class PushBulletSettings : NotificationSettingsBase<PushBulletSettings>
     {
-        private static readonly PushBulletSettingsValidator Validator = new PushBulletSettingsValidator();
+        private static readonly PushBulletSettingsValidator Validator = new ();
 
         public PushBulletSettings()
         {
-            DeviceIds = new string[] { };
-            ChannelTags = new string[] { };
+            DeviceIds = Array.Empty<string>();
+            ChannelTags = Array.Empty<string>();
         }
 
-        [FieldDefinition(0, Label = "Access Token", Privacy = PrivacyLevel.ApiKey, HelpLink = "https://www.pushbullet.com/#settings/account")]
+        [FieldDefinition(0, Label = "NotificationsPushBulletSettingsAccessToken", Privacy = PrivacyLevel.ApiKey, HelpLink = "https://www.pushbullet.com/#settings/account")]
         public string ApiKey { get; set; }
 
-        [FieldDefinition(1, Label = "Device IDs", HelpText = "List of device IDs (leave blank to send to all devices)", Type = FieldType.Device)]
+        [FieldDefinition(1, Label = "NotificationsPushBulletSettingsDeviceIds", HelpText = "NotificationsPushBulletSettingsDeviceIdsHelpText", Type = FieldType.Device)]
         public IEnumerable<string> DeviceIds { get; set; }
 
-        [FieldDefinition(2, Label = "Channel Tags", HelpText = "List of Channel Tags to send notifications to", Type = FieldType.Tag)]
+        [FieldDefinition(2, Label = "NotificationsPushBulletSettingsChannelTags", HelpText = "NotificationsPushBulletSettingsChannelTagsHelpText", Type = FieldType.Tag)]
         public IEnumerable<string> ChannelTags { get; set; }
 
-        [FieldDefinition(3, Label = "Sender ID", HelpText = "The device ID to send notifications from, use device_iden in the device's URL on pushbullet.com (leave blank to send from yourself)")]
+        [FieldDefinition(3, Label = "NotificationsPushBulletSettingSenderId", HelpText = "NotificationsPushBulletSettingSenderIdHelpText")]
         public string SenderId { get; set; }
 
-        public NzbDroneValidationResult Validate()
+        public override NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
         }

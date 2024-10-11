@@ -1,9 +1,9 @@
-﻿using FluentMigrator;
-using NzbDrone.Core.Datastore.Migration.Framework;
-using System.Linq;
-using System.Data;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using FluentMigrator;
+using NzbDrone.Core.Datastore.Migration.Framework;
 
 namespace NzbDrone.Core.Datastore.Migration
 {
@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             var getDuplicates = conn.CreateCommand();
             getDuplicates.Transaction = tran;
-            getDuplicates.CommandText = string.Format("select id, {0} from {1}", columnName, tableName);
+            getDuplicates.CommandText = string.Format("SELECT \"Id\", \"{0}\" from \"{1}\"", columnName, tableName);
 
             var result = new List<KeyValuePair<int, T>>();
 
@@ -68,19 +68,19 @@ namespace NzbDrone.Core.Datastore.Migration
             var deleteCmd = conn.CreateCommand();
             deleteCmd.Transaction = tran;
 
-            deleteCmd.CommandText = string.Format("DELETE FROM Series WHERE Id = {0}", seriesId.ToString());
+            deleteCmd.CommandText = string.Format("DELETE FROM \"Series\" WHERE \"Id\" = {0}", seriesId.ToString());
             deleteCmd.ExecuteNonQuery();
 
-            deleteCmd.CommandText = string.Format("DELETE FROM Episodes WHERE SeriesId = {0}", seriesId.ToString());
+            deleteCmd.CommandText = string.Format("DELETE FROM \"Episodes\" WHERE \"SeriesId\" = {0}", seriesId.ToString());
             deleteCmd.ExecuteNonQuery();
 
-            deleteCmd.CommandText = string.Format("DELETE FROM Seasons WHERE SeriesId = {0}", seriesId.ToString());
+            deleteCmd.CommandText = string.Format("DELETE FROM \"Seasons\" WHERE \"SeriesId\" = {0}", seriesId.ToString());
             deleteCmd.ExecuteNonQuery();
 
-            deleteCmd.CommandText = string.Format("DELETE FROM History WHERE SeriesId = {0}", seriesId.ToString());
+            deleteCmd.CommandText = string.Format("DELETE FROM \"History\" WHERE \"SeriesId\" = {0}", seriesId.ToString());
             deleteCmd.ExecuteNonQuery();
 
-            deleteCmd.CommandText = string.Format("DELETE FROM EpisodeFiles WHERE SeriesId = {0}", seriesId.ToString());
+            deleteCmd.CommandText = string.Format("DELETE FROM \"EpisodeFiles\" WHERE \"SeriesId\" = {0}", seriesId.ToString());
             deleteCmd.ExecuteNonQuery();
         }
 
@@ -89,10 +89,10 @@ namespace NzbDrone.Core.Datastore.Migration
             var deleteCmd = conn.CreateCommand();
             deleteCmd.Transaction = tran;
 
-            deleteCmd.CommandText = string.Format("DELETE FROM Episodes WHERE Id = {0}", episodeId.ToString());
+            deleteCmd.CommandText = string.Format("DELETE FROM \"Episodes\" WHERE \"Id\" = {0}", episodeId.ToString());
             deleteCmd.ExecuteNonQuery();
 
-            deleteCmd.CommandText = string.Format("DELETE FROM History WHERE EpisodeId = {0}", episodeId.ToString());
+            deleteCmd.CommandText = string.Format("DELETE FROM \"History\" WHERE \"EpisodeId\" = {0}", episodeId.ToString());
             deleteCmd.ExecuteNonQuery();
         }
     }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using FluentMigrator;
@@ -19,11 +19,11 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void ConvertConfig(IDbConnection conn, IDbTransaction tran)
         {
-            using (IDbCommand namingConfigCmd = conn.CreateCommand())
+            using (var namingConfigCmd = conn.CreateCommand())
             {
                 namingConfigCmd.Transaction = tran;
-                namingConfigCmd.CommandText = @"SELECT * FROM NamingConfig LIMIT 1";
-                using (IDataReader namingConfigReader = namingConfigCmd.ExecuteReader())
+                namingConfigCmd.CommandText = "SELECT * FROM \"NamingConfig\" LIMIT 1";
+                using (var namingConfigReader = namingConfigCmd.ExecuteReader())
                 {
                     var separatorIndex = namingConfigReader.GetOrdinal("Separator");
                     var numberStyleIndex = namingConfigReader.GetOrdinal("NumberStyle");
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Datastore.Migration
                         var includeQuality = namingConfigReader.GetBoolean(includeQualityIndex);
                         var replaceSpaces = namingConfigReader.GetBoolean(replaceSpacesIndex);
 
-                        //Output settings
+                        // Output settings
                         var seriesTitlePattern = "";
                         var episodeTitlePattern = "";
                         var dailyEpisodePattern = "{Air-Date}";
@@ -53,7 +53,6 @@ namespace NzbDrone.Core.Datastore.Migration
                             {
                                 seriesTitlePattern = "{Series.Title}";
                             }
-
                             else
                             {
                                 seriesTitlePattern = "{Series Title}";
@@ -70,20 +69,21 @@ namespace NzbDrone.Core.Datastore.Migration
                             {
                                 episodeTitlePattern += "{Episode.Title}";
                             }
-
                             else
                             {
                                 episodeTitlePattern += "{Episode Title}";
                             }
                         }
 
-                        var standardEpisodeFormat = string.Format("{0}{1}{2}", seriesTitlePattern,
-                                                                             GetNumberStyle(numberStyle).Pattern,
-                                                                             episodeTitlePattern);
+                        var standardEpisodeFormat = string.Format("{0}{1}{2}",
+                            seriesTitlePattern,
+                            GetNumberStyle(numberStyle).Pattern,
+                            episodeTitlePattern);
 
-                        var dailyEpisodeFormat = string.Format("{0}{1}{2}", seriesTitlePattern,
-                                                                            dailyEpisodePattern,
-                                                                            episodeTitlePattern);
+                        var dailyEpisodeFormat = string.Format("{0}{1}{2}",
+                            seriesTitlePattern,
+                            dailyEpisodePattern,
+                            episodeTitlePattern);
 
                         if (includeQuality)
                         {
@@ -96,11 +96,11 @@ namespace NzbDrone.Core.Datastore.Migration
                             dailyEpisodeFormat += qualityFormat;
                         }
 
-                        using (IDbCommand updateCmd = conn.CreateCommand())
+                        using (var updateCmd = conn.CreateCommand())
                         {
-                            var text = string.Format("UPDATE NamingConfig " +
-                                                     "SET StandardEpisodeFormat = '{0}', " +
-                                                     "DailyEpisodeFormat = '{1}'",
+                            var text = string.Format("UPDATE \"NamingConfig\" " +
+                                                     "SET \"StandardEpisodeFormat\" = '{0}', " +
+                                                     "\"DailyEpisodeFormat\" = '{1}'",
                                                      standardEpisodeFormat,
                                                      dailyEpisodeFormat);
 
@@ -121,9 +121,8 @@ namespace NzbDrone.Core.Datastore.Migration
                                                                                         Name = "1x05",
                                                                                         Pattern = "{season}x{episode:00}",
                                                                                         EpisodeSeparator = "x"
-
                                                                                     },
-                                                                                new 
+                                                                                new
                                                                                     {
                                                                                         Id = 1,
                                                                                         Name = "01x05",

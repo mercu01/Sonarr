@@ -1,14 +1,16 @@
 import { createAction } from 'redux-actions';
-import { createThunk } from 'Store/thunks';
-import selectProviderSchema from 'Utilities/State/selectProviderSchema';
-import createSetSettingValueReducer from 'Store/Actions/Creators/Reducers/createSetSettingValueReducer';
-import createSetProviderFieldValueReducer from 'Store/Actions/Creators/Reducers/createSetProviderFieldValueReducer';
+import createBulkEditItemHandler from 'Store/Actions/Creators/createBulkEditItemHandler';
+import createBulkRemoveItemHandler from 'Store/Actions/Creators/createBulkRemoveItemHandler';
 import createFetchHandler from 'Store/Actions/Creators/createFetchHandler';
 import createFetchSchemaHandler from 'Store/Actions/Creators/createFetchSchemaHandler';
-import createSaveProviderHandler, { createCancelSaveProviderHandler } from 'Store/Actions/Creators/createSaveProviderHandler';
-import createTestProviderHandler, { createCancelTestProviderHandler } from 'Store/Actions/Creators/createTestProviderHandler';
-import createTestAllProvidersHandler from 'Store/Actions/Creators/createTestAllProvidersHandler';
 import createRemoveItemHandler from 'Store/Actions/Creators/createRemoveItemHandler';
+import createSaveProviderHandler, { createCancelSaveProviderHandler } from 'Store/Actions/Creators/createSaveProviderHandler';
+import createTestAllProvidersHandler from 'Store/Actions/Creators/createTestAllProvidersHandler';
+import createTestProviderHandler, { createCancelTestProviderHandler } from 'Store/Actions/Creators/createTestProviderHandler';
+import createSetProviderFieldValueReducer from 'Store/Actions/Creators/Reducers/createSetProviderFieldValueReducer';
+import createSetSettingValueReducer from 'Store/Actions/Creators/Reducers/createSetSettingValueReducer';
+import { createThunk } from 'Store/thunks';
+import selectProviderSchema from 'Utilities/State/selectProviderSchema';
 
 //
 // Variables
@@ -18,17 +20,19 @@ const section = 'settings.importLists';
 //
 // Actions Types
 
-export const FETCH_IMPORT_LISTS = 'settings/importlists/fetchImportLists';
-export const FETCH_IMPORT_LIST_SCHEMA = 'settings/importlists/fetchImportListSchema';
-export const SELECT_IMPORT_LIST_SCHEMA = 'settings/importlists/selectImportListSchema';
-export const SET_IMPORT_LIST_VALUE = 'settings/importlists/setImportListValue';
-export const SET_IMPORT_LIST_FIELD_VALUE = 'settings/importlists/setImportListFieldValue';
-export const SAVE_IMPORT_LIST = 'settings/importlists/saveImportList';
-export const CANCEL_SAVE_IMPORT_LIST = 'settings/importlists/cancelSaveImportList';
-export const DELETE_IMPORT_LIST = 'settings/importlists/deleteImportList';
-export const TEST_IMPORT_LIST = 'settings/importlists/testImportList';
-export const CANCEL_TEST_IMPORT_LIST = 'settings/importlists/cancelTestImportList';
-export const TEST_ALL_IMPORT_LISTS = 'settings/importlists/testAllImportLists';
+export const FETCH_IMPORT_LISTS = 'settings/importLists/fetchImportLists';
+export const FETCH_IMPORT_LIST_SCHEMA = 'settings/importLists/fetchImportListSchema';
+export const SELECT_IMPORT_LIST_SCHEMA = 'settings/importLists/selectImportListSchema';
+export const SET_IMPORT_LIST_VALUE = 'settings/importLists/setImportListValue';
+export const SET_IMPORT_LIST_FIELD_VALUE = 'settings/importLists/setImportListFieldValue';
+export const SAVE_IMPORT_LIST = 'settings/importLists/saveImportList';
+export const CANCEL_SAVE_IMPORT_LIST = 'settings/importLists/cancelSaveImportList';
+export const DELETE_IMPORT_LIST = 'settings/importLists/deleteImportList';
+export const TEST_IMPORT_LIST = 'settings/importLists/testImportList';
+export const CANCEL_TEST_IMPORT_LIST = 'settings/importLists/cancelTestImportList';
+export const TEST_ALL_IMPORT_LISTS = 'settings/importLists/testAllImportLists';
+export const BULK_EDIT_IMPORT_LISTS = 'settings/importLists/bulkEditImportLists';
+export const BULK_DELETE_IMPORT_LISTS = 'settings/importLists/bulkDeleteImportLists';
 
 //
 // Action Creators
@@ -43,6 +47,8 @@ export const deleteImportList = createThunk(DELETE_IMPORT_LIST);
 export const testImportList = createThunk(TEST_IMPORT_LIST);
 export const cancelTestImportList = createThunk(CANCEL_TEST_IMPORT_LIST);
 export const testAllImportLists = createThunk(TEST_ALL_IMPORT_LISTS);
+export const bulkEditImportLists = createThunk(BULK_EDIT_IMPORT_LISTS);
+export const bulkDeleteImportLists = createThunk(BULK_DELETE_IMPORT_LISTS);
 
 export const setImportListValue = createAction(SET_IMPORT_LIST_VALUE, (payload) => {
   return {
@@ -77,6 +83,8 @@ export default {
     selectedSchema: {},
     isSaving: false,
     saveError: null,
+    isDeleting: false,
+    deleteError: null,
     isTesting: false,
     isTestingAll: false,
     items: [],
@@ -94,7 +102,9 @@ export default {
     [DELETE_IMPORT_LIST]: createRemoveItemHandler(section, '/importlist'),
     [TEST_IMPORT_LIST]: createTestProviderHandler(section, '/importlist'),
     [CANCEL_TEST_IMPORT_LIST]: createCancelTestProviderHandler(section),
-    [TEST_ALL_IMPORT_LISTS]: createTestAllProvidersHandler(section, '/importlist')
+    [TEST_ALL_IMPORT_LISTS]: createTestAllProvidersHandler(section, '/importlist'),
+    [BULK_EDIT_IMPORT_LISTS]: createBulkEditItemHandler(section, '/importlist/bulk'),
+    [BULK_DELETE_IMPORT_LISTS]: createBulkRemoveItemHandler(section, '/importlist/bulk')
   },
 
   //
@@ -106,10 +116,14 @@ export default {
 
     [SELECT_IMPORT_LIST_SCHEMA]: (state, { payload }) => {
       return selectProviderSchema(state, section, payload, (selectedSchema) => {
+        selectedSchema.name = payload.presetName ?? payload.implementationName;
+        selectedSchema.implementationName = payload.implementationName;
+        selectedSchema.minRefreshInterval = payload.minRefreshInterval;
         selectedSchema.enableAutomaticAdd = true;
         selectedSchema.shouldMonitor = 'all';
         selectedSchema.seriesType = 'standard';
         selectedSchema.seasonFolder = true;
+        selectedSchema.rootFolderPath = '';
 
         return selectedSchema;
       });

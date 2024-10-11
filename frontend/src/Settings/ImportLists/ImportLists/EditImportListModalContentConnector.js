@@ -2,19 +2,23 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
+import {
+  saveImportList,
+  setImportListFieldValue,
+  setImportListValue,
+  testImportList,
+  toggleAdvancedSettings
+} from 'Store/Actions/settingsActions';
 import createProviderSettingsSelector from 'Store/Selectors/createProviderSettingsSelector';
-import { setImportListValue, setImportListFieldValue, saveImportList, testImportList } from 'Store/Actions/settingsActions';
 import EditImportListModalContent from './EditImportListModalContent';
 
 function createMapStateToProps() {
   return createSelector(
     (state) => state.settings.advancedSettings,
-    (state) => state.settings.languageProfiles,
     createProviderSettingsSelector('importLists'),
-    (advancedSettings, languageProfiles, importList) => {
+    (advancedSettings, importList) => {
       return {
         advancedSettings,
-        showLanguageProfile: languageProfiles.items.length > 1,
         ...importList
       };
     }
@@ -25,7 +29,8 @@ const mapDispatchToProps = {
   setImportListValue,
   setImportListFieldValue,
   saveImportList,
-  testImportList
+  testImportList,
+  toggleAdvancedSettings
 };
 
 class EditImportListModalContentConnector extends Component {
@@ -44,19 +49,23 @@ class EditImportListModalContentConnector extends Component {
 
   onInputChange = ({ name, value }) => {
     this.props.setImportListValue({ name, value });
-  }
+  };
 
   onFieldChange = ({ name, value }) => {
     this.props.setImportListFieldValue({ name, value });
-  }
+  };
 
   onSavePress = () => {
     this.props.saveImportList({ id: this.props.id });
-  }
+  };
 
   onTestPress = () => {
     this.props.testImportList({ id: this.props.id });
-  }
+  };
+
+  onAdvancedSettingsPress = () => {
+    this.props.toggleAdvancedSettings();
+  };
 
   //
   // Render
@@ -67,6 +76,7 @@ class EditImportListModalContentConnector extends Component {
         {...this.props}
         onSavePress={this.onSavePress}
         onTestPress={this.onTestPress}
+        onAdvancedSettingsPress={this.onAdvancedSettingsPress}
         onInputChange={this.onInputChange}
         onFieldChange={this.onFieldChange}
       />
@@ -84,6 +94,7 @@ EditImportListModalContentConnector.propTypes = {
   setImportListFieldValue: PropTypes.func.isRequired,
   saveImportList: PropTypes.func.isRequired,
   testImportList: PropTypes.func.isRequired,
+  toggleAdvancedSettings: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };
 

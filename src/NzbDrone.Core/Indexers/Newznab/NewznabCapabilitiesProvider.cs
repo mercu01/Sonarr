@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Xml;
 using System.Xml.Linq;
 using NLog;
@@ -8,7 +7,7 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
-using NzbDrone.Core.Annotations;
+using NzbDrone.Core.Indexers.Exceptions;
 
 namespace NzbDrone.Core.Indexers.Newznab
 {
@@ -75,6 +74,13 @@ namespace NzbDrone.Core.Indexers.Newznab
                 _logger.Debug(ex, "Failed to parse newznab api capabilities for {0}", indexerSettings.BaseUrl);
                 throw;
             }
+            catch (ApiKeyException ex)
+            {
+                ex.WithData(response, 128 * 1024);
+                _logger.Trace("Unexpected Response content ({0} bytes): {1}", response.ResponseData.Length, response.Content);
+                _logger.Debug(ex, "Failed to parse newznab api capabilities for {0}, invalid API key", indexerSettings.BaseUrl);
+                throw;
+            }
             catch (Exception ex)
             {
                 ex.WithData(response, 128 * 1024);
@@ -126,6 +132,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                     {
                         capabilities.SupportedSearchParameters = xmlBasicSearch.Attribute("supportedParams").Value.Split(',');
                     }
+
                     capabilities.TextSearchEngine = xmlBasicSearch.Attribute("searchEngine")?.Value ?? capabilities.TextSearchEngine;
                 }
 
@@ -141,6 +148,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                         capabilities.SupportedTvSearchParameters = xmlTvSearch.Attribute("supportedParams").Value.Split(',');
                         capabilities.SupportsAggregateIdSearch = true;
                     }
+
                     capabilities.TvTextSearchEngine = xmlTvSearch.Attribute("searchEngine")?.Value ?? capabilities.TvTextSearchEngine;
                 }
             }
@@ -165,7 +173,6 @@ namespace NzbDrone.Core.Indexers.Newznab
                             Id = int.Parse(xmlSubcat.Attribute("id").Value),
                             Name = xmlSubcat.Attribute("name").Value,
                             Description = xmlSubcat.Attribute("description") != null ? xmlSubcat.Attribute("description").Value : string.Empty
-
                         });
                     }
 

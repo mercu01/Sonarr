@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { fetchOptions, clearOptions, defaultState } from 'Store/Actions/providerOptionActions';
+import { clearOptions, defaultState, fetchOptions } from 'Store/Actions/providerOptionActions';
 import EnhancedSelectInput from './EnhancedSelectInput';
 
 const importantFieldNames = [
   'baseUrl',
   'apiPath',
-  'apiKey'
+  'apiKey',
+  'authToken'
 ];
 
 function getProviderDataKey(providerData) {
@@ -34,7 +35,9 @@ function getSelectOptions(items) {
       key: option.value,
       value: option.name,
       hint: option.hint,
-      parentKey: option.parentValue
+      parentKey: option.parentValue,
+      isDisabled: option.isDisabled,
+      additionalProperties: option.additionalProperties
     };
   });
 }
@@ -73,7 +76,7 @@ class EnhancedSelectInputConnector extends Component {
 
   componentDidMount = () => {
     this._populate();
-  }
+  };
 
   componentDidUpdate = (prevProps) => {
     const prevKey = getProviderDataKey(prevProps.providerData);
@@ -82,11 +85,11 @@ class EnhancedSelectInputConnector extends Component {
     if (!_.isEqual(prevKey, nextKey)) {
       this.setState({ refetchRequired: true });
     }
-  }
+  };
 
   componentWillUnmount = () => {
     this._cleanup();
-  }
+  };
 
   //
   // Listeners
@@ -95,7 +98,7 @@ class EnhancedSelectInputConnector extends Component {
     if (this.state.refetchRequired) {
       this._populate();
     }
-  }
+  };
 
   //
   // Control
@@ -147,7 +150,7 @@ EnhancedSelectInputConnector.propTypes = {
   provider: PropTypes.string.isRequired,
   providerData: PropTypes.object.isRequired,
   name: PropTypes.string.isRequired,
-  value: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string])).isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.arrayOf(PropTypes.string), PropTypes.arrayOf(PropTypes.number)]).isRequired,
   values: PropTypes.arrayOf(PropTypes.object).isRequired,
   selectOptionsProviderAction: PropTypes.string,
   onChange: PropTypes.func.isRequired,

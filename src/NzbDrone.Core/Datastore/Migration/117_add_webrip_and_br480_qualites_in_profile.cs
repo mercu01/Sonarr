@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using Dapper;
 using FluentMigrator;
 using Newtonsoft.Json;
 using NzbDrone.Common.Serializer;
@@ -20,11 +21,11 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             var updater = new ProfileUpdater117(conn, tran);
 
-            updater.CreateGroupAt(8, 1000, "WEB 480p", new[] {12, 8}); // Group WEBRip480p with WEBDL480p
-            updater.CreateGroupAt(2, 1001, "DVD", new[] {2, 13}); // Group Bluray480p with DVD
-            updater.CreateGroupAt(5, 1002, "WEB 720p", new[] {14, 5}); // Group WEBRip720p with WEBDL720p
-            updater.CreateGroupAt(3, 1003, "WEB 1080p", new[] {15, 3}); // Group WEBRip1080p with WEBDL1080p
-            updater.CreateGroupAt(18, 1004, "WEB 2160p", new[] {17, 18}); // Group WEBRip2160p with WEBDL2160p
+            updater.CreateGroupAt(8, 1000, "WEB 480p", new[] { 12, 8 }); // Group WEBRip480p with WEBDL480p
+            updater.CreateGroupAt(2, 1001, "DVD", new[] { 2, 13 }); // Group Bluray480p with DVD
+            updater.CreateGroupAt(5, 1002, "WEB 720p", new[] { 14, 5 }); // Group WEBRip720p with WEBDL720p
+            updater.CreateGroupAt(3, 1003, "WEB 1080p", new[] { 15, 3 }); // Group WEBRip1080p with WEBDL1080p
+            updater.CreateGroupAt(18, 1004, "WEB 2160p", new[] { 17, 18 }); // Group WEBRip2160p with WEBDL2160p
 
             updater.Commit();
         }
@@ -72,21 +73,16 @@ namespace NzbDrone.Core.Datastore.Migration
 
         public void Commit()
         {
-            foreach (var profile in _changedProfiles)
+            var profilesToUpdate = _changedProfiles.Select(p => new
             {
-                using (var updateProfileCmd = _connection.CreateCommand())
-                {
-                    updateProfileCmd.Transaction = _transaction;
-                    updateProfileCmd.CommandText =
-                        "UPDATE Profiles SET Name = ?, Cutoff = ?, Items = ? WHERE Id = ?";
-                    updateProfileCmd.AddParameter(profile.Name);
-                    updateProfileCmd.AddParameter(profile.Cutoff);
-                    updateProfileCmd.AddParameter(profile.Items.ToJson());
-                    updateProfileCmd.AddParameter(profile.Id);
+                Id = p.Id,
+                Name = p.Name,
+                Cutoff = p.Cutoff,
+                Items = p.Items.ToJson()
+            });
 
-                    updateProfileCmd.ExecuteNonQuery();
-                }
-            }
+            var updateSql = $"UPDATE \"Profiles\" SET \"Name\" = @Name, \"Cutoff\" = @Cutoff, \"Items\" = @Items WHERE \"Id\" = @Id";
+            _connection.Execute(updateSql, profilesToUpdate, transaction: _transaction);
 
             _changedProfiles.Clear();
         }
@@ -158,7 +154,7 @@ namespace NzbDrone.Core.Datastore.Migration
             using (var getProfilesCmd = _connection.CreateCommand())
             {
                 getProfilesCmd.Transaction = _transaction;
-                getProfilesCmd.CommandText = @"SELECT Id, Name, Cutoff, Items FROM Profiles";
+                getProfilesCmd.CommandText = "SELECT \"Id\", \"Name\", \"Cutoff\", \"Items\" FROM \"Profiles\"";
 
                 using (var profileReader = getProfilesCmd.ExecuteReader())
                 {

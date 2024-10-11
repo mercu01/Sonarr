@@ -29,10 +29,21 @@ namespace NzbDrone.Core.Notifications.PushBullet
             _proxy.SendNotification(EPISODE_DOWNLOADED_TITLE_BRANDED, message.Message, Settings);
         }
 
+        public override void OnImportComplete(ImportCompleteMessage message)
+        {
+            _proxy.SendNotification(IMPORT_COMPLETE_TITLE_BRANDED, message.Message, Settings);
+        }
+
         public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
         {
             _proxy.SendNotification(EPISODE_DELETED_TITLE, deleteMessage.Message, Settings);
         }
+
+        public override void OnSeriesAdd(SeriesAddMessage message)
+        {
+            _proxy.SendNotification(SERIES_ADDED_TITLE, message.Message, Settings);
+        }
+
         public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
         {
             _proxy.SendNotification(SERIES_DELETED_TITLE, deleteMessage.Message, Settings);
@@ -43,9 +54,19 @@ namespace NzbDrone.Core.Notifications.PushBullet
             _proxy.SendNotification(HEALTH_ISSUE_TITLE_BRANDED, healthCheck.Message, Settings);
         }
 
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
+        {
+            _proxy.SendNotification(HEALTH_RESTORED_TITLE_BRANDED, $"The following issue is now resolved: {previousCheck.Message}", Settings);
+        }
+
         public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
         {
             _proxy.SendNotification(APPLICATION_UPDATE_TITLE_BRANDED, updateMessage.Message, Settings);
+        }
+
+        public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
+        {
+            _proxy.SendNotification(MANUAL_INTERACTION_REQUIRED_TITLE_BRANDED, message.Message, Settings);
         }
 
         public override ValidationResult Test()
@@ -78,10 +99,10 @@ namespace NzbDrone.Core.Notifications.PushBullet
                     options = devices.Where(d => d.Nickname.IsNotNullOrWhiteSpace())
                                             .OrderBy(d => d.Nickname, StringComparer.InvariantCultureIgnoreCase)
                                             .Select(d => new
-                                            {
-                                                id = d.Id,
-                                                name = d.Nickname
-                                            })
+                                                         {
+                                                             id = d.Id,
+                                                             name = d.Nickname
+                                                         })
                 };
             }
 

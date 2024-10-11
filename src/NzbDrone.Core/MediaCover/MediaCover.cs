@@ -2,7 +2,6 @@ using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.MediaCover
 {
-
     public enum MediaCoverTypes
     {
         Unknown = 0,
@@ -10,7 +9,8 @@ namespace NzbDrone.Core.MediaCover
         Banner = 2,
         Fanart = 3,
         Screenshot = 4,
-        Headshot = 5
+        Headshot = 5,
+        Clearlogo = 6
     }
 
     public class MediaCover : IEmbeddedDocument
@@ -23,10 +23,10 @@ namespace NzbDrone.Core.MediaCover
         {
         }
 
-        public MediaCover(MediaCoverTypes coverType, string url)
+        public MediaCover(MediaCoverTypes coverType, string remoteUrl)
         {
             CoverType = coverType;
-            Url = url;
+            RemoteUrl = remoteUrl;
         }
     }
 }

@@ -2,15 +2,22 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import sortByName from 'Utilities/Array/sortByName';
+import { deleteDownloadClient, fetchDownloadClients } from 'Store/Actions/settingsActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
-import { fetchDownloadClients, deleteDownloadClient } from 'Store/Actions/settingsActions';
+import createTagsSelector from 'Store/Selectors/createTagsSelector';
+import sortByProp from 'Utilities/Array/sortByProp';
 import DownloadClients from './DownloadClients';
 
 function createMapStateToProps() {
   return createSelector(
-    createSortedSectionSelector('settings.downloadClients', sortByName),
-    (downloadClients) => downloadClients
+    createSortedSectionSelector('settings.downloadClients', sortByProp('name')),
+    createTagsSelector(),
+    (downloadClients, tagList) => {
+      return {
+        ...downloadClients,
+        tagList
+      };
+    }
   );
 }
 
@@ -33,7 +40,7 @@ class DownloadClientsConnector extends Component {
 
   onConfirmDeleteDownloadClient = (id) => {
     this.props.deleteDownloadClient({ id });
-  }
+  };
 
   //
   // Render

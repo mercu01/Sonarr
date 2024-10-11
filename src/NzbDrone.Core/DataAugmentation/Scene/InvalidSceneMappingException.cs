@@ -1,7 +1,5 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NzbDrone.Common.Exceptions;
 
 namespace NzbDrone.Core.DataAugmentation.Scene
@@ -11,7 +9,6 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         public InvalidSceneMappingException(IEnumerable<SceneMapping> mappings, string releaseTitle)
             : base(FormatMessage(mappings, releaseTitle))
         {
-
         }
 
         private static string FormatMessage(IEnumerable<SceneMapping> mappings, string releaseTitle)

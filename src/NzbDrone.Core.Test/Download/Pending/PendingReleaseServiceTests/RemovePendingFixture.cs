@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using Moq;
@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
 
             Mocker.GetMock<IPendingReleaseRepository>()
                   .Setup(s => s.All())
-                  .Returns( _pending);
+                  .Returns(_pending);
 
             Mocker.GetMock<ISeriesService>()
                   .Setup(s => s.GetSeries(It.IsAny<int>()))
@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
 
             Mocker.GetMock<IParsingService>()
                   .Setup(s => s.GetEpisodes(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<Series>(), It.IsAny<bool>(), null))
-                  .Returns(new List<Episode>{ _episode });
+                  .Returns(new List<Episode> { _episode });
         }
 
         private void AddPending(int id, int seasonNumber, int[] episodes)
@@ -56,7 +56,9 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _pending.Add(new PendingRelease
              {
                  Id = id,
-                 ParsedEpisodeInfo = new ParsedEpisodeInfo { SeasonNumber = seasonNumber, EpisodeNumbers = episodes }
+                 Title = "Series.Title.S01E05.abc-Sonarr",
+                 ParsedEpisodeInfo = new ParsedEpisodeInfo { SeasonNumber = seasonNumber, EpisodeNumbers = episodes },
+                 Release = Builder<ReleaseInfo>.CreateNew().Build()
              });
         }
 
@@ -148,5 +150,4 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             Mocker.GetMock<IPendingReleaseRepository>().Verify(c => c.DeleteMany(It.Is<IEnumerable<int>>(s => s.SequenceEqual(ids))));
         }
     }
-
 }

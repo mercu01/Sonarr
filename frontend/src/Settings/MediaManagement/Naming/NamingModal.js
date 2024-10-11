@@ -1,61 +1,105 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { sizes, icons } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
-import Button from 'Components/Link/Button';
-import Icon from 'Components/Icon';
 import SelectInput from 'Components/Form/SelectInput';
 import TextInput from 'Components/Form/TextInput';
+import Icon from 'Components/Icon';
+import Button from 'Components/Link/Button';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import Modal from 'Components/Modal/Modal';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { icons, sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import NamingOption from './NamingOption';
 import styles from './NamingModal.css';
 
 const separatorOptions = [
-  { key: ' ', value: 'Space ( )' },
-  { key: '.', value: 'Period (.)' },
-  { key: '_', value: 'Underscore (_)' },
-  { key: '-', value: 'Dash (-)' }
+  {
+    key: ' ',
+    get value() {
+      return `${translate('Space')} ( )`;
+    }
+  },
+  {
+    key: '.',
+    get value() {
+      return `${translate('Period')} (.)`;
+    }
+  },
+  {
+    key: '_',
+    get value() {
+      return `${translate('Underscore')} (_)`;
+    }
+  },
+  {
+    key: '-',
+    get value() {
+      return `${translate('Dash')} (-)`;
+    }
+  }
 ];
 
 const caseOptions = [
-  { key: 'title', value: 'Default Case' },
-  { key: 'lower', value: 'Lowercase' },
-  { key: 'upper', value: 'Uppercase' }
+  {
+    key: 'title',
+    get value() {
+      return translate('DefaultCase');
+    }
+  },
+  {
+    key: 'lower',
+    get value() {
+      return translate('Lowercase');
+    }
+  },
+  {
+    key: 'upper',
+    get value() {
+      return translate('Uppercase');
+    }
+  }
 ];
 
 const fileNameTokens = [
   {
     token: '{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}',
-    example: 'Series Title (2010) - S01E01 - Episode Title HDTV-720p Proper'
+    example: 'The Series Title\'s! (2010) - S01E01 - Episode Title HDTV-720p Proper'
   },
   {
     token: '{Series Title} - {season:0}x{episode:00} - {Episode Title} {Quality Full}',
-    example: 'Series Title (2010) - 1x01 - Episode Title HDTV-720p Proper'
+    example: 'The Series Title\'s! (2010) - 1x01 - Episode Title HDTV-720p Proper'
   },
   {
     token: '{Series.Title}.S{season:00}E{episode:00}.{EpisodeClean.Title}.{Quality.Full}',
-    example: 'Series.Title.(2010).S01E01.Episode.Title.HDTV-720p'
+    example: 'The.Series.Title\'s!.(2010).S01E01.Episode.Title.HDTV-720p'
   }
 ];
 
 const seriesTokens = [
-  { token: '{Series Title}', example: 'Series Title\'s' },
-  { token: '{Series CleanTitle}', example: 'Series Titles' },
-  { token: '{Series CleanTitleYear}', example: 'Series Titles! 2010' },
-  { token: '{Series TitleThe}', example: 'Series Title\'s, The' },
-  { token: '{Series TitleTheYear}', example: 'Series Title\'s, The (2010)' },
-  { token: '{Series TitleYear}', example: 'Series Title\'s (2010)' },
-  { token: '{Series TitleFirstCharacter}', example: 'S' },
+  { token: '{Series Title}', example: 'The Series Title\'s!', footNote: 1 },
+  { token: '{Series CleanTitle}', example: 'The Series Title\'s!', footNote: 1 },
+  { token: '{Series TitleYear}', example: 'The Series Title\'s! (2010)', footNote: 1 },
+  { token: '{Series CleanTitleYear}', example: 'The Series Title\'s! 2010', footNote: 1 },
+  { token: '{Series TitleWithoutYear}', example: 'The Series Title\'s!', footNote: 1 },
+  { token: '{Series CleanTitleWithoutYear}', example: 'The Series Title\'s!', footNote: 1 },
+  { token: '{Series TitleThe}', example: 'Series Title\'s!, The', footNote: 1 },
+  { token: '{Series CleanTitleThe}', example: 'Series Title\'s!, The', footNote: 1 },
+  { token: '{Series TitleTheYear}', example: 'Series Title\'s!, The (2010)', footNote: 1 },
+  { token: '{Series CleanTitleTheYear}', example: 'Series Title\'s!, The 2010', footNote: 1 },
+  { token: '{Series TitleTheWithoutYear}', example: 'Series Title\'s!, The', footNote: 1 },
+  { token: '{Series CleanTitleTheWithoutYear}', example: 'Series Title\'s!, The', footNote: 1 },
+  { token: '{Series TitleFirstCharacter}', example: 'S', footNote: 1 },
   { token: '{Series Year}', example: '2010' }
 ];
 
 const seriesIdTokens = [
   { token: '{ImdbId}', example: 'tt12345' },
   { token: '{TvdbId}', example: '12345' },
+  { token: '{TmdbId}', example: '11223' },
   { token: '{TvMazeId}', example: '54321' }
 ];
 
@@ -81,13 +125,13 @@ const absoluteTokens = [
 ];
 
 const episodeTitleTokens = [
-  { token: '{Episode Title}', example: 'Episode\'s Title' },
-  { token: '{Episode CleanTitle}', example: 'Episodes Title' }
+  { token: '{Episode Title}', example: 'Episode\'s Title', footNote: 1 },
+  { token: '{Episode CleanTitle}', example: 'Episodes Title', footNote: 1 }
 ];
 
 const qualityTokens = [
-  { token: '{Quality Full}', example: 'HDTV-720p Proper' },
-  { token: '{Quality Title}', example: 'HDTV-720p' }
+  { token: '{Quality Full}', example: 'WEBDL-1080p Proper' },
+  { token: '{Quality Title}', example: 'WEBDL-1080p' }
 ];
 
 const mediaInfoTokens = [
@@ -106,13 +150,18 @@ const mediaInfoTokens = [
 ];
 
 const otherTokens = [
-  { token: '{Release Group}', example: 'Rls Grp' },
-  { token: '{Preferred Words}', example: 'iNTERNAL' }
+  { token: '{Release Group}', example: 'Rls Grp', footNote: 1 },
+  { token: '{Custom Formats}', example: 'iNTERNAL' },
+  { token: '{Custom Format:FormatName}', example: 'AMZN' }
+];
+
+const otherAnimeTokens = [
+  { token: '{Release Hash}', example: 'ABCDEFGH' }
 ];
 
 const originalTokens = [
-  { token: '{Original Title}', example: 'Series.Title.S01E01.HDTV.x264-EVOLVE' },
-  { token: '{Original Filename}', example: 'series.title.s01e01.hdtv.x264-EVOLVE' }
+  { token: '{Original Title}', example: 'The.Series.Title\'s!.S01E01.WEBDL.1080p.x264-EVOLVE' },
+  { token: '{Original Filename}', example: 'the.series.title\'s!.s01e01.webdl.1080p.x264-EVOLVE' }
 ];
 
 class NamingModal extends Component {
@@ -137,16 +186,16 @@ class NamingModal extends Component {
 
   onTokenSeparatorChange = (event) => {
     this.setState({ separator: event.value });
-  }
+  };
 
   onTokenCaseChange = (event) => {
     this.setState({ case: event.value });
-  }
+  };
 
   onInputSelectionChange = (selectionStart, selectionEnd) => {
     this._selectionStart = selectionStart;
     this._selectionEnd = selectionEnd;
-  }
+  };
 
   onOptionPress = ({ isFullFilename, tokenValue }) => {
     const {
@@ -174,7 +223,7 @@ class NamingModal extends Component {
       this._selectionStart = newValue.length - 1;
       this._selectionEnd = newValue.length - 1;
     }
-  }
+  };
 
   //
   // Render
@@ -205,7 +254,7 @@ class NamingModal extends Component {
       >
         <ModalContent onModalClose={onModalClose}>
           <ModalHeader>
-            File Name Tokens
+            {translate('FileNameTokens')}
           </ModalHeader>
 
           <ModalBody>
@@ -229,7 +278,7 @@ class NamingModal extends Component {
 
             {
               !advancedSettings &&
-                <FieldSet legend="File Names">
+                <FieldSet legend={translate('FileNames')}>
                   <div className={styles.groups}>
                     {
                       fileNameTokens.map(({ token, example }) => {
@@ -254,10 +303,10 @@ class NamingModal extends Component {
                 </FieldSet>
             }
 
-            <FieldSet legend="Series">
+            <FieldSet legend={translate('Series')}>
               <div className={styles.groups}>
                 {
-                  seriesTokens.map(({ token, example }) => {
+                  seriesTokens.map(({ token, example, footNote }) => {
                     return (
                       <NamingOption
                         key={token}
@@ -265,6 +314,7 @@ class NamingModal extends Component {
                         value={value}
                         token={token}
                         example={example}
+                        footNote={footNote}
                         tokenSeparator={tokenSeparator}
                         tokenCase={tokenCase}
                         onPress={this.onOptionPress}
@@ -274,9 +324,14 @@ class NamingModal extends Component {
                   )
                 }
               </div>
+
+              <div className={styles.footNote}>
+                <Icon className={styles.icon} name={icons.FOOTNOTE} />
+                <InlineMarkdown data={translate('SeriesFootNote')} />
+              </div>
             </FieldSet>
 
-            <FieldSet legend="Series ID">
+            <FieldSet legend={translate('SeriesID')}>
               <div className={styles.groups}>
                 {
                   seriesIdTokens.map(({ token, example }) => {
@@ -300,7 +355,7 @@ class NamingModal extends Component {
 
             {
               season &&
-                <FieldSet legend="Season">
+                <FieldSet legend={translate('Season')}>
                   <div className={styles.groups}>
                     {
                       seasonTokens.map(({ token, example }) => {
@@ -326,7 +381,7 @@ class NamingModal extends Component {
             {
               episode &&
                 <div>
-                  <FieldSet legend="Episode">
+                  <FieldSet legend={translate('Episode')}>
                     <div className={styles.groups}>
                       {
                         episodeTokens.map(({ token, example }) => {
@@ -348,7 +403,7 @@ class NamingModal extends Component {
                     </div>
                   </FieldSet>
 
-                  <FieldSet legend="Air-Date">
+                  <FieldSet legend={translate('AirDate')}>
                     <div className={styles.groups}>
                       {
                         airDateTokens.map(({ token, example }) => {
@@ -372,7 +427,7 @@ class NamingModal extends Component {
 
                   {
                     anime &&
-                      <FieldSet legend="Absolute Episode Number">
+                      <FieldSet legend={translate('AbsoluteEpisodeNumber')}>
                         <div className={styles.groups}>
                           {
                             absoluteTokens.map(({ token, example }) => {
@@ -400,10 +455,10 @@ class NamingModal extends Component {
             {
               additional &&
                 <div>
-                  <FieldSet legend="Episode Title">
+                  <FieldSet legend={translate('EpisodeTitle')}>
                     <div className={styles.groups}>
                       {
-                        episodeTitleTokens.map(({ token, example }) => {
+                        episodeTitleTokens.map(({ token, example, footNote }) => {
                           return (
                             <NamingOption
                               key={token}
@@ -411,6 +466,7 @@ class NamingModal extends Component {
                               value={value}
                               token={token}
                               example={example}
+                              footNote={footNote}
                               tokenSeparator={tokenSeparator}
                               tokenCase={tokenCase}
                               onPress={this.onOptionPress}
@@ -420,9 +476,13 @@ class NamingModal extends Component {
                         )
                       }
                     </div>
+                    <div className={styles.footNote}>
+                      <Icon className={styles.icon} name={icons.FOOTNOTE} />
+                      <InlineMarkdown data={translate('EpisodeTitleFootNote')} />
+                    </div>
                   </FieldSet>
 
-                  <FieldSet legend="Quality">
+                  <FieldSet legend={translate('Quality')}>
                     <div className={styles.groups}>
                       {
                         qualityTokens.map(({ token, example }) => {
@@ -444,7 +504,7 @@ class NamingModal extends Component {
                     </div>
                   </FieldSet>
 
-                  <FieldSet legend="Media Info">
+                  <FieldSet legend={translate('MediaInfo')}>
                     <div className={styles.groups}>
                       {
                         mediaInfoTokens.map(({ token, example, footNote }) => {
@@ -468,17 +528,33 @@ class NamingModal extends Component {
 
                     <div className={styles.footNote}>
                       <Icon className={styles.icon} name={icons.FOOTNOTE} />
-                      <div>
-                        MediaInfo Full/AudioLanguages/SubtitleLanguages support a <code>:EN+DE</code> suffix allowing you to filter the languages included in the filename. Use <code>-DE</code> to exclude specific languages.
-                        Appending <code>+</code> (eg <code>:EN+</code>) will output <code>[EN]</code>/<code>[EN+--]</code>/<code>[--]</code> depending on excluded languages. For example <code>{'{'}MediaInfo Full:EN+DE{'}'}</code>.
-                      </div>
+                      <InlineMarkdown data={translate('MediaInfoFootNote')} />
                     </div>
                   </FieldSet>
 
-                  <FieldSet legend="Other">
+                  <FieldSet legend={translate('Other')}>
                     <div className={styles.groups}>
                       {
-                        otherTokens.map(({ token, example }) => {
+                        otherTokens.map(({ token, example, footNote }) => {
+                          return (
+                            <NamingOption
+                              key={token}
+                              name={name}
+                              value={value}
+                              token={token}
+                              example={example}
+                              footNote={footNote}
+                              tokenSeparator={tokenSeparator}
+                              tokenCase={tokenCase}
+                              onPress={this.onOptionPress}
+                            />
+                          );
+                        }
+                        )
+                      }
+
+                      {
+                        anime && otherAnimeTokens.map(({ token, example }) => {
                           return (
                             <NamingOption
                               key={token}
@@ -495,9 +571,14 @@ class NamingModal extends Component {
                         )
                       }
                     </div>
+
+                    <div className={styles.footNote}>
+                      <Icon className={styles.icon} name={icons.FOOTNOTE} />
+                      <InlineMarkdown data={translate('ReleaseGroupFootNote')} />
+                    </div>
                   </FieldSet>
 
-                  <FieldSet legend="Original">
+                  <FieldSet legend={translate('Original')}>
                     <div className={styles.groups}>
                       {
                         originalTokens.map(({ token, example }) => {
@@ -531,7 +612,7 @@ class NamingModal extends Component {
               onSelectionChange={this.onInputSelectionChange}
             />
             <Button onPress={onModalClose}>
-              Close
+              {translate('Close')}
             </Button>
           </ModalFooter>
         </ModalContent>

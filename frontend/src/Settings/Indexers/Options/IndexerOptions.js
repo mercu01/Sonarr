@@ -1,12 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import { inputTypes, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 
 function IndexerOptions(props) {
   const {
@@ -19,7 +21,7 @@ function IndexerOptions(props) {
   } = props;
 
   return (
-    <FieldSet legend="Options">
+    <FieldSet legend={translate('Options')}>
       {
         isFetching &&
           <LoadingIndicator />
@@ -27,49 +29,51 @@ function IndexerOptions(props) {
 
       {
         !isFetching && error &&
-          <div>Unable to load indexer options</div>
+          <Alert kind={kinds.DANGER}>
+            {translate('IndexerOptionsLoadError')}
+          </Alert>
       }
 
       {
         hasSettings && !isFetching && !error &&
           <Form>
             <FormGroup>
-              <FormLabel>Minimum Age</FormLabel>
+              <FormLabel>{translate('MinimumAge')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.NUMBER}
                 name="minimumAge"
                 min={0}
                 unit="minutes"
-                helpText="Usenet only: Minimum age in minutes of NZBs before they are grabbed. Use this to give new releases time to propagate to your usenet provider."
+                helpText={translate('MinimumAgeHelpText')}
                 onChange={onInputChange}
                 {...settings.minimumAge}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Retention</FormLabel>
+              <FormLabel>{translate('Retention')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.NUMBER}
                 name="retention"
                 min={0}
                 unit="days"
-                helpText="Usenet only: Set to zero to set for unlimited retention"
+                helpText={translate('RetentionHelpText')}
                 onChange={onInputChange}
                 {...settings.retention}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>Maximum Size</FormLabel>
+              <FormLabel>{translate('MaximumSize')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.NUMBER}
                 name="maximumSize"
                 min={0}
                 unit="MB"
-                helpText="Maximum size for a release to be grabbed in MB. Set to zero to set to unlimited"
+                helpText={translate('MaximumSizeHelpText')}
                 onChange={onInputChange}
                 {...settings.maximumSize}
               />
@@ -79,7 +83,7 @@ function IndexerOptions(props) {
               advancedSettings={advancedSettings}
               isAdvanced={true}
             >
-              <FormLabel>RSS Sync Interval</FormLabel>
+              <FormLabel>{translate('RssSyncInterval')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.NUMBER}
@@ -87,8 +91,8 @@ function IndexerOptions(props) {
                 min={0}
                 max={120}
                 unit="minutes"
-                helpText="Interval in minutes. Set to zero to disable (this will stop all automatic release grabbing)"
-                helpTextWarning="This will apply to all indexers, please follow the rules set forth by them"
+                helpText={translate('RssSyncIntervalHelpText')}
+                helpTextWarning={translate('RssSyncIntervalHelpTextWarning')}
                 helpLink="https://wiki.servarr.com/sonarr/faq#how-does-sonarr-find-episodes"
                 onChange={onInputChange}
                 {...settings.rssSyncInterval}

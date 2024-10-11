@@ -1,11 +1,20 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
+using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.Parser.Model
 {
     public class ReleaseInfo
     {
+        public ReleaseInfo()
+        {
+            Languages = new List<Language>();
+        }
+
         public string Guid { get; set; }
         public string Title { get; set; }
         public long Size { get; set; }
@@ -15,6 +24,7 @@ namespace NzbDrone.Core.Parser.Model
         public int IndexerId { get; set; }
         public string Indexer { get; set; }
         public int IndexerPriority { get; set; }
+        public int SeasonSearchMaximumSingleEpisodeAge { get; set; }
         public DownloadProtocol DownloadProtocol { get; set; }
         public int TvdbId { get; set; }
         public int TvRageId { get; set; }
@@ -27,6 +37,15 @@ namespace NzbDrone.Core.Parser.Model
         public string Codec { get; set; }
         public string Resolution { get; set; }
 
+        public List<Language> Languages { get; set; }
+
+        [JsonIgnore]
+        public IndexerFlags IndexerFlags { get; set; }
+
+        // Used to track pending releases that are being reprocessed
+        [JsonIgnore]
+        public PendingReleaseReason? PendingReleaseReason { get; set; }
+
         public int Age
         {
             get
@@ -34,9 +53,9 @@ namespace NzbDrone.Core.Parser.Model
                 return DateTime.UtcNow.Subtract(PublishDate).Days;
             }
 
-            //This prevents manually downloading a release from blowing up in mono
-            //TODO: Is there a better way?
-            private set { }
+            private set
+            {
+            }
         }
 
         public double AgeHours
@@ -46,9 +65,9 @@ namespace NzbDrone.Core.Parser.Model
                 return DateTime.UtcNow.Subtract(PublishDate).TotalHours;
             }
 
-            //This prevents manually downloading a release from blowing up in mono
-            //TODO: Is there a better way?
-            private set { }
+            private set
+            {
+            }
         }
 
         public double AgeMinutes
@@ -58,9 +77,9 @@ namespace NzbDrone.Core.Parser.Model
                 return DateTime.UtcNow.Subtract(PublishDate).TotalMinutes;
             }
 
-            //This prevents manually downloading a release from blowing up in mono
-            //TODO: Is there a better way?
-            private set { }
+            private set
+            {
+            }
         }
 
         public override string ToString()
@@ -84,11 +103,24 @@ namespace NzbDrone.Core.Parser.Model
                     stringBuilder.AppendLine("DownloadProtocol: " + DownloadProtocol ?? "Empty");
                     stringBuilder.AppendLine("TvdbId: " + TvdbId ?? "Empty");
                     stringBuilder.AppendLine("TvRageId: " + TvRageId ?? "Empty");
+                    stringBuilder.AppendLine("ImdbId: " + ImdbId ?? "Empty");
                     stringBuilder.AppendLine("PublishDate: " + PublishDate ?? "Empty");
                     return stringBuilder.ToString();
                 default:
                     return ToString();
             }
         }
+    }
+
+    [Flags]
+    public enum IndexerFlags
+    {
+        Freeleech = 1, // General
+        Halfleech = 2, // General, only 1/2 of download counted
+        DoubleUpload = 4, // General
+        Internal = 8, // General, uploader is an internal release group
+        Scene = 16, // General, the torrent comes from a "scene" group
+        Freeleech75 = 32, // Signifies a torrent counts towards 75 percent of your download quota.
+        Freeleech25 = 64, // Signifies a torrent counts towards 25 percent of your download quota.
     }
 }

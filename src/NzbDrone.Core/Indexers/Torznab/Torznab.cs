@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
@@ -20,12 +22,19 @@ namespace NzbDrone.Core.Indexers.Torznab
         public override string Name => "Torznab";
 
         public override DownloadProtocol Protocol => DownloadProtocol.Torrent;
-        public override int PageSize => _capabilitiesProvider.GetCapabilities(Settings).DefaultPageSize;
+        public override int PageSize => GetProviderPageSize();
+
+        public Torznab(INewznabCapabilitiesProvider capabilitiesProvider, IHttpClient httpClient, IIndexerStatusService indexerStatusService, IConfigService configService, IParsingService parsingService, Logger logger, ILocalizationService localizationService)
+            : base(httpClient, indexerStatusService, configService, parsingService, logger, localizationService)
+        {
+            _capabilitiesProvider = capabilitiesProvider;
+        }
 
         public override IIndexerRequestGenerator GetRequestGenerator()
         {
             return new NewznabRequestGenerator(_capabilitiesProvider)
             {
+                Definition = Definition,
                 PageSize = PageSize,
                 Settings = Settings
             };
@@ -40,16 +49,8 @@ namespace NzbDrone.Core.Indexers.Torznab
         {
             get
             {
-                yield return GetDefinition("HD4Free.xyz", GetSettings("http://hd4free.xyz"));
-                yield return GetDefinition("AnimeTosho Torrents", GetSettings("https://feed.animetosho.org", apiPath: @"/nabapi", categories: new int[0], animeCategories: new[] { 5070 }));
-                yield return GetDefinition("Nyaa Pantsu", GetSettings("https://nyaa.pantsu.cat", apiPath: @"/feed/torznab", categories: new int[0], animeCategories: new[] { 5070 }));
+                yield return GetDefinition("AnimeTosho Torrents", GetSettings("https://feed.animetosho.org", apiPath: @"/nabapi", categories: Array.Empty<int>(), animeCategories: new[] { 5070 }));
             }
-        }
-
-        public Torznab(INewznabCapabilitiesProvider capabilitiesProvider, IHttpClient httpClient, IIndexerStatusService indexerStatusService, IConfigService configService, IParsingService parsingService, Logger logger)
-            : base(httpClient, indexerStatusService, configService, parsingService, logger)
-        {
-            _capabilitiesProvider = capabilitiesProvider;
         }
 
         private IndexerDefinition GetDefinition(string name, TorznabSettings settings)
@@ -90,9 +91,10 @@ namespace NzbDrone.Core.Indexers.Torznab
             return settings;
         }
 
-        protected override void Test(List<ValidationFailure> failures)
+        protected override async Task Test(List<ValidationFailure> failures)
         {
-            base.Test(failures);
+            await base.Test(failures);
+
             if (failures.HasErrors())
             {
                 return;
@@ -120,13 +122,13 @@ namespace NzbDrone.Core.Indexers.Torznab
                     return null;
                 }
 
-                return new ValidationFailure(string.Empty, "Indexer does not support required search parameters");
+                return new ValidationFailure(string.Empty, _localizationService.GetLocalizedString("IndexerValidationSearchParametersNotSupported"));
             }
             catch (Exception ex)
             {
                 _logger.Warn(ex, "Unable to connect to indexer: " + ex.Message);
 
-                return new ValidationFailure(string.Empty, "Unable to connect to indexer, check the log for more details");
+                return new ValidationFailure(string.Empty, _localizationService.GetLocalizedString("IndexerValidationUnableToConnect", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
         }
 
@@ -137,10 +139,10 @@ namespace NzbDrone.Core.Indexers.Torznab
                 Settings.BaseUrl.Contains("/torznab/all") ||
                 Settings.BaseUrl.Contains("/api/v2.0/indexers/all/results/torznab"))
             {
-                return new NzbDroneValidationFailure("ApiPath", "Jackett's all endpoint is not supported, please add indexers individually")
+                return new NzbDroneValidationFailure("ApiPath", _localizationService.GetLocalizedString("IndexerValidationJackettAllNotSupported"))
                 {
                     IsWarning = true,
-                    DetailedDescription = "Jackett's all endpoint is not supported, please add indexers individually"
+                    DetailedDescription = _localizationService.GetLocalizedString("IndexerValidationJackettAllNotSupportedHelpText")
                 };
             }
 
@@ -168,6 +170,18 @@ namespace NzbDrone.Core.Indexers.Torznab
             }
 
             return base.RequestAction(action, query);
+        }
+
+        private int GetProviderPageSize()
+        {
+            try
+            {
+                return Math.Min(100, Math.Max(_capabilitiesProvider.GetCapabilities(Settings).DefaultPageSize, _capabilitiesProvider.GetCapabilities(Settings).MaxPageSize));
+            }
+            catch
+            {
+                return 100;
+            }
         }
     }
 }

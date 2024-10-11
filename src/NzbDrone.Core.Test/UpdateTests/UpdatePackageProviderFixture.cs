@@ -14,6 +14,11 @@ namespace NzbDrone.Core.Test.UpdateTests
         [SetUp]
         public void Setup()
         {
+            if (OsInfo.Os == Os.LinuxMusl || OsInfo.Os == Os.Bsd)
+            {
+                throw new IgnoreException("Ignore until we have musl releases");
+            }
+
             Mocker.GetMock<IPlatformInfo>().SetupGet(c => c.Version).Returns(new Version("9.9.9"));
         }
 
@@ -38,17 +43,16 @@ namespace NzbDrone.Core.Test.UpdateTests
             Subject.GetLatestUpdate("invalid_branch", new Version(3, 0)).Should().NotBeNull();
         }
 
-
         [Test]
         public void should_get_recent_updates()
         {
             const string branch = "main";
             UseRealHttp();
-            var recent = Subject.GetRecentUpdates(branch, new Version(3, 0), null);
+            var recent = Subject.GetRecentUpdates(branch, new Version(4, 0), null);
 
             recent.Should().NotBeEmpty();
             recent.Should().OnlyContain(c => c.Hash.IsNotNullOrWhiteSpace());
-            recent.Should().OnlyContain(c => c.FileName.Contains($"Sonarr.{c.Branch}.3."));
+            recent.Should().OnlyContain(c => c.FileName.Contains($"Sonarr.{c.Branch}.4."));
             recent.Should().OnlyContain(c => c.ReleaseDate.Year >= 2014);
             recent.Where(c => c.Changes != null).Should().OnlyContain(c => c.Changes.New != null);
             recent.Where(c => c.Changes != null).Should().OnlyContain(c => c.Changes.Fixed != null);

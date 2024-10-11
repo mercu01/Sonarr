@@ -1,13 +1,15 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds } from 'Helpers/Props';
+import Alert from 'Components/Alert';
+import Form from 'Components/Form/Form';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import { kinds } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
-import Form from 'Components/Form/Form';
-import ConfirmModal from 'Components/Modal/ConfirmModal';
+import translate from 'Utilities/String/translate';
 import AnalyticSettings from './AnalyticSettings';
 import BackupSettings from './BackupSettings';
 import HostSettings from './HostSettings';
@@ -24,9 +26,7 @@ const requiresRestartKeys = [
   'enableSsl',
   'sslPort',
   'sslCertHash',
-  'authenticationMethod',
-  'username',
-  'password'
+  'sslCertPassword'
 ];
 
 class GeneralSettings extends Component {
@@ -84,11 +84,11 @@ class GeneralSettings extends Component {
   onConfirmRestart = () => {
     this.setState({ isRestartRequiredModalOpen: false });
     this.props.onConfirmRestart();
-  }
+  };
 
   onCloseRestartRequiredModalOpen = () => {
     this.setState({ isRestartRequiredModalOpen: false });
-  }
+  };
 
   //
   // Render
@@ -102,7 +102,6 @@ class GeneralSettings extends Component {
       settings,
       hasSettings,
       isResettingApiKey,
-      isMono,
       isWindows,
       isWindowsService,
       mode,
@@ -113,7 +112,7 @@ class GeneralSettings extends Component {
     } = this.props;
 
     return (
-      <PageContent title="General Settings">
+      <PageContent title={translate('GeneralSettings')}>
         <SettingsToolbarConnector
           {...otherProps}
         />
@@ -126,7 +125,9 @@ class GeneralSettings extends Component {
 
           {
             !isFetching && error &&
-              <div>Unable to load General settings</div>
+              <Alert kind={kinds.DANGER}>
+                {translate('GeneralSettingsLoadError')}
+              </Alert>
           }
 
           {
@@ -156,6 +157,7 @@ class GeneralSettings extends Component {
                 />
 
                 <LoggingSettings
+                  advancedSettings={advancedSettings}
                   settings={settings}
                   onInputChange={onInputChange}
                 />
@@ -168,7 +170,7 @@ class GeneralSettings extends Component {
                 <UpdateSettings
                   advancedSettings={advancedSettings}
                   settings={settings}
-                  isMono={isMono}
+                  isWindows={isWindows}
                   packageUpdateMechanism={packageUpdateMechanism}
                   onInputChange={onInputChange}
                 />
@@ -185,12 +187,10 @@ class GeneralSettings extends Component {
         <ConfirmModal
           isOpen={this.state.isRestartRequiredModalOpen}
           kind={kinds.DANGER}
-          title="Restart Sonarr"
-          message={
-            `Sonarr requires a restart to apply changes, do you want to restart now? ${isWindowsService ? 'Depending which user is running the Sonarr service you may need to restart Sonarr as admin once before the service will start automatically.' : ''}`
-          }
-          cancelLabel="I'll restart later"
-          confirmLabel="Restart Now"
+          title={translate('RestartSonarr')}
+          message={`${translate('RestartRequiredToApplyChanges')} ${isWindowsService ? translate('RestartRequiredWindowsService') : ''}`}
+          cancelLabel={translate('RestartLater')}
+          confirmLabel={translate('RestartNow')}
           onConfirm={this.onConfirmRestart}
           onCancel={this.onCloseRestartRequiredModalOpen}
         />
@@ -210,7 +210,6 @@ GeneralSettings.propTypes = {
   settings: PropTypes.object.isRequired,
   isResettingApiKey: PropTypes.bool.isRequired,
   hasSettings: PropTypes.bool.isRequired,
-  isMono: PropTypes.bool.isRequired,
   isWindows: PropTypes.bool.isRequired,
   isWindowsService: PropTypes.bool.isRequired,
   mode: PropTypes.string.isRequired,

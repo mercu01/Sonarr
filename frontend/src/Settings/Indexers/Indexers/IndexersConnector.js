@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import sortByName from 'Utilities/Array/sortByName';
+import { cloneIndexer, deleteIndexer, fetchIndexers } from 'Store/Actions/settingsActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
 import createTagsSelector from 'Store/Selectors/createTagsSelector';
-import { fetchIndexers, deleteIndexer, cloneIndexer } from 'Store/Actions/settingsActions';
+import sortByProp from 'Utilities/Array/sortByProp';
 import Indexers from './Indexers';
 
 function createMapStateToProps() {
   return createSelector(
-    createSortedSectionSelector('settings.indexers', sortByName),
+    createSortedSectionSelector('settings.indexers', sortByProp('name')),
     createTagsSelector(),
     (indexers, tagList) => {
       return {
@@ -41,7 +41,7 @@ class IndexersConnector extends Component {
 
   onConfirmDeleteIndexer = (id) => {
     this.props.dispatchDeleteIndexer({ id });
-  }
+  };
 
   //
   // Render

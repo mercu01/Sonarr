@@ -1,10 +1,9 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv.Events;
 
@@ -18,18 +17,22 @@ namespace NzbDrone.Core.Tv
         List<Series> AddSeries(List<Series> newSeries);
         Series FindByTvdbId(int tvdbId);
         Series FindByTvRageId(int tvRageId);
+        Series FindByImdbId(string imdbId);
         Series FindByTitle(string title);
         Series FindByTitle(string title, int year);
         Series FindByTitleInexact(string title);
         Series FindByPath(string path);
-        void DeleteSeries(int seriesId, bool deleteFiles, bool addImportListExclusion);
+        void DeleteSeries(List<int> seriesIds, bool deleteFiles, bool addImportListExclusion);
         List<Series> GetAllSeries();
-        List<string> GetAllSeriesPaths();
+        List<int> AllSeriesTvdbIds();
+        Dictionary<int, string> GetAllSeriesPaths();
+        Dictionary<int, List<int>> GetAllSeriesTags();
         List<Series> AllForTag(int tagId);
         Series UpdateSeries(Series series, bool updateEpisodesToMatchSeason = true, bool publishUpdatedEvent = true);
         List<Series> UpdateSeries(List<Series> series, bool useExistingRelativeFolder);
         bool SeriesPathExists(string folder);
         void RemoveAddOptions(Series series);
+        bool UpdateTags(Series series);
     }
 
     public class SeriesService : ISeriesService
@@ -38,18 +41,21 @@ namespace NzbDrone.Core.Tv
         private readonly IEventAggregator _eventAggregator;
         private readonly IEpisodeService _episodeService;
         private readonly IBuildSeriesPaths _seriesPathBuilder;
+        private readonly IAutoTaggingService _autoTaggingService;
         private readonly Logger _logger;
 
         public SeriesService(ISeriesRepository seriesRepository,
                              IEventAggregator eventAggregator,
                              IEpisodeService episodeService,
                              IBuildSeriesPaths seriesPathBuilder,
+                             IAutoTaggingService autoTaggingService,
                              Logger logger)
         {
             _seriesRepository = seriesRepository;
             _eventAggregator = eventAggregator;
             _episodeService = episodeService;
             _seriesPathBuilder = seriesPathBuilder;
+            _autoTaggingService = autoTaggingService;
             _logger = logger;
         }
 
@@ -89,6 +95,11 @@ namespace NzbDrone.Core.Tv
             return _seriesRepository.FindByTvRageId(tvRageId);
         }
 
+        public Series FindByImdbId(string imdbId)
+        {
+            return _seriesRepository.FindByImdbId(imdbId);
+        }
+
         public Series FindByTitle(string title)
         {
             return _seriesRepository.FindByTitle(title.CleanSeriesTitle());
@@ -97,18 +108,20 @@ namespace NzbDrone.Core.Tv
         public Series FindByTitleInexact(string title)
         {
             // find any series clean title within the provided release title
-            string cleanTitle = title.CleanSeriesTitle();
+            var cleanTitle = title.CleanSeriesTitle();
             var list = _seriesRepository.FindByTitleInexact(cleanTitle);
             if (!list.Any())
             {
                 // no series matched
                 return null;
             }
+
             if (list.Count == 1)
             {
                 // return the first series if there is only one
                 return list.Single();
             }
+
             // build ordered list of series by position in the search string
             var query =
                 list.Select(series => new
@@ -117,7 +130,7 @@ namespace NzbDrone.Core.Tv
                     length = series.CleanTitle.Length,
                     series = series
                 })
-                    .Where(s => (s.position>=0))
+                    .Where(s => (s.position >= 0))
                     .ToList()
                     .OrderBy(s => s.position)
                     .ThenByDescending(s => s.length)
@@ -146,10 +159,10 @@ namespace NzbDrone.Core.Tv
             return _seriesRepository.FindByTitle(title.CleanSeriesTitle(), year);
         }
 
-        public void DeleteSeries(int seriesId, bool deleteFiles, bool addImportListExclusion)
+        public void DeleteSeries(List<int> seriesIds, bool deleteFiles, bool addImportListExclusion)
         {
-            var series = _seriesRepository.Get(seriesId);
-            _seriesRepository.Delete(seriesId);
+            var series = _seriesRepository.Get(seriesIds).ToList();
+            _seriesRepository.DeleteMany(seriesIds);
             _eventAggregator.PublishEvent(new SeriesDeletedEvent(series, deleteFiles, addImportListExclusion));
         }
 
@@ -158,9 +171,19 @@ namespace NzbDrone.Core.Tv
             return _seriesRepository.All().ToList();
         }
 
-        public List<string> GetAllSeriesPaths()
+        public List<int> AllSeriesTvdbIds()
+        {
+            return _seriesRepository.AllSeriesTvdbIds().ToList();
+        }
+
+        public Dictionary<int, string> GetAllSeriesPaths()
         {
             return _seriesRepository.AllSeriesPaths();
+        }
+
+        public Dictionary<int, List<int>> GetAllSeriesTags()
+        {
+            return _seriesRepository.AllSeriesTags();
         }
 
         public List<Series> AllForTag(int tagId)
@@ -193,6 +216,7 @@ namespace NzbDrone.Core.Tv
 
             // Never update AddOptions when updating a series, keep it the same as the existing stored series.
             series.AddOptions = storedSeries.AddOptions;
+            UpdateTags(series);
 
             var updatedSeries = _seriesRepository.Update(series);
             if (publishUpdatedEvent)
@@ -221,6 +245,8 @@ namespace NzbDrone.Core.Tv
                 {
                     _logger.Trace("Not changing path for: {0}", s.Title);
                 }
+
+                UpdateTags(s);
             }
 
             _seriesRepository.UpdateMany(series);
@@ -237,6 +263,42 @@ namespace NzbDrone.Core.Tv
         public void RemoveAddOptions(Series series)
         {
             _seriesRepository.SetFields(series, s => s.AddOptions);
+        }
+
+        public bool UpdateTags(Series series)
+        {
+            _logger.Trace("Updating tags for {0}", series);
+
+            var tagsAdded = new HashSet<int>();
+            var tagsRemoved = new HashSet<int>();
+            var changes = _autoTaggingService.GetTagChanges(series);
+
+            foreach (var tag in changes.TagsToRemove)
+            {
+                if (series.Tags.Contains(tag))
+                {
+                    series.Tags.Remove(tag);
+                    tagsRemoved.Add(tag);
+                }
+            }
+
+            foreach (var tag in changes.TagsToAdd)
+            {
+                if (!series.Tags.Contains(tag))
+                {
+                    series.Tags.Add(tag);
+                    tagsAdded.Add(tag);
+                }
+            }
+
+            if (tagsAdded.Any() || tagsRemoved.Any())
+            {
+                _logger.Debug("Updated tags for '{0}'. Added: {1}, Removed: {2}", series.Title, tagsAdded.Count, tagsRemoved.Count);
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

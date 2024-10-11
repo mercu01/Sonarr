@@ -1,3 +1,4 @@
+using System;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
@@ -24,7 +25,7 @@ namespace NzbDrone.Core.Test.NotificationTests.EmailTests
             _emailSettings = Builder<EmailSettings>.CreateNew()
                                         .With(s => s.Server = "someserver")
                                         .With(s => s.Port = 567)
-                                        .With(s => s.RequireEncryption = true)
+                                        .With(s => s.UseEncryption = (int)EmailEncryptionType.Always)
                                         .With(s => s.From = "dont@email.me")
                                         .With(s => s.To = new string[] { "dont@email.me" })
                                         .Build();
@@ -61,7 +62,6 @@ namespace NzbDrone.Core.Test.NotificationTests.EmailTests
         }
 
         [TestCase("sonarr")]
-        [TestCase("sonarr@sonarr")]
         [TestCase("email.me")]
         [Ignore("Allowed coz some email servers allow arbitrary source, we probably need to support 'Name <email>' syntax")]
         public void should_not_be_valid_if_from_is_invalid(string email)
@@ -72,7 +72,6 @@ namespace NzbDrone.Core.Test.NotificationTests.EmailTests
         }
 
         [TestCase("sonarr")]
-        [TestCase("sonarr@sonarr")]
         [TestCase("email.me")]
         public void should_not_be_valid_if_to_is_invalid(string email)
         {
@@ -82,7 +81,6 @@ namespace NzbDrone.Core.Test.NotificationTests.EmailTests
         }
 
         [TestCase("sonarr")]
-        [TestCase("sonarr@sonarr")]
         [TestCase("email.me")]
         public void should_not_be_valid_if_cc_is_invalid(string email)
         {
@@ -92,7 +90,6 @@ namespace NzbDrone.Core.Test.NotificationTests.EmailTests
         }
 
         [TestCase("sonarr")]
-        [TestCase("sonarr@sonarr")]
         [TestCase("email.me")]
         public void should_not_be_valid_if_bcc_is_invalid(string email)
         {
@@ -104,9 +101,9 @@ namespace NzbDrone.Core.Test.NotificationTests.EmailTests
         [Test]
         public void should_not_be_valid_if_to_bcc_cc_are_all_empty()
         {
-            _emailSettings.To = new string[] { };
-            _emailSettings.Cc = new string[] { };
-            _emailSettings.Bcc = new string[] { };
+            _emailSettings.To = Array.Empty<string>();
+            _emailSettings.Cc = Array.Empty<string>();
+            _emailSettings.Bcc = Array.Empty<string>();
 
             _validator.Validate(_emailSettings).IsValid.Should().BeFalse();
         }

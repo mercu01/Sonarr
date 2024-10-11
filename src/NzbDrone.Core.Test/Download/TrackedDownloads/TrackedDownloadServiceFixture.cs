@@ -1,16 +1,18 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.TorrentRss;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.Indexers;
-using System.Linq;
 using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Test.Download.TrackedDownloads
@@ -22,13 +24,15 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         {
             Mocker.GetMock<IHistoryService>()
                 .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
-                .Returns(new List<EpisodeHistory>(){
-                 new EpisodeHistory(){
+                .Returns(new List<EpisodeHistory>()
+                {
+                 new EpisodeHistory()
+                {
                      DownloadId = "35238",
                      SourceTitle = "TV Series S01",
                      SeriesId = 5,
                      EpisodeId = 4
-                 }
+                }
                 });
         }
 
@@ -83,6 +87,80 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         }
 
         [Test]
+        public void should_set_indexer()
+        {
+            var episodeHistory = new EpisodeHistory()
+            {
+                DownloadId = "35238",
+                SourceTitle = "TV Series S01",
+                SeriesId = 5,
+                EpisodeId = 4,
+                EventType = EpisodeHistoryEventType.Grabbed,
+            };
+            episodeHistory.Data.Add("indexer", "MyIndexer (Prowlarr)");
+            Mocker.GetMock<IHistoryService>()
+                .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
+                .Returns(new List<EpisodeHistory>()
+                {
+                    episodeHistory
+                });
+
+            var indexerDefinition = new IndexerDefinition
+            {
+                Id = 1,
+                Name = "MyIndexer (Prowlarr)",
+                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
+            };
+            Mocker.GetMock<IIndexerFactory>()
+                .Setup(v => v.Get(indexerDefinition.Id))
+                .Returns(indexerDefinition);
+            Mocker.GetMock<IIndexerFactory>()
+                .Setup(v => v.All())
+                .Returns(new List<IndexerDefinition>() { indexerDefinition });
+
+            var remoteEpisode = new RemoteEpisode
+            {
+                Series = new Series() { Id = 5 },
+                Episodes = new List<Episode> { new Episode { Id = 4 } },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo()
+                {
+                    SeriesTitle = "TV Series",
+                    SeasonNumber = 1
+                },
+                MappedSeasonNumber = 1
+            };
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
+                .Returns(remoteEpisode);
+
+            var client = new DownloadClientDefinition()
+            {
+                Id = 1,
+                Protocol = DownloadProtocol.Torrent
+            };
+
+            var item = new DownloadClientItem()
+            {
+                Title = "TV.Series.S01.MULTi.1080p.WEB.H265-RlsGroup",
+                DownloadId = "35238",
+                DownloadClientInfo = new DownloadClientItemClientInfo
+                {
+                    Protocol = client.Protocol,
+                    Id = client.Id,
+                    Name = client.Name
+                }
+            };
+
+            var trackedDownload = Subject.TrackDownload(client, item);
+
+            trackedDownload.Should().NotBeNull();
+            trackedDownload.RemoteEpisode.Should().NotBeNull();
+            trackedDownload.RemoteEpisode.Release.Should().NotBeNull();
+            trackedDownload.RemoteEpisode.Release.Indexer.Should().Be("MyIndexer (Prowlarr)");
+        }
+
+        [Test]
         public void should_parse_as_special_when_source_title_parsing_fails()
         {
             var remoteEpisode = new RemoteEpisode
@@ -93,20 +171,22 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                 {
                     SeriesTitle = "TV Series",
                     SeasonNumber = 0,
-                    EpisodeNumbers = new []{ 1 }
+                    EpisodeNumbers = new[] { 1 }
                 },
                 MappedSeasonNumber = 0
             };
 
             Mocker.GetMock<IHistoryService>()
                 .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
-                .Returns(new List<EpisodeHistory>(){
-                 new EpisodeHistory(){
+                .Returns(new List<EpisodeHistory>()
+                {
+                 new EpisodeHistory()
+                {
                      DownloadId = "35238",
                      SourceTitle = "TV Series Special",
                      SeriesId = 5,
                      EpisodeId = 4
-                 }
+                }
                 });
 
             Mocker.GetMock<IParsingService>()
@@ -114,7 +194,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                   .Returns(remoteEpisode);
 
             Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.ParseSpecialEpisodeTitle(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), null))
+                  .Setup(s => s.ParseSpecialEpisodeTitle(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(remoteEpisode.ParsedEpisodeInfo);
 
             var client = new DownloadClientDefinition()
@@ -165,13 +245,12 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                                 };
 
             Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), null))
+                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(remoteEpisode);
 
             Mocker.GetMock<IHistoryService>()
                   .Setup(s => s.FindByDownloadId(It.IsAny<string>()))
                   .Returns(new List<EpisodeHistory>());
-
 
             var client = new DownloadClientDefinition()
             {
@@ -196,7 +275,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             Subject.GetTrackedDownloads().Should().HaveCount(1);
 
             Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), null))
+                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
             Subject.Handle(new EpisodeInfoRefreshedEvent(remoteEpisode.Series, new List<Episode>(), new List<Episode>(), remoteEpisode.Episodes));
@@ -225,13 +304,12 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             };
 
             Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), null))
+                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
             Mocker.GetMock<IHistoryService>()
                   .Setup(s => s.FindByDownloadId(It.IsAny<string>()))
                   .Returns(new List<EpisodeHistory>());
-
 
             var client = new DownloadClientDefinition()
             {
@@ -256,7 +334,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             Subject.GetTrackedDownloads().Should().HaveCount(1);
 
             Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), null))
+                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
             Subject.Handle(new EpisodeInfoRefreshedEvent(remoteEpisode.Series, new List<Episode>(), new List<Episode>(), remoteEpisode.Episodes));
@@ -285,13 +363,12 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             };
 
             Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), null))
+                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
             Mocker.GetMock<IHistoryService>()
                   .Setup(s => s.FindByDownloadId(It.IsAny<string>()))
                   .Returns(new List<EpisodeHistory>());
-
 
             var client = new DownloadClientDefinition()
             {
@@ -316,10 +393,10 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             Subject.GetTrackedDownloads().Should().HaveCount(1);
 
             Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), null))
+                  .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
-            Subject.Handle(new SeriesDeletedEvent(remoteEpisode.Series, true, true));
+            Subject.Handle(new SeriesDeletedEvent(new List<Series> { remoteEpisode.Series }, true, true));
 
             var trackedDownloads = Subject.GetTrackedDownloads();
             trackedDownloads.Should().HaveCount(1);

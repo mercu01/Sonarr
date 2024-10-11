@@ -1,3 +1,4 @@
+using System;
 using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.Tv
@@ -17,8 +18,22 @@ namespace NzbDrone.Core.Tv
         Missing,
         Existing,
         FirstSeason,
+        LastSeason,
+
+        [Obsolete]
         LatestSeason,
+
         Pilot,
+        Recent,
+        MonitorSpecials,
+        UnmonitorSpecials,
+        None,
+        Skip
+    }
+
+    public enum NewItemMonitorTypes
+    {
+        All,
         None
     }
 }

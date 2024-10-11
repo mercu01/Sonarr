@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
-using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.Webhook
@@ -14,19 +13,19 @@ namespace NzbDrone.Core.Notifications.Webhook
         }
     }
 
-    public class WebhookSettings : IProviderConfig
+    public class WebhookSettings : NotificationSettingsBase<WebhookSettings>
     {
-        private static readonly WebhookSettingsValidator Validator = new WebhookSettingsValidator();
+        private static readonly WebhookSettingsValidator Validator = new ();
 
         public WebhookSettings()
         {
             Method = Convert.ToInt32(WebhookMethod.POST);
         }
 
-        [FieldDefinition(0, Label = "URL", Type = FieldType.Url)]
+        [FieldDefinition(0, Label = "NotificationsSettingsWebhookUrl", Type = FieldType.Url)]
         public string Url { get; set; }
 
-        [FieldDefinition(1, Label = "Method", Type = FieldType.Select, SelectOptions = typeof(WebhookMethod), HelpText = "Which HTTP method to use submit to the Webservice")]
+        [FieldDefinition(1, Label = "NotificationsSettingsWebhookMethod", Type = FieldType.Select, SelectOptions = typeof(WebhookMethod), HelpText = "NotificationsSettingsWebhookMethodHelpText")]
         public int Method { get; set; }
 
         [FieldDefinition(2, Label = "Username", Privacy = PrivacyLevel.UserName)]
@@ -35,7 +34,7 @@ namespace NzbDrone.Core.Notifications.Webhook
         [FieldDefinition(3, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
-        public NzbDroneValidationResult Validate()
+        public override NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
         }

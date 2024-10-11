@@ -10,10 +10,6 @@ namespace NzbDrone.Core.ImportLists.Trakt.Popular
 
         public string ClientId { get; set; }
 
-        public TraktPopularRequestGenerator()
-        {
-        }
-
         public virtual ImportListPageableRequestChain GetListItems()
         {
             var pageableRequests = new ImportListPageableRequestChain();
@@ -64,10 +60,10 @@ namespace NzbDrone.Core.ImportLists.Trakt.Popular
                     break;
             }
 
-            var filtersAndLimit = $"?years={Settings.Years}&genres={Settings.Genres.ToLower()}&ratings={Settings.Rating}&limit={Settings.Limit}{Settings.TraktAdditionalParameters}";
+            var filtersAndLimit = $"?years={Settings.Years}&genres={Settings.Genres?.ToLower()}&ratings={Settings.Rating}&limit={Settings.Limit}{Settings.TraktAdditionalParameters}";
             link += filtersAndLimit;
 
-            var request = new ImportListRequest($"{link}", HttpAccept.Json);
+            var request = new ImportListRequest(link, HttpAccept.Json);
 
             request.HttpRequest.Headers.Add("trakt-api-version", "2");
             request.HttpRequest.Headers.Add("trakt-api-key", ClientId);

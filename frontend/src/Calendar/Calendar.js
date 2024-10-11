@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import * as calendarViews from './calendarViews';
-import CalendarHeaderConnector from './Header/CalendarHeaderConnector';
-import DaysOfWeekConnector from './Day/DaysOfWeekConnector';
-import CalendarDaysConnector from './Day/CalendarDaysConnector';
+import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import AgendaConnector from './Agenda/AgendaConnector';
+import * as calendarViews from './calendarViews';
+import CalendarDaysConnector from './Day/CalendarDaysConnector';
+import DaysOfWeekConnector from './Day/DaysOfWeekConnector';
+import CalendarHeaderConnector from './Header/CalendarHeaderConnector';
 import styles from './Calendar.css';
 
 class Calendar extends Component {
@@ -30,7 +33,7 @@ class Calendar extends Component {
 
         {
           !isFetching && !!error &&
-            <div>Unable to load the calendar</div>
+            <Alert kind={kinds.DANGER}>{translate('CalendarLoadError')}</Alert>
         }
 
         {

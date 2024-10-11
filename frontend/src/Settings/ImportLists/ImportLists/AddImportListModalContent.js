@@ -1,17 +1,18 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds } from 'Helpers/Props';
 import Alert from 'Components/Alert';
-import Button from 'Components/Link/Button';
 import FieldSet from 'Components/FieldSet';
+import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { kinds } from 'Helpers/Props';
+import titleCase from 'Utilities/String/titleCase';
+import translate from 'Utilities/String/translate';
 import AddImportListItem from './AddImportListItem';
 import styles from './AddImportListModalContent.css';
-import titleCase from 'Utilities/String/titleCase';
 
 class AddImportListModalContent extends Component {
 
@@ -31,7 +32,7 @@ class AddImportListModalContent extends Component {
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          Add List
+          {translate('AddImportList')}
         </ModalHeader>
 
         <ModalBody>
@@ -43,7 +44,9 @@ class AddImportListModalContent extends Component {
 
           {
             !isSchemaFetching && !!schemaError ?
-              <div>Unable to add a new list, please try again.</div> :
+              <Alert kind={kinds.DANGER}>
+                {translate('AddListError')}
+              </Alert> :
               null
           }
 
@@ -52,13 +55,20 @@ class AddImportListModalContent extends Component {
               <div>
 
                 <Alert kind={kinds.INFO}>
-                  <div>Sonarr supports multiple lists for importing Series into the database.</div>
-                  <div>For more information on the individual lists, click on the info buttons.</div>
+                  <div>
+                    {translate('SupportedListsSeries')}
+                  </div>
+                  <div>
+                    {translate('SupportedListsMoreInfo')}
+                  </div>
                 </Alert>
                 {
                   Object.keys(listGroups).map((key) => {
                     return (
-                      <FieldSet legend={`${titleCase(key)} List`} key={key}>
+                      <FieldSet key={key} legend={translate('TypeOfList', {
+                        typeOfList: titleCase(key)
+                      })}
+                      >
                         <div className={styles.lists}>
                           {
                             listGroups[key].map((list) => {
@@ -85,7 +95,7 @@ class AddImportListModalContent extends Component {
           <Button
             onPress={onModalClose}
           >
-            Close
+            {translate('Close')}
           </Button>
         </ModalFooter>
       </ModalContent>

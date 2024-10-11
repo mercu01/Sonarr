@@ -1,35 +1,49 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBody from 'Components/Page/PageContentBody';
-import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import { inputTypes, kinds } from 'Helpers/Props';
+import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
+import themes from 'Styles/Themes';
+import titleCase from 'Utilities/String/titleCase';
+import translate from 'Utilities/String/translate';
 
 export const firstDayOfWeekOptions = [
-  { key: 0, value: 'Sunday' },
-  { key: 1, value: 'Monday' }
+  {
+    key: 0,
+    get value() {
+      return translate('Sunday');
+    }
+  },
+  {
+    key: 1,
+    get value() {
+      return translate('Monday');
+    }
+  }
 ];
 
 export const weekColumnOptions = [
-  { key: 'ddd M/D', value: 'Tue 3/25' },
-  { key: 'ddd MM/DD', value: 'Tue 03/25' },
-  { key: 'ddd D/M', value: 'Tue 25/3' },
-  { key: 'ddd DD/MM', value: 'Tue 25/03' }
+  { key: 'ddd M/D', value: 'Tue 3/25', hint: 'ddd M/D' },
+  { key: 'ddd MM/DD', value: 'Tue 03/25', hint: 'ddd MM/DD' },
+  { key: 'ddd D/M', value: 'Tue 25/3', hint: 'ddd D/M' },
+  { key: 'ddd DD/MM', value: 'Tue 25/03', hint: 'ddd DD/MM' }
 ];
 
 const shortDateFormatOptions = [
-  { key: 'MMM D YYYY', value: 'Mar 25 2014' },
-  { key: 'DD MMM YYYY', value: '25 Mar 2014' },
-  { key: 'MM/D/YYYY', value: '03/25/2014' },
-  { key: 'MM/DD/YYYY', value: '03/25/2014' },
-  { key: 'DD/MM/YYYY', value: '25/03/2014' },
-  { key: 'YYYY-MM-DD', value: '2014-03-25' }
+  { key: 'MMM D YYYY', value: 'Mar 25 2014', hint: 'MMM D YYYY' },
+  { key: 'DD MMM YYYY', value: '25 Mar 2014', hint: 'DD MMM YYYY' },
+  { key: 'MM/D/YYYY', value: '03/25/2014', hint: 'MM/D/YYYY' },
+  { key: 'MM/DD/YYYY', value: '03/25/2014', hint: 'MM/DD/YYYY' },
+  { key: 'DD/MM/YYYY', value: '25/03/2014', hint: 'DD/MM/YYYY' },
+  { key: 'YYYY-MM-DD', value: '2014-03-25', hint: 'YYYY-MM-DD' }
 ];
 
 const longDateFormatOptions = [
@@ -55,11 +69,15 @@ class UISettings extends Component {
       hasSettings,
       onInputChange,
       onSavePress,
+      languages,
       ...otherProps
     } = this.props;
 
+    const themeOptions = Object.keys(themes)
+      .map((theme) => ({ key: theme, value: titleCase(theme) }));
+
     return (
-      <PageContent title="UI Settings">
+      <PageContent title={translate('UiSettings')}>
         <SettingsToolbarConnector
           {...otherProps}
           onSavePress={onSavePress}
@@ -67,24 +85,28 @@ class UISettings extends Component {
 
         <PageContentBody>
           {
-            isFetching &&
-              <LoadingIndicator />
+            isFetching ?
+              <LoadingIndicator /> :
+              null
           }
 
           {
-            !isFetching && error &&
-              <div>Unable to load UI settings</div>
+            !isFetching && error ?
+              <Alert kind={kinds.DANGER}>
+                {translate('UiSettingsLoadError')}
+              </Alert> :
+              null
           }
 
           {
-            hasSettings && !isFetching && !error &&
+            hasSettings && !isFetching && !error ?
               <Form
                 id="uiSettings"
                 {...otherProps}
               >
-                <FieldSet legend="Calendar">
+                <FieldSet legend={translate('Calendar')}>
                   <FormGroup>
-                    <FormLabel>First Day of Week</FormLabel>
+                    <FormLabel>{translate('FirstDayOfWeek')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.SELECT}
@@ -96,24 +118,24 @@ class UISettings extends Component {
                   </FormGroup>
 
                   <FormGroup>
-                    <FormLabel>Week Column Header</FormLabel>
+                    <FormLabel>{translate('WeekColumnHeader')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.SELECT}
                       name="calendarWeekColumnHeader"
                       values={weekColumnOptions}
                       onChange={onInputChange}
-                      helpText="Shown above each column when week is the active view"
+                      helpText={translate('WeekColumnHeaderHelpText')}
                       {...settings.calendarWeekColumnHeader}
                     />
                   </FormGroup>
                 </FieldSet>
 
                 <FieldSet
-                  legend="Dates"
+                  legend={translate('Dates')}
                 >
                   <FormGroup>
-                    <FormLabel>Short Date Format</FormLabel>
+                    <FormLabel>{translate('ShortDateFormat')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.SELECT}
@@ -125,7 +147,7 @@ class UISettings extends Component {
                   </FormGroup>
 
                   <FormGroup>
-                    <FormLabel>Long Date Format</FormLabel>
+                    <FormLabel>{translate('LongDateFormat')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.SELECT}
@@ -137,7 +159,7 @@ class UISettings extends Component {
                   </FormGroup>
 
                   <FormGroup>
-                    <FormLabel>Time Format</FormLabel>
+                    <FormLabel>{translate('TimeFormat')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.SELECT}
@@ -149,11 +171,11 @@ class UISettings extends Component {
                   </FormGroup>
 
                   <FormGroup>
-                    <FormLabel>Show Relative Dates</FormLabel>
+                    <FormLabel>{translate('ShowRelativeDates')}</FormLabel>
                     <FormInputGroup
                       type={inputTypes.CHECK}
                       name="showRelativeDates"
-                      helpText="Show relative (Today/Yesterday/etc) or absolute dates"
+                      helpText={translate('ShowRelativeDatesHelpText')}
                       onChange={onInputChange}
                       {...settings.showRelativeDates}
                     />
@@ -161,20 +183,55 @@ class UISettings extends Component {
                 </FieldSet>
 
                 <FieldSet
-                  legend="Style"
+                  legend={translate('Style')}
                 >
                   <FormGroup>
-                    <FormLabel>Enable Color-Impaired Mode</FormLabel>
+                    <FormLabel>{translate('Theme')}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="theme"
+                      helpText={translate('ThemeHelpText')}
+                      values={themeOptions}
+                      onChange={onInputChange}
+                      {...settings.theme}
+                    />
+                  </FormGroup>
+
+                  <FormGroup>
+                    <FormLabel>{translate('EnableColorImpairedMode')}</FormLabel>
                     <FormInputGroup
                       type={inputTypes.CHECK}
                       name="enableColorImpairedMode"
-                      helpText="Altered style to allow color-impaired users to better distinguish color coded information"
+                      helpText={translate('EnableColorImpairedModeHelpText')}
                       onChange={onInputChange}
                       {...settings.enableColorImpairedMode}
                     />
                   </FormGroup>
                 </FieldSet>
-              </Form>
+
+                <FieldSet legend={translate('Language')}>
+                  <FormGroup>
+                    <FormLabel>{translate('UiLanguage')}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="uiLanguage"
+                      values={languages}
+                      helpText={translate('UiLanguageHelpText')}
+                      helpTextWarning={translate('BrowserReloadRequired')}
+                      onChange={onInputChange}
+                      {...settings.uiLanguage}
+                      errors={
+                        languages.some((language) => language.key === settings.uiLanguage.value) ?
+                          settings.uiLanguage.errors :
+                          [
+                            ...settings.uiLanguage.errors,
+                            { message: translate('InvalidUILanguage') }
+                          ]}
+                    />
+                  </FormGroup>
+                </FieldSet>
+              </Form> :
+              null
           }
         </PageContentBody>
       </PageContent>
@@ -188,6 +245,7 @@ UISettings.propTypes = {
   error: PropTypes.object,
   settings: PropTypes.object.isRequired,
   hasSettings: PropTypes.bool.isRequired,
+  languages: PropTypes.arrayOf(PropTypes.object).isRequired,
   onSavePress: PropTypes.func.isRequired,
   onInputChange: PropTypes.func.isRequired
 };

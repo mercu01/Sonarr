@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Net;
-using Newtonsoft.Json;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Serializer;
 using NzbDrone.Core.ImportLists.Exceptions;
 using NzbDrone.Core.Parser.Model;
 
@@ -10,10 +10,6 @@ namespace NzbDrone.Core.ImportLists.Trakt
     public class TraktParser : IParseImportListResponse
     {
         private ImportListResponse _importResponse;
-
-        public TraktParser()
-        {
-        }
 
         public virtual IList<ImportListItemInfo> ParseResponse(ImportListResponse importResponse)
         {
@@ -26,20 +22,21 @@ namespace NzbDrone.Core.ImportLists.Trakt
                 return series;
             }
 
-            var jsonResponse = JsonConvert.DeserializeObject<List<TraktResponse>>(_importResponse.Content);
+            var traktResponses = STJson.Deserialize<List<TraktResponse>>(_importResponse.Content);
 
-            // no movies were return
-            if (jsonResponse == null)
+            // no series were returned
+            if (traktResponses == null)
             {
                 return series;
             }
 
-            foreach (var movie in jsonResponse)
+            foreach (var traktResponse in traktResponses)
             {
                 series.AddIfNotNull(new ImportListItemInfo()
                 {
-                    Title = movie.Show.Title,
-                    TvdbId = movie.Show.Ids.Tvdb.GetValueOrDefault()
+                    Title = traktResponse.Show.Title,
+                    TvdbId = traktResponse.Show.Ids.Tvdb.GetValueOrDefault(),
+                    ImdbId = traktResponse.Show.Ids.Imdb
                 });
             }
 

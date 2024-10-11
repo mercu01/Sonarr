@@ -1,10 +1,11 @@
-﻿using System.IO;
+using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Specifications;
 using NzbDrone.Core.Parser.Model;
@@ -26,18 +27,18 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         {
              _rootFolder = @"C:\Test\TV".AsOsAgnostic();
 
-            _series = Builder<Series>.CreateNew()
+             _series = Builder<Series>.CreateNew()
                                      .With(s => s.SeriesType = SeriesTypes.Standard)
                                      .With(s => s.Path = Path.Combine(_rootFolder, "30 Rock"))
                                      .Build();
 
-            var episodes = Builder<Episode>.CreateListOfSize(1)
+             var episodes = Builder<Episode>.CreateListOfSize(1)
                                            .All()
                                            .With(e => e.SeasonNumber = 1)
                                            .Build()
                                            .ToList();
 
-            _localEpisode = new LocalEpisode
+             _localEpisode = new LocalEpisode
                                 {
                                     Path = @"C:\Test\Unsorted\30 Rock\30.rock.s01e01.avi".AsOsAgnostic(),
                                     Episodes = episodes,

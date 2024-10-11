@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds } from 'Helpers/Props';
 import Card from 'Components/Card';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import TagDetailsModal from './Details/TagDetailsModal';
+import TagInUse from './TagInUse';
 import styles from './Tag.css';
 
 class Tag extends Component {
@@ -25,26 +27,26 @@ class Tag extends Component {
 
   onShowDetailsPress = () => {
     this.setState({ isDetailsModalOpen: true });
-  }
+  };
 
   onDetailsModalClose = () => {
     this.setState({ isDetailsModalOpen: false });
-  }
+  };
 
   onDeleteTagPress = () => {
     this.setState({
       isDetailsModalOpen: false,
       isDeleteTagModalOpen: true
     });
-  }
+  };
 
-  onDeleteTagModalClose= () => {
+  onDeleteTagModalClose = () => {
     this.setState({ isDeleteTagModalOpen: false });
-  }
+  };
 
   onConfirmDeleteTag = () => {
     this.props.onConfirmDeleteTag({ id: this.props.id });
-  }
+  };
 
   //
   // Render
@@ -57,6 +59,8 @@ class Tag extends Component {
       notificationIds,
       restrictionIds,
       indexerIds,
+      downloadClientIds,
+      autoTagIds,
       seriesIds
     } = this.props;
 
@@ -71,6 +75,8 @@ class Tag extends Component {
       notificationIds.length ||
       restrictionIds.length ||
       indexerIds.length ||
+      downloadClientIds.length ||
+      autoTagIds.length ||
       seriesIds.length
     );
 
@@ -85,62 +91,61 @@ class Tag extends Component {
         </div>
 
         {
-          isTagUsed &&
+          isTagUsed ?
             <div>
-              {
-                seriesIds.length ?
-                  <div>
-                    {seriesIds.length} series
-                  </div> :
-                  null
-              }
+              <TagInUse
+                label={translate('Series')}
+                count={seriesIds.length}
+              />
 
-              {
-                delayProfileIds.length ?
-                  <div>
-                    {delayProfileIds.length} delay profile{delayProfileIds.length > 1 && 's'}
-                  </div> :
-                  null
-              }
+              <TagInUse
+                label={translate('DelayProfile')}
+                labelPlural={translate('DelayProfiles')}
+                count={delayProfileIds.length}
+              />
 
-              {
-                importListIds.length ?
-                  <div>
-                    {importListIds.length} import list{importListIds.length > 1 && 's'}
-                  </div> :
-                  null
-              }
+              <TagInUse
+                label={translate('ImportList')}
+                labelPlural={translate('ImportLists')}
+                count={importListIds.length}
+              />
 
-              {
-                notificationIds.length ?
-                  <div>
-                    {notificationIds.length} connection{notificationIds.length > 1 && 's'}
-                  </div> :
-                  null
-              }
+              <TagInUse
+                label={translate('Connection')}
+                labelPlural={translate('Connections')}
+                count={notificationIds.length}
+              />
 
-              {
-                restrictionIds.length ?
-                  <div>
-                    {restrictionIds.length} restriction{restrictionIds.length > 1 && 's'}
-                  </div> :
-                  null
-              }
+              <TagInUse
+                label={translate('ReleaseProfile')}
+                labelPlural={translate('ReleaseProfiles')}
+                count={restrictionIds.length}
+              />
 
-              {
-                indexerIds.length ?
-                  <div>
-                    {indexerIds.length} indexer{indexerIds.length > 1 && 's'}
-                  </div> :
-                  null
-              }
-            </div>
+              <TagInUse
+                label={translate('Indexer')}
+                labelPlural={translate('Indexers')}
+                count={indexerIds.length}
+              />
+
+              <TagInUse
+                label={translate('DownloadClient')}
+                labelPlural={translate('DownloadClients')}
+                count={downloadClientIds.length}
+              />
+
+              <TagInUse
+                label={translate('AutoTagging')}
+                count={autoTagIds.length}
+              />
+            </div> :
+            null
         }
 
         {
           !isTagUsed &&
             <div>
-              No links
+              {translate('NoLinks')}
             </div>
         }
 
@@ -153,6 +158,8 @@ class Tag extends Component {
           notificationIds={notificationIds}
           restrictionIds={restrictionIds}
           indexerIds={indexerIds}
+          downloadClientIds={downloadClientIds}
+          autoTagIds={autoTagIds}
           isOpen={isDetailsModalOpen}
           onModalClose={this.onDetailsModalClose}
           onDeleteTagPress={this.onDeleteTagPress}
@@ -161,9 +168,9 @@ class Tag extends Component {
         <ConfirmModal
           isOpen={isDeleteTagModalOpen}
           kind={kinds.DANGER}
-          title="Delete Tag"
-          message={`Are you sure you want to delete the tag '${label}'?`}
-          confirmLabel="Delete"
+          title={translate('DeleteTag')}
+          message={translate('DeleteTagMessageText', { label })}
+          confirmLabel={translate('Delete')}
           onConfirm={this.onConfirmDeleteTag}
           onCancel={this.onDeleteTagModalClose}
         />
@@ -180,6 +187,8 @@ Tag.propTypes = {
   notificationIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   restrictionIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   indexerIds: PropTypes.arrayOf(PropTypes.number).isRequired,
+  downloadClientIds: PropTypes.arrayOf(PropTypes.number).isRequired,
+  autoTagIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   seriesIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   onConfirmDeleteTag: PropTypes.func.isRequired
 };
@@ -190,6 +199,8 @@ Tag.defaultProps = {
   notificationIds: [],
   restrictionIds: [],
   indexerIds: [],
+  downloadClientIds: [],
+  autoTagIds: [],
   seriesIds: []
 };
 

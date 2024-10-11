@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { fetchPaths, clearPaths } from 'Store/Actions/pathActions';
+import { clearPaths, fetchPaths } from 'Store/Actions/pathActions';
 import PathInput from './PathInput';
 
 function createMapStateToProps() {
@@ -47,11 +47,11 @@ class PathInputConnector extends Component {
       path,
       includeFiles
     });
-  }
+  };
 
   onClearPaths = () => {
     this.props.dispatchClearPaths();
-  }
+  };
 
   //
   // Render
@@ -68,6 +68,7 @@ class PathInputConnector extends Component {
 }
 
 PathInputConnector.propTypes = {
+  ...PathInput.props,
   includeFiles: PropTypes.bool.isRequired,
   dispatchFetchPaths: PropTypes.func.isRequired,
   dispatchClearPaths: PropTypes.func.isRequired

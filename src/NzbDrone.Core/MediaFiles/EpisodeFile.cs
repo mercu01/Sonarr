@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Marr.Data;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles.MediaInfo;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.MediaFiles.MediaInfo;
-using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -21,11 +21,14 @@ namespace NzbDrone.Core.MediaFiles
         public string OriginalFilePath { get; set; }
         public string SceneName { get; set; }
         public string ReleaseGroup { get; set; }
+        public string ReleaseHash { get; set; }
         public QualityModel Quality { get; set; }
+        public IndexerFlags IndexerFlags { get; set; }
         public MediaInfoModel MediaInfo { get; set; }
         public LazyLoaded<List<Episode>> Episodes { get; set; }
         public LazyLoaded<Series> Series { get; set; }
-        public Language Language { get; set; }
+        public List<Language> Languages { get; set; }
+        public ReleaseType ReleaseType { get; set; }
 
         public override string ToString()
         {

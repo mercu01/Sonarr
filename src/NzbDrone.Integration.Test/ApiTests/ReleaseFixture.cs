@@ -1,8 +1,8 @@
-﻿using FluentAssertions;
-using NUnit.Framework;
-using NzbDrone.Api.Indexers;
-using System.Linq;
+﻿using System.Linq;
 using System.Net;
+using FluentAssertions;
+using NUnit.Framework;
+using Sonarr.Api.V3.Indexers;
 
 namespace NzbDrone.Integration.Test.ApiTests
 {
@@ -36,8 +36,8 @@ namespace NzbDrone.Integration.Test.ApiTests
             // InternalServerError is caused by the Release being invalid for download (no Series).
             // But if it didn't accept it, it would return NotFound.
             // TODO: Maybe we should create a full mock Newznab server endpoint.
-            //var result = Releases.Post(new ReleaseResource { Guid = releases.First().Guid });
-            //result.Guid.Should().Be(releases.First().Guid);
+            // var result = Releases.Post(new ReleaseResource { Guid = releases.First().Guid });
+            // result.Guid.Should().Be(releases.First().Guid);
 
             var result = Releases.Post(new ReleaseResource { Guid = releases.First().Guid }, HttpStatusCode.InternalServerError);
         }
@@ -49,9 +49,10 @@ namespace NzbDrone.Integration.Test.ApiTests
             releaseResource.Title.Should().NotBeNullOrWhiteSpace();
             releaseResource.DownloadUrl.Should().NotBeNullOrWhiteSpace();
             releaseResource.SeriesTitle.Should().NotBeNullOrWhiteSpace();
-            //TODO: uncomment these after moving to restsharp for rss
-            //releaseResource.NzbInfoUrl.Should().NotBeNullOrWhiteSpace();
-            //releaseResource.Size.Should().BeGreaterThan(0);
+
+            // TODO: uncomment these after moving to restsharp for rss
+            // releaseResource.NzbInfoUrl.Should().NotBeNullOrWhiteSpace();
+            // releaseResource.Size.Should().BeGreaterThan(0);
 
             return true;
         }

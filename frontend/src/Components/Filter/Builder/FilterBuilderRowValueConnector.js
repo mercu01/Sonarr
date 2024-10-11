@@ -1,9 +1,9 @@
 import _ from 'lodash';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import sortByName from 'Utilities/Array/sortByName';
 import { filterBuilderTypes } from 'Helpers/Props';
 import * as filterTypes from 'Helpers/Props/filterTypes';
+import sortByProp from 'Utilities/Array/sortByProp';
 import FilterBuilderRowValue from './FilterBuilderRowValue';
 
 function createTagListSelector() {
@@ -38,7 +38,7 @@ function createTagListSelector() {
           }
 
           return acc;
-        }, []).sort(sortByName);
+        }, []).sort(sortByProp('name'));
       }
 
       return _.uniqBy(items, 'id');

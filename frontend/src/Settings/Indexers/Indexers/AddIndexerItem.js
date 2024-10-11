@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { sizes } from 'Helpers/Props';
 import Button from 'Components/Link/Button';
 import Link from 'Components/Link/Link';
 import Menu from 'Components/Menu/Menu';
 import MenuContent from 'Components/Menu/MenuContent';
+import { sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import AddIndexerPresetMenuItem from './AddIndexerPresetMenuItem';
 import styles from './AddIndexerItem.css';
 
@@ -15,11 +16,12 @@ class AddIndexerItem extends Component {
 
   onIndexerSelect = () => {
     const {
-      implementation
+      implementation,
+      implementationName
     } = this.props;
 
-    this.props.onIndexerSelect({ implementation });
-  }
+    this.props.onIndexerSelect({ implementation, implementationName });
+  };
 
   //
   // Render
@@ -57,7 +59,7 @@ class AddIndexerItem extends Component {
                     size={sizes.SMALL}
                     onPress={this.onIndexerSelect}
                   >
-                    Custom
+                    {translate('Custom')}
                   </Button>
 
                   <Menu className={styles.presetsMenu}>
@@ -65,7 +67,7 @@ class AddIndexerItem extends Component {
                       className={styles.presetsMenuButton}
                       size={sizes.SMALL}
                     >
-                      Presets
+                      {translate('Presets')}
                     </Button>
 
                     <MenuContent>
@@ -76,6 +78,7 @@ class AddIndexerItem extends Component {
                               key={preset.name}
                               name={preset.name}
                               implementation={implementation}
+                              implementationName={implementationName}
                               onPress={onIndexerSelect}
                             />
                           );
@@ -90,7 +93,7 @@ class AddIndexerItem extends Component {
               to={infoLink}
               size={sizes.SMALL}
             >
-              More info
+              {translate('MoreInfo')}
             </Button>
           </div>
         </div>

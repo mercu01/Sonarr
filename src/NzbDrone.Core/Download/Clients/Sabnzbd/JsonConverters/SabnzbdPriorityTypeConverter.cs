@@ -8,15 +8,14 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd.JsonConverters
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var priorityType = (SabnzbdPriority)value;
-                writer.WriteValue(priorityType.ToString());
+            writer.WriteValue(priorityType.ToString());
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             var queuePriority = reader.Value.ToString();
 
-            SabnzbdPriority output;
-            Enum.TryParse(queuePriority, out output);
+            Enum.TryParse(queuePriority, out SabnzbdPriority output);
 
             return output;
         }

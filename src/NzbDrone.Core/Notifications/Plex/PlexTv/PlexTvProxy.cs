@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Net;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
@@ -10,6 +12,8 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
     public interface IPlexTvProxy
     {
         string GetAuthToken(string clientIdentifier, int pinId);
+        bool Ping(string clientIdentifier, string authToken);
+        List<PlexTvResource> GetResources(string clientIdentifier, string authToken);
     }
 
     public class PlexTvProxy : IPlexTvProxy
@@ -28,14 +32,63 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
             var request = BuildRequest(clientIdentifier);
             request.ResourceUrl = $"/api/v2/pins/{pinId}";
 
-            PlexTvPinResponse response;
-
-            if (!Json.TryDeserialize<PlexTvPinResponse>(ProcessRequest(request), out response))
+            if (!Json.TryDeserialize<PlexTvPinResponse>(ProcessRequest(request), out var response))
             {
                 response = new PlexTvPinResponse();
             }
 
             return response.AuthToken;
+        }
+
+        public bool Ping(string clientIdentifier, string authToken)
+        {
+            try
+            {
+                // Allows us to tell plex.tv that we're still active and tokens should not be expired.
+
+                var request = BuildRequest(clientIdentifier);
+
+                request.ResourceUrl = "/api/v2/ping";
+                request.AddQueryParam("X-Plex-Token", authToken);
+
+                ProcessRequest(request);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                // Catch all exceptions and log at trace, this information could be interesting in debugging, but expired tokens will be handled elsewhere.
+                _logger.Trace(e, "Unable to ping plex.tv");
+            }
+
+            return false;
+        }
+
+        public List<PlexTvResource> GetResources(string clientIdentifier, string authToken)
+        {
+            try
+            {
+                // Allows us to tell plex.tv that we're still active and tokens should not be expired.
+
+                var request = BuildRequest(clientIdentifier);
+
+                request.ResourceUrl = "/api/v2/resources";
+                request.AddQueryParam("includeHttps", 1);
+                request.AddQueryParam("clientID", clientIdentifier);
+                request.AddQueryParam("X-Plex-Token", authToken);
+
+                if (Json.TryDeserialize<List<PlexTvResource>>(ProcessRequest(request), out var response))
+                {
+                    return response;
+                }
+            }
+            catch (Exception e)
+            {
+                // Catch all exceptions and log at trace, this information could be interesting in debugging, but expired tokens will be handled elsewhere.
+                _logger.Trace(e, "Unable to ping plex.tv");
+            }
+
+            return new List<PlexTvResource>();
         }
 
         private HttpRequestBuilder BuildRequest(string clientIdentifier)

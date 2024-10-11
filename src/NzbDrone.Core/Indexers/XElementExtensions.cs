@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -27,8 +27,7 @@ namespace NzbDrone.Core.Indexers
                root.Name.LocalName,
                root.HasElements ?
                    root.Elements().Select(StripNameSpace) :
-                   (object)root.Value
-           );
+                   (object)root.Value);
 
             res.ReplaceAttributes(
                 root.Attributes().Where(attr => (!attr.IsNamespaceDeclaration)));
@@ -40,12 +39,12 @@ namespace NzbDrone.Core.Indexers
         {
             try
             {
-                DateTime result;
-                if (!DateTime.TryParse(dateString, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out result))
+                if (!DateTime.TryParse(dateString, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out var result))
                 {
                     dateString = RemoveTimeZoneRegex.Replace(dateString, "");
                     result = DateTime.Parse(dateString, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal);
                 }
+
                 return result.ToUniversalTime();
             }
             catch (FormatException e)
@@ -109,7 +108,6 @@ namespace NzbDrone.Core.Indexers
             {
                 return (T)Convert.ChangeType(element.Value, typeof(T));
             }
-
             catch (InvalidCastException)
             {
                 return defaultValue;

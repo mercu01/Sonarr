@@ -42,33 +42,33 @@ namespace NzbDrone.Common.Test.DiskTests
         [Test]
         public void should_not_contain_recycling_bin_for_root_of_drive()
         {
-            string root = @"C:\".AsOsAgnostic();
+            var root = @"C:\".AsOsAgnostic();
             SetupFolders(root);
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(s => s.GetDirectoryInfos(It.IsAny<string>()))
                 .Returns(_folders);
 
-            Subject.LookupContents(root, false, false).Directories.Should().NotContain(Path.Combine(root, RECYCLING_BIN));
+            Subject.LookupContents(root, false, false).Directories.Should().NotContain(dir => dir.Path == Path.Combine(root, RECYCLING_BIN));
         }
 
         [Test]
         public void should_not_contain_system_volume_information()
         {
-            string root = @"C:\".AsOsAgnostic();
+            var root = @"C:\".AsOsAgnostic();
             SetupFolders(root);
 
             Mocker.GetMock<IDiskProvider>()
                 .Setup(s => s.GetDirectoryInfos(It.IsAny<string>()))
                 .Returns(_folders);
 
-            Subject.LookupContents(root, false, false).Directories.Should().NotContain(Path.Combine(root, SYSTEM_VOLUME_INFORMATION));
+            Subject.LookupContents(root, false, false).Directories.Should().NotContain(dir => dir.Path == Path.Combine(root, SYSTEM_VOLUME_INFORMATION));
         }
 
         [Test]
         public void should_not_contain_recycling_bin_or_system_volume_information_for_root_of_drive()
         {
-            string root = @"C:\".AsOsAgnostic();
+            var root = @"C:\".AsOsAgnostic();
             SetupFolders(root);
 
             Mocker.GetMock<IDiskProvider>()
@@ -76,7 +76,7 @@ namespace NzbDrone.Common.Test.DiskTests
                 .Returns(_folders);
 
             var result = Subject.LookupContents(root, false, false);
-            
+
             result.Directories.Should().HaveCount(_folders.Count - 3);
 
             result.Directories.Should().NotContain(f => f.Name == RECYCLING_BIN);

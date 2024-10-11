@@ -1,17 +1,19 @@
+import classNames from 'classnames';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import classNames from 'classnames';
-import formatTime from 'Utilities/Date/formatTime';
-import padNumber from 'Utilities/Number/padNumber';
-import { icons, kinds } from 'Helpers/Props';
+import CalendarEventConnector from 'Calendar/Events/CalendarEventConnector';
+import getStatusStyle from 'Calendar/getStatusStyle';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
-import getStatusStyle from 'Calendar/getStatusStyle';
-import CalendarEventConnector from 'Calendar/Events/CalendarEventConnector';
+import getFinaleTypeName from 'Episode/getFinaleTypeName';
+import { icons, kinds } from 'Helpers/Props';
+import formatTime from 'Utilities/Date/formatTime';
+import padNumber from 'Utilities/Number/padNumber';
+import translate from 'Utilities/String/translate';
 import styles from './CalendarEventGroup.css';
 
-function getEventsInfo(events) {
+function getEventsInfo(series, events) {
   let files = 0;
   let queued = 0;
   let monitored = 0;
@@ -26,7 +28,7 @@ function getEventsInfo(events) {
       queued++;
     }
 
-    if (event.monitored) {
+    if (series.monitored && event.monitored) {
       monitored++;
     }
 
@@ -61,7 +63,7 @@ class CalendarEventGroup extends Component {
 
   onExpandPress = () => {
     this.setState({ isExpanded: !this.state.isExpanded });
-  }
+  };
 
   //
   // Render
@@ -85,7 +87,7 @@ class CalendarEventGroup extends Component {
       anyQueued,
       anyMonitored,
       allAbsoluteEpisodeNumbers
-    } = getEventsInfo(events);
+    } = getEventsInfo(series, events);
     const anyDownloading = isDownloading || anyQueued;
     const firstEpisode = events[0];
     const lastEpisode = events[events.length -1];
@@ -143,47 +145,51 @@ class CalendarEventGroup extends Component {
             {series.title}
           </div>
 
-          {
-            isMissingAbsoluteNumber &&
-              <Icon
-                containerClassName={styles.statusIcon}
-                name={icons.WARNING}
-                title="Episode does not have an absolute episode number"
-              />
-          }
+          <div
+            className={classNames(
+              styles.statusContainer,
+              fullColorEvents && 'fullColor'
+            )}
+          >
+            {
+              isMissingAbsoluteNumber &&
+                <Icon
+                  containerClassName={styles.statusIcon}
+                  name={icons.WARNING}
+                  title={translate('EpisodeMissingAbsoluteNumber')}
+                />
+            }
 
-          {
-            anyDownloading &&
-              <Icon
-                containerClassName={styles.statusIcon}
-                name={icons.DOWNLOADING}
-                title="An episode is downloading"
-              />
-          }
+            {
+              anyDownloading &&
+                <Icon
+                  containerClassName={styles.statusIcon}
+                  name={icons.DOWNLOADING}
+                  title={translate('AnEpisodeIsDownloading')}
+                />
+            }
 
-          {
-            firstEpisode.episodeNumber === 1 && seasonNumber > 0 &&
-              <Icon
-                containerClassName={styles.statusIcon}
-                name={icons.INFO}
-                kind={kinds.INFO}
-                darken={fullColorEvents}
-                title={seasonNumber === 1 ? 'Series Premiere' : 'Season Premiere'}
-              />
-          }
+            {
+              firstEpisode.episodeNumber === 1 && seasonNumber > 0 &&
+                <Icon
+                  containerClassName={styles.statusIcon}
+                  name={icons.PREMIERE}
+                  kind={kinds.INFO}
+                  title={seasonNumber === 1 ? translate('SeriesPremiere') : translate('SeasonPremiere')}
+                />
+            }
 
-          {
-            showFinaleIcon &&
-            lastEpisode.episodeNumber !== 1 &&
-            seasonNumber > 0 &&
-            lastEpisode.episodeNumber === series.seasons.find((season) => season.seasonNumber === seasonNumber).statistics.totalEpisodeCount &&
-              <Icon
-                containerClassName={styles.statusIcon}
-                name={icons.INFO}
-                kind={fullColorEvents ? kinds.DEFAULT : kinds.WARNING}
-                title={series.status === 'ended' ? 'Series finale' : 'Season finale'}
-              />
-          }
+            {
+              showFinaleIcon &&
+              lastEpisode.finaleType ?
+                <Icon
+                  containerClassName={styles.statusIcon}
+                  name={lastEpisode.finaleType === 'series' ? icons.FINALE_SERIES : icons.FINALE_SEASON}
+                  kind={lastEpisode.finaleType === 'series' ? kinds.DANGER : kinds.WARNING}
+                  title={getFinaleTypeName(lastEpisode.finaleType)}
+                /> : null
+            }
+          </div>
         </div>
 
         <div className={styles.airingInfo}>
@@ -218,16 +224,19 @@ class CalendarEventGroup extends Component {
         </div>
 
         {
-          showEpisodeInformation &&
+          showEpisodeInformation ?
             <Link
               className={styles.expandContainer}
               component="div"
               onPress={this.onExpandPress}
             >
+              &nbsp;
               <Icon
                 name={icons.EXPAND}
               />
-            </Link>
+              &nbsp;
+            </Link> :
+            null
         }
       </div>
     );
@@ -235,14 +244,15 @@ class CalendarEventGroup extends Component {
 }
 
 CalendarEventGroup.propTypes = {
-  series: PropTypes.object.isRequired,
+  // Most of these props come from the connector and are required, but TS is confused.
+  series: PropTypes.object,
   events: PropTypes.arrayOf(PropTypes.object).isRequired,
-  isDownloading: PropTypes.bool.isRequired,
-  showEpisodeInformation: PropTypes.bool.isRequired,
-  showFinaleIcon: PropTypes.bool.isRequired,
-  fullColorEvents: PropTypes.bool.isRequired,
-  timeFormat: PropTypes.string.isRequired,
-  colorImpairedMode: PropTypes.bool.isRequired,
+  isDownloading: PropTypes.bool,
+  showEpisodeInformation: PropTypes.bool,
+  showFinaleIcon: PropTypes.bool,
+  fullColorEvents: PropTypes.bool,
+  timeFormat: PropTypes.string,
+  colorImpairedMode: PropTypes.bool,
   onEventModalOpenToggle: PropTypes.func.isRequired
 };
 

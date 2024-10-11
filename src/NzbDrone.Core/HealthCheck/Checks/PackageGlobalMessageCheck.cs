@@ -1,11 +1,6 @@
-﻿using System;
-using System.Linq;
-using System.Text.RegularExpressions;
-using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Download;
-using NzbDrone.Core.ThingiProvider.Events;
+using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
@@ -13,7 +8,8 @@ namespace NzbDrone.Core.HealthCheck.Checks
     {
         private readonly IDeploymentInfoProvider _deploymentInfoProvider;
 
-        public PackageGlobalMessageCheck(IDeploymentInfoProvider deploymentInfoProvider)
+        public PackageGlobalMessageCheck(IDeploymentInfoProvider deploymentInfoProvider, ILocalizationService localizationService)
+            : base(localizationService)
         {
             _deploymentInfoProvider = deploymentInfoProvider;
         }
@@ -26,7 +22,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             }
 
             var message = _deploymentInfoProvider.PackageGlobalMessage;
-            HealthCheckResult result = HealthCheckResult.Notice;
+            var result = HealthCheckResult.Notice;
 
             if (message.StartsWith("Error:"))
             {

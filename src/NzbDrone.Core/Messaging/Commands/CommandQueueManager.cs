@@ -1,28 +1,32 @@
-using NLog;
-using NzbDrone.Common;
-using NzbDrone.Common.EnsureThat;
-using NzbDrone.Common.Serializer;
-using NzbDrone.Core.Lifecycle;
-using NzbDrone.Core.Messaging.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using NLog;
+using NzbDrone.Common;
+using NzbDrone.Common.Composition;
+using NzbDrone.Common.EnsureThat;
+using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Lifecycle;
+using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Messaging.Commands
 {
     public interface IManageCommandQueue
     {
-        List<CommandModel> PushMany<TCommand>(List<TCommand> commands) where TCommand : Command;
-        CommandModel Push<TCommand>(TCommand command, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified) where TCommand : Command;
-        CommandModel Push(string commandName, DateTime? lastExecutionTime, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified);
+        List<CommandModel> PushMany<TCommand>(List<TCommand> commands)
+            where TCommand : Command;
+        CommandModel Push<TCommand>(TCommand command, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified)
+            where TCommand : Command;
+        CommandModel Push(string commandName, DateTime? lastExecutionTime, DateTime? lastStartTime, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified);
         IEnumerable<CommandModel> Queue(CancellationToken cancellationToken);
         List<CommandModel> All();
         CommandModel Get(int id);
-        List<CommandModel> GetStarted(); 
+        List<CommandModel> GetStarted();
         void SetMessage(CommandModel command, string message);
+        void SetResult(CommandModel command, CommandResult result);
         void Start(CommandModel command);
         void Complete(CommandModel command, string message);
         void Fail(CommandModel command, string message, Exception e);
@@ -34,23 +38,25 @@ namespace NzbDrone.Core.Messaging.Commands
     public class CommandQueueManager : IManageCommandQueue, IHandle<ApplicationStartedEvent>
     {
         private readonly ICommandRepository _repo;
-        private readonly IServiceFactory _serviceFactory;
+        private readonly KnownTypes _knownTypes;
         private readonly Logger _logger;
 
         private readonly CommandQueue _commandQueue;
 
-        public CommandQueueManager(ICommandRepository repo, 
+        public CommandQueueManager(ICommandRepository repo,
                                    IServiceFactory serviceFactory,
+                                   KnownTypes knownTypes,
                                    Logger logger)
         {
             _repo = repo;
-            _serviceFactory = serviceFactory;
+            _knownTypes = knownTypes;
             _logger = logger;
 
             _commandQueue = new CommandQueue();
         }
 
-        public List<CommandModel> PushMany<TCommand>(List<TCommand> commands) where TCommand : Command
+        public List<CommandModel> PushMany<TCommand>(List<TCommand> commands)
+            where TCommand : Command
         {
             _logger.Trace("Publishing {0} commands", commands.Count);
 
@@ -92,7 +98,8 @@ namespace NzbDrone.Core.Messaging.Commands
             }
         }
 
-        public CommandModel Push<TCommand>(TCommand command, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified) where TCommand : Command
+        public CommandModel Push<TCommand>(TCommand command, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified)
+            where TCommand : Command
         {
             Ensure.That(command, () => command).IsNotNull();
 
@@ -130,10 +137,11 @@ namespace NzbDrone.Core.Messaging.Commands
             }
         }
 
-        public CommandModel Push(string commandName, DateTime? lastExecutionTime, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified)
+        public CommandModel Push(string commandName, DateTime? lastExecutionTime, DateTime? lastStartTime, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified)
         {
-            dynamic command = GetCommand(commandName);
+            var command = GetCommand(commandName);
             command.LastExecutionTime = lastExecutionTime;
+            command.LastStartTime = lastStartTime;
             command.Trigger = trigger;
 
             return Push(command, priority, trigger);
@@ -173,6 +181,11 @@ namespace NzbDrone.Core.Messaging.Commands
             command.Message = message;
         }
 
+        public void SetResult(CommandModel command, CommandResult result)
+        {
+            command.Result = result;
+        }
+
         public void Start(CommandModel command)
         {
             // Marks the command as started in the DB, the queue takes care of marking it as started on it's own
@@ -182,6 +195,12 @@ namespace NzbDrone.Core.Messaging.Commands
 
         public void Complete(CommandModel command, string message)
         {
+            // If the result hasn't been set yet then set it to successful
+            if (command.Result == CommandResult.Unknown)
+            {
+                command.Result = CommandResult.Successful;
+            }
+
             Update(command, CommandStatus.Completed, message);
 
             _commandQueue.PulseAllConsumers();
@@ -190,7 +209,7 @@ namespace NzbDrone.Core.Messaging.Commands
         public void Fail(CommandModel command, string message, Exception e)
         {
             command.Exception = e.ToString();
-            
+
             Update(command, CommandStatus.Failed, message);
 
             _commandQueue.PulseAllConsumers();
@@ -215,7 +234,7 @@ namespace NzbDrone.Core.Messaging.Commands
         public void CleanCommands()
         {
             _logger.Trace("Cleaning up old commands");
-            
+
             var commands = _commandQueue.All()
                                         .Where(c => c.EndedAt < DateTime.UtcNow.AddMinutes(-5))
                                         .ToList();
@@ -228,9 +247,8 @@ namespace NzbDrone.Core.Messaging.Commands
         private dynamic GetCommand(string commandName)
         {
             commandName = commandName.Split('.').Last();
-
-            var commandType = _serviceFactory.GetImplementations(typeof(Command))
-                                             .Single(c => c.Name.Equals(commandName, StringComparison.InvariantCultureIgnoreCase));
+            var commands = _knownTypes.GetImplementations(typeof(Command));
+            var commandType = commands.Single(c => c.Name.Equals(commandName, StringComparison.InvariantCultureIgnoreCase));
 
             return Json.Deserialize("{}", commandType);
         }

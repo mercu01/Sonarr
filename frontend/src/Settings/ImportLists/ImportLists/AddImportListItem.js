@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { sizes } from 'Helpers/Props';
 import Button from 'Components/Link/Button';
 import Link from 'Components/Link/Link';
 import Menu from 'Components/Menu/Menu';
 import MenuContent from 'Components/Menu/MenuContent';
+import { sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import AddImportListPresetMenuItem from './AddImportListPresetMenuItem';
 import styles from './AddImportListItem.css';
 
@@ -15,11 +16,13 @@ class AddImportListItem extends Component {
 
   onImportListSelect = () => {
     const {
-      implementation
+      implementation,
+      implementationName,
+      minRefreshInterval
     } = this.props;
 
-    this.props.onImportListSelect({ implementation });
-  }
+    this.props.onImportListSelect({ implementation, implementationName, minRefreshInterval });
+  };
 
   //
   // Render
@@ -28,6 +31,7 @@ class AddImportListItem extends Component {
     const {
       implementation,
       implementationName,
+      minRefreshInterval,
       infoLink,
       presets,
       onImportListSelect
@@ -55,9 +59,9 @@ class AddImportListItem extends Component {
                 <span>
                   <Button
                     size={sizes.SMALL}
-                    onPress={this.onListSelect}
+                    onPress={this.onImportListSelect}
                   >
-                    Custom
+                    {translate('Custom')}
                   </Button>
 
                   <Menu className={styles.presetsMenu}>
@@ -65,7 +69,7 @@ class AddImportListItem extends Component {
                       className={styles.presetsMenuButton}
                       size={sizes.SMALL}
                     >
-                      Presets
+                      {translate('Presets')}
                     </Button>
 
                     <MenuContent>
@@ -76,6 +80,8 @@ class AddImportListItem extends Component {
                               key={preset.name}
                               name={preset.name}
                               implementation={implementation}
+                              implementationName={implementationName}
+                              minRefreshInterval={minRefreshInterval}
                               onPress={onImportListSelect}
                             />
                           );
@@ -90,7 +96,7 @@ class AddImportListItem extends Component {
               to={infoLink}
               size={sizes.SMALL}
             >
-              More info
+              {translate('MoreInfo')}
             </Button>
           </div>
         </div>
@@ -102,6 +108,7 @@ class AddImportListItem extends Component {
 AddImportListItem.propTypes = {
   implementation: PropTypes.string.isRequired,
   implementationName: PropTypes.string.isRequired,
+  minRefreshInterval: PropTypes.string.isRequired,
   infoLink: PropTypes.string.isRequired,
   presets: PropTypes.arrayOf(PropTypes.object),
   onImportListSelect: PropTypes.func.isRequired

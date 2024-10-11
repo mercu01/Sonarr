@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import AddNotificationItem from './AddNotificationItem';
 import styles from './AddNotificationModalContent.css';
 
@@ -27,7 +30,7 @@ class AddNotificationModalContent extends Component {
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
-          Add Notification
+          {translate('AddConnection')}
         </ModalHeader>
 
         <ModalBody>
@@ -38,7 +41,9 @@ class AddNotificationModalContent extends Component {
 
           {
             !isSchemaFetching && !!schemaError &&
-              <div>Unable to add a new notification, please try again.</div>
+              <Alert kind={kinds.DANGER}>
+                {translate('AddNotificationError')}
+              </Alert>
           }
 
           {
@@ -65,7 +70,7 @@ class AddNotificationModalContent extends Component {
           <Button
             onPress={onModalClose}
           >
-            Close
+            {translate('Close')}
           </Button>
         </ModalFooter>
       </ModalContent>

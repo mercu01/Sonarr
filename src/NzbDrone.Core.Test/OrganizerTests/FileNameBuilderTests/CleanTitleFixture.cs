@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Qualities;
@@ -45,6 +46,10 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             Mocker.GetMock<IQualityDefinitionService>()
                 .Setup(v => v.Get(Moq.It.IsAny<Quality>()))
                 .Returns<Quality>(v => Quality.DefaultQualityDefinitions.First(c => c.Quality == v));
+
+            Mocker.GetMock<ICustomFormatService>()
+                  .Setup(v => v.All())
+                  .Returns(new List<CustomFormat>());
         }
 
         [TestCase("Florence + the Machine", "Florence + the Machine")]
@@ -65,7 +70,18 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("[a] title", "a title")]
         [TestCase("backslash \\ backlash", "backslash backlash")]
         [TestCase("I'm the Boss", "Im the Boss")]
-        //[TestCase("", "")]
+        [TestCase("The Title's", "The Title's")]
+        [TestCase("I'm after I'm", "Im after I'm")]
+        [TestCase("I've Been Caught", "Ive Been Caught")]
+        [TestCase("I'm Lost", "Im Lost")]
+        [TestCase("That'll Be The Day", "Thatll Be The Day")]
+        [TestCase("I'd Rather Be Alone", "Id Rather Be Alone")]
+        [TestCase("I Can't Die", "I Cant Die")]
+        [TestCase("Won`t Get Fooled Again", "Wont Get Fooled Again")]
+        [TestCase("Don’t Blink", "Dont Blink")]
+        [TestCase("The ` Legend of Kings", "The Legend of Kings")]
+
+        // [TestCase("", "")]
         public void should_get_expected_title_back(string title, string expected)
         {
             _series.Title = title;

@@ -1,4 +1,4 @@
-﻿using NzbDrone.Common.Http;
+using NzbDrone.Common.Http;
 using NzbDrone.Core.IndexerSearch.Definitions;
 
 namespace NzbDrone.Core.Indexers
@@ -11,7 +11,6 @@ namespace NzbDrone.Core.Indexers
         {
             _baseUrl = baseUrl;
         }
-
 
         public virtual IndexerPageableRequestChain GetRecentRequests()
         {
@@ -43,6 +42,11 @@ namespace NzbDrone.Core.Indexers
         }
 
         public virtual IndexerPageableRequestChain GetSearchRequests(AnimeEpisodeSearchCriteria searchCriteria)
+        {
+            return new IndexerPageableRequestChain();
+        }
+
+        public virtual IndexerPageableRequestChain GetSearchRequests(AnimeSeasonSearchCriteria searchCriteria)
         {
             return new IndexerPageableRequestChain();
         }

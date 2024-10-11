@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
+using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
@@ -40,47 +40,63 @@ namespace NzbDrone.Core.IndexerSearch
             _logger = logger;
         }
 
-        private void SearchForEpisodes(List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch)
+        private async Task SearchForBulkEpisodes(List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch)
         {
             _logger.ProgressInfo("Performing search for {0} episodes", episodes.Count);
             var downloadedCount = 0;
+            var groups = new List<EpisodeSearchGroup>();
 
             foreach (var series in episodes.GroupBy(e => e.SeriesId))
             {
                 foreach (var season in series.Select(e => e).GroupBy(e => e.SeasonNumber))
                 {
-                    List<DownloadDecision> decisions;
-
-                    if (season.Count() > 1)
+                    groups.Add(new EpisodeSearchGroup
                     {
-                        try
-                        {
-                            decisions = _releaseSearchService.SeasonSearch(series.Key, season.Key, season.ToList(), monitoredOnly, userInvokedSearch, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error(ex, "Unable to search for episodes in season {0} of [{1}]", season.Key, series.Key);
-                            continue;
-                        }
-                    }
-
-                    else
-                    {
-                        try
-                        {
-                            decisions = _releaseSearchService.EpisodeSearch(season.First(), userInvokedSearch, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error(ex, "Unable to search for episode: [{0}]", season.First());
-                            continue;
-                        }
-                    }
-
-                    var processed = _processDownloadDecisions.ProcessDecisions(decisions);
-
-                    downloadedCount += processed.Grabbed.Count;
+                        SeriesId = series.Key,
+                        SeasonNumber = season.Key,
+                        Episodes = season.ToList()
+                    });
                 }
+            }
+
+            foreach (var group in groups.OrderBy(g => g.Episodes.Min(e => e.LastSearchTime ?? DateTime.MinValue)))
+            {
+                List<DownloadDecision> decisions;
+
+                var seriesId = group.SeriesId;
+                var seasonNumber = group.SeasonNumber;
+                var groupEpisodes = group.Episodes;
+
+                if (groupEpisodes.Count > 1)
+                {
+                    try
+                    {
+                        decisions = await _releaseSearchService.SeasonSearch(seriesId, seasonNumber, groupEpisodes, monitoredOnly, userInvokedSearch, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(ex, "Unable to search for episodes in season {0} of [{1}]", seasonNumber, seriesId);
+                        continue;
+                    }
+                }
+                else
+                {
+                    var episode = groupEpisodes.First();
+
+                    try
+                    {
+                        decisions = await _releaseSearchService.EpisodeSearch(episode, userInvokedSearch, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(ex, "Unable to search for episode: [{0}]", episode);
+                        continue;
+                    }
+                }
+
+                var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
+
+                downloadedCount += processed.Grabbed.Count;
             }
 
             _logger.ProgressInfo("Completed search for {0} episodes. {1} reports downloaded.", episodes.Count, downloadedCount);
@@ -90,13 +106,13 @@ namespace NzbDrone.Core.IndexerSearch
         {
             return episodeMonitored && seriesMonitored;
         }
-        
+
         public void Execute(EpisodeSearchCommand message)
         {
             foreach (var episodeId in message.EpisodeIds)
             {
-                var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false);
-                var processed = _processDownloadDecisions.ProcessDecisions(decisions);
+                var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
+                var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
 
                 _logger.ProgressInfo("Episode search completed. {0} reports downloaded.", processed.Grabbed.Count);
             }
@@ -116,13 +132,12 @@ namespace NzbDrone.Core.IndexerSearch
                                                  e.AirDateUtc.Value.Before(DateTime.UtcNow))
                                           .ToList();
             }
-
             else
             {
                 var pagingSpec = new PagingSpec<Episode>
                                  {
                                      Page = 1,
-                                     PageSize = 100000,
+                                     PageSize = 1000000,
                                      SortDirection = SortDirection.Ascending,
                                      SortKey = "Id"
                                  };
@@ -142,7 +157,7 @@ namespace NzbDrone.Core.IndexerSearch
             var queue = _queueService.GetQueue().Where(q => q.Episode != null).Select(q => q.Episode.Id);
             var missing = episodes.Where(e => !queue.Contains(e.Id)).ToList();
 
-            SearchForEpisodes(missing, monitored, message.Trigger == CommandTrigger.Manual);
+            SearchForBulkEpisodes(missing, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
         }
 
         public void Execute(CutoffUnmetEpisodeSearchCommand message)
@@ -176,7 +191,7 @@ namespace NzbDrone.Core.IndexerSearch
             var queue = _queueService.GetQueue().Where(q => q.Episode != null).Select(q => q.Episode.Id);
             var cutoffUnmet = episodes.Where(e => !queue.Contains(e.Id)).ToList();
 
-            SearchForEpisodes(cutoffUnmet, monitored, message.Trigger == CommandTrigger.Manual);
+            SearchForBulkEpisodes(cutoffUnmet, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
         }
     }
 }

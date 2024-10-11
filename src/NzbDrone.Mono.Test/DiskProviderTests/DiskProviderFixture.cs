@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,20 +8,21 @@ using Mono.Unix.Native;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Test.DiskTests;
 using NzbDrone.Mono.Disk;
 
 namespace NzbDrone.Mono.Test.DiskProviderTests
 {
     [TestFixture]
-    [Platform("Mono")]
+    [Platform(Exclude = "Win")]
     public class DiskProviderFixture : DiskProviderFixtureBase<DiskProvider>
     {
         private string _tempPath;
 
         public DiskProviderFixture()
         {
-            MonoOnly();
+            PosixOnly();
         }
 
         [TearDown]
@@ -38,6 +39,7 @@ namespace NzbDrone.Mono.Test.DiskProviderTests
                 {
                     Syscall.chmod(_tempPath, FilePermissions.S_IRUSR | FilePermissions.S_IWUSR);
                 }
+
                 _tempPath = null;
             }
         }
@@ -56,9 +58,8 @@ namespace NzbDrone.Mono.Test.DiskProviderTests
         {
             // Remove Write permissions, we're still owner so we can clean it up, but we'll have to do that explicitly.
 
-            Stat stat;
-            Syscall.stat(path, out stat);
-            FilePermissions mode = stat.st_mode;
+            Syscall.stat(path, out var stat);
+            var mode = stat.st_mode;
 
             if (writable)
             {
@@ -68,7 +69,6 @@ namespace NzbDrone.Mono.Test.DiskProviderTests
             {
                 mode &= ~(FilePermissions.S_IWUSR | FilePermissions.S_IWGRP | FilePermissions.S_IWOTH);
             }
-
 
             if (setgid)
             {
@@ -81,7 +81,11 @@ namespace NzbDrone.Mono.Test.DiskProviderTests
 
             if (stat.st_mode != mode)
             {
-                Syscall.chmod(path, mode);
+                if (Syscall.chmod(path, mode) < 0)
+                {
+                    var error = Stdlib.GetLastError();
+                    throw new LinuxPermissionsException("Error setting group: " + error);
+                }
             }
         }
 
@@ -143,7 +147,8 @@ namespace NzbDrone.Mono.Test.DiskProviderTests
 
             Mocker.GetMock<IProcMountProvider>()
                 .Setup(v => v.GetMounts())
-                .Returns(new List<IMount> {
+                .Returns(new List<IMount>
+                {
                     new ProcMount(DriveType.Fixed, rootDir, rootDir, "myfs", new MountOptions(new Dictionary<string, string>()))
                 });
         }
@@ -221,9 +226,13 @@ namespace NzbDrone.Mono.Test.DiskProviderTests
             Syscall.stat(tempFile, out fileStat);
             NativeConvert.ToOctalPermissionString(fileStat.st_mode).Should().Be("0644");
 
-            Subject.SetPermissions(tempFile, "1775", null);
-            Syscall.stat(tempFile, out fileStat);
-            NativeConvert.ToOctalPermissionString(fileStat.st_mode).Should().Be("1664");
+            if (OsInfo.Os != Os.Bsd)
+            {
+                // This is not allowed on BSD
+                Subject.SetPermissions(tempFile, "1775", null);
+                Syscall.stat(tempFile, out fileStat);
+                NativeConvert.ToOctalPermissionString(fileStat.st_mode).Should().Be("1664");
+            }
         }
 
         [Test]

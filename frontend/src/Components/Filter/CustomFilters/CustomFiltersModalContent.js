@@ -1,10 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Button from 'Components/Link/Button';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import sortByProp from 'Utilities/Array/sortByProp';
+import translate from 'Utilities/String/translate';
 import CustomFilter from './CustomFilter';
 import styles from './CustomFiltersModalContent.css';
 
@@ -24,32 +26,34 @@ function CustomFiltersModalContent(props) {
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        Custom Filters
+        {translate('CustomFilters')}
       </ModalHeader>
 
       <ModalBody>
         {
-          customFilters.map((customFilter) => {
-            return (
-              <CustomFilter
-                key={customFilter.id}
-                id={customFilter.id}
-                label={customFilter.label}
-                filters={customFilter.filters}
-                selectedFilterKey={selectedFilterKey}
-                isDeleting={isDeleting}
-                deleteError={deleteError}
-                dispatchSetFilter={dispatchSetFilter}
-                dispatchDeleteCustomFilter={dispatchDeleteCustomFilter}
-                onEditPress={onEditCustomFilter}
-              />
-            );
-          })
+          customFilters
+            .sort((a, b) => sortByProp(a, b, 'label'))
+            .map((customFilter) => {
+              return (
+                <CustomFilter
+                  key={customFilter.id}
+                  id={customFilter.id}
+                  label={customFilter.label}
+                  filters={customFilter.filters}
+                  selectedFilterKey={selectedFilterKey}
+                  isDeleting={isDeleting}
+                  deleteError={deleteError}
+                  dispatchSetFilter={dispatchSetFilter}
+                  dispatchDeleteCustomFilter={dispatchDeleteCustomFilter}
+                  onEditPress={onEditCustomFilter}
+                />
+              );
+            })
         }
 
         <div className={styles.addButtonContainer}>
           <Button onPress={onAddCustomFilter}>
-            Add Custom Filter
+            {translate('AddCustomFilter')}
           </Button>
         </div>
       </ModalBody>
@@ -58,7 +62,7 @@ function CustomFiltersModalContent(props) {
         <Button
           onPress={onModalClose}
         >
-          Close
+          {translate('Close')}
         </Button>
       </ModalFooter>
     </ModalContent>

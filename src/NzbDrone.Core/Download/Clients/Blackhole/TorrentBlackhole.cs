@@ -7,12 +7,13 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
-using NzbDrone.Core.ThingiProvider;
 
 namespace NzbDrone.Core.Download.Clients.Blackhole
 {
@@ -30,8 +31,10 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
                                 IConfigService configService,
                                 IDiskProvider diskProvider,
                                 IRemotePathMappingService remotePathMappingService,
+                                ILocalizationService localizationService,
+                                IBlocklistService blocklistService,
                                 Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _scanWatchFolder = scanWatchFolder;
 
@@ -80,15 +83,15 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
             return null;
         }
 
-        public override string Name => "Torrent Blackhole";
+        public override string Name => _localizationService.GetLocalizedString("TorrentBlackhole");
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
             foreach (var item in _scanWatchFolder.GetItems(Settings.WatchFolder, ScanGracePeriod))
             {
-                yield return new DownloadClientItem
+                var queueItem = new DownloadClientItem
                 {
-                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this),
+                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false),
                     DownloadId = Definition.Name + "_" + item.DownloadId,
                     Category = "sonarr",
                     Title = item.Title,
@@ -98,11 +101,14 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
 
                     OutputPath = item.OutputPath,
 
-                    Status = item.Status,
-
-                    CanMoveFiles = !Settings.ReadOnly,
-                    CanBeRemoved = !Settings.ReadOnly
+                    Status = item.Status
                 };
+
+                queueItem.CanMoveFiles = queueItem.CanBeRemoved =
+                    queueItem.DownloadClientInfo.RemoveCompletedDownloads &&
+                    !Settings.ReadOnly;
+
+                yield return queueItem;
             }
         }
 

@@ -4,6 +4,7 @@ using NUnit.Framework;
 using NzbDrone.Core.HealthCheck.Checks;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Torznab;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.HealthCheck.Checks
@@ -21,6 +22,9 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
                   .Setup(v => v.All())
                   .Returns(_indexers);
 
+            Mocker.GetMock<ILocalizationService>()
+                .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
+                .Returns("Some Warning Message");
         }
 
         private void GivenIndexer(string baseUrl, string apiPath)
@@ -34,6 +38,7 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
             _definition = new IndexerDefinition
             {
                 Name = "Indexer",
+                EnableRss = true,
                 ConfigContract = "TorznabSettings",
                 Settings = torznabSettings
             };

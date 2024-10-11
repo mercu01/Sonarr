@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
@@ -24,15 +26,15 @@ namespace NzbDrone.Core.Test.IndexerTests.FanzubTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_fanzub()
+        public async Task should_parse_recent_feed_from_fanzub()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Fanzub/fanzub.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
-            
-            var releases = Subject.FetchRecent();
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
+
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(3);
 

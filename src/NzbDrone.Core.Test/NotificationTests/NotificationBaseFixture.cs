@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using FluentValidation.Results;
 using NUnit.Framework;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Notifications;
-using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Validation;
 using NzbDrone.Test.Common;
@@ -15,19 +14,18 @@ namespace NzbDrone.Core.Test.NotificationTests
     [TestFixture]
     public class NotificationBaseFixture : TestBase
     {
-        class TestSetting : IProviderConfig
+        private class TestSetting : NotificationSettingsBase<TestSetting>
         {
-            public NzbDroneValidationResult Validate()
+            public override NzbDroneValidationResult Validate()
             {
                 return new NzbDroneValidationResult();
             }
         }
 
-        class TestNotificationWithOnDownload : NotificationBase<TestSetting>
+        private class TestNotificationWithOnDownload : NotificationBase<TestSetting>
         {
             public override string Name => "TestNotification";
             public override string Link => "";
-
 
             public override ValidationResult Test()
             {
@@ -38,14 +36,12 @@ namespace NzbDrone.Core.Test.NotificationTests
             {
                 TestLogger.Info("OnDownload was called");
             }
-
         }
 
-        class TestNotificationWithAllEvents : NotificationBase<TestSetting>
+        private class TestNotificationWithAllEvents : NotificationBase<TestSetting>
         {
             public override string Name => "TestNotification";
             public override string Link => "";
-
 
             public override ValidationResult Test()
             {
@@ -66,17 +62,25 @@ namespace NzbDrone.Core.Test.NotificationTests
             {
                 TestLogger.Info("OnRename was called");
             }
+
             public override void OnEpisodeFileDelete(EpisodeDeleteMessage message)
             {
                 TestLogger.Info("Episode OnDelete was called");
             }
+
             public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
             {
                 TestLogger.Info("Series OnDelete was called");
             }
+
             public override void OnHealthIssue(NzbDrone.Core.HealthCheck.HealthCheck artist)
             {
                 TestLogger.Info("OnHealthIssue was called");
+            }
+
+            public override void OnHealthRestored(Core.HealthCheck.HealthCheck healthCheck)
+            {
+                TestLogger.Info("OnHealthRestored was called");
             }
 
             public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
@@ -84,20 +88,21 @@ namespace NzbDrone.Core.Test.NotificationTests
                 TestLogger.Info("OnApplicationUpdate was called");
             }
 
+            public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
+            {
+                TestLogger.Info("OnManualInteractionRequired was called");
+            }
         }
 
-        class TestNotificationWithNoEvents : NotificationBase<TestSetting>
+        private class TestNotificationWithNoEvents : NotificationBase<TestSetting>
         {
             public override string Name => "TestNotification";
             public override string Link => "";
-
 
             public override ValidationResult Test()
             {
                 throw new NotImplementedException();
             }
-
-
         }
 
         [Test]
@@ -125,9 +130,10 @@ namespace NzbDrone.Core.Test.NotificationTests
             notification.SupportsOnEpisodeFileDelete.Should().BeTrue();
             notification.SupportsOnEpisodeFileDeleteForUpgrade.Should().BeTrue();
             notification.SupportsOnHealthIssue.Should().BeTrue();
+            notification.SupportsOnHealthRestored.Should().BeTrue();
             notification.SupportsOnApplicationUpdate.Should().BeTrue();
+            notification.SupportsOnManualInteractionRequired.Should().BeTrue();
         }
-
 
         [Test]
         public void should_support_none_if_none_are_implemented()
@@ -142,8 +148,9 @@ namespace NzbDrone.Core.Test.NotificationTests
             notification.SupportsOnEpisodeFileDelete.Should().BeFalse();
             notification.SupportsOnEpisodeFileDeleteForUpgrade.Should().BeFalse();
             notification.SupportsOnHealthIssue.Should().BeFalse();
+            notification.SupportsOnHealthRestored.Should().BeFalse();
             notification.SupportsOnApplicationUpdate.Should().BeFalse();
+            notification.SupportsOnManualInteractionRequired.Should().BeFalse();
         }
     }
-
 }

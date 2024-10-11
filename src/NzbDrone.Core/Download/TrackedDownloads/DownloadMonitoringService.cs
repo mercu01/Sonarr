@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                                              IExecute<CheckForFinishedDownloadCommand>,
                                              IHandle<EpisodeGrabbedEvent>,
                                              IHandle<EpisodeImportedEvent>,
+                                             IHandle<ManualInteractionRequiredEvent>,
                                              IHandle<DownloadsProcessedEvent>,
                                              IHandle<TrackedDownloadsRemovedEvent>
     {
@@ -113,31 +114,33 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
         private TrackedDownload ProcessClientItem(IDownloadClient downloadClient, DownloadClientItem downloadItem)
         {
+            TrackedDownload trackedDownload = null;
+
             try
             {
-                var trackedDownload = _trackedDownloadService.TrackDownload((DownloadClientDefinition)downloadClient.Definition, downloadItem);
+                trackedDownload =
+                    _trackedDownloadService.TrackDownload((DownloadClientDefinition)downloadClient.Definition,
+                        downloadItem);
 
-                if (trackedDownload != null && trackedDownload.State == TrackedDownloadState.Downloading)
+                if (trackedDownload is { State: TrackedDownloadState.Downloading or TrackedDownloadState.ImportBlocked })
                 {
                     _failedDownloadService.Check(trackedDownload);
                     _completedDownloadService.Check(trackedDownload);
                 }
-
-                return trackedDownload;
             }
             catch (Exception e)
             {
                 _logger.Error(e, "Couldn't process tracked download {0}", downloadItem.Title);
             }
 
-            return null;
+            return trackedDownload;
         }
 
         private bool DownloadIsTrackable(TrackedDownload trackedDownload)
         {
             // If the download has already been imported, failed or the user ignored it don't track it
-            if (trackedDownload.State == TrackedDownloadState.Imported || 
-                trackedDownload.State == TrackedDownloadState.Failed || 
+            if (trackedDownload.State == TrackedDownloadState.Imported ||
+                trackedDownload.State == TrackedDownloadState.Failed ||
                 trackedDownload.State == TrackedDownloadState.Ignored)
             {
                 return false;
@@ -164,6 +167,11 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         }
 
         public void Handle(EpisodeGrabbedEvent message)
+        {
+            _refreshDebounce.Execute();
+        }
+
+        public void Handle(ManualInteractionRequiredEvent message)
         {
             _refreshDebounce.Execute();
         }

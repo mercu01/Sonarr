@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
@@ -7,18 +7,23 @@ using MailKit.Security;
 using MimeKit;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Http.Dispatchers;
+using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.Notifications.Email
 {
     public class Email : NotificationBase<EmailSettings>
     {
+        private readonly ICertificateValidationService _certificateValidationService;
+        private readonly ILocalizationService _localizationService;
         private readonly Logger _logger;
 
-        public override string Name => "Email";
+        public override string Name => _localizationService.GetLocalizedString("NotificationsEmailSettingsName");
 
-
-        public Email(Logger logger)
+        public Email(ICertificateValidationService certificateValidationService, ILocalizationService localizationService, Logger logger)
         {
+            _certificateValidationService = certificateValidationService;
+            _localizationService = localizationService;
             _logger = logger;
         }
 
@@ -38,11 +43,25 @@ namespace NzbDrone.Core.Notifications.Email
             SendEmail(Settings, EPISODE_DOWNLOADED_TITLE_BRANDED, body);
         }
 
+        public override void OnImportComplete(ImportCompleteMessage message)
+        {
+            var body = $"All expected episode files in {message.Message} downloaded and sorted.";
+
+            SendEmail(Settings, IMPORT_COMPLETE_TITLE, body);
+        }
+
         public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
         {
             var body = $"{deleteMessage.Message} deleted.";
 
             SendEmail(Settings, EPISODE_DELETED_TITLE_BRANDED, body);
+        }
+
+        public override void OnSeriesAdd(SeriesAddMessage message)
+        {
+            var body = $"{message.Message}";
+
+            SendEmail(Settings, SERIES_ADDED_TITLE_BRANDED, body);
         }
 
         public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
@@ -57,12 +76,25 @@ namespace NzbDrone.Core.Notifications.Email
             SendEmail(Settings, HEALTH_ISSUE_TITLE_BRANDED, message.Message);
         }
 
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousMessage)
+        {
+            SendEmail(Settings, HEALTH_RESTORED_TITLE_BRANDED, $"The following issue is now resolved: {previousMessage.Message}");
+        }
+
         public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
         {
             var body = $"{updateMessage.Message}";
 
             SendEmail(Settings, APPLICATION_UPDATE_TITLE_BRANDED, body);
         }
+
+        public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
+        {
+            var body = $"{message.Message} requires manual interaction.";
+
+            SendEmail(Settings, MANUAL_INTERACTION_REQUIRED_TITLE_BRANDED, body);
+        }
+
         public override ValidationResult Test()
         {
             var failures = new List<ValidationFailure>();
@@ -93,7 +125,6 @@ namespace NzbDrone.Core.Notifications.Email
             {
                 Send(email, settings);
                 _logger.Debug("Email sent. Subject: {0}", subject);
-
             }
             catch (Exception ex)
             {
@@ -107,46 +138,42 @@ namespace NzbDrone.Core.Notifications.Email
 
         private void Send(MimeMessage email, EmailSettings settings)
         {
-            using (var client = new SmtpClient())
+            using var client = new SmtpClient();
+            client.Timeout = 10000;
+
+            var useEncyption = (EmailEncryptionType)settings.UseEncryption;
+
+            var serverOption = useEncyption switch
             {
-                client.Timeout = 10000;
+                EmailEncryptionType.Always => settings.Port == 465
+                    ? SecureSocketOptions.SslOnConnect
+                    : SecureSocketOptions.StartTls,
+                EmailEncryptionType.Never => SecureSocketOptions.None,
+                _ => SecureSocketOptions.Auto
+            };
 
-                var serverOption = SecureSocketOptions.Auto;
+            client.ServerCertificateValidationCallback = _certificateValidationService.ShouldByPassValidationError;
 
-                if (settings.RequireEncryption)
-                {
-                    if (settings.Port == 465)
-                    {
-                        serverOption = SecureSocketOptions.SslOnConnect;
-                    }
-                    else
-                    {
-                        serverOption = SecureSocketOptions.StartTls;
-                    }
-                }
+            _logger.Debug("Connecting to mail server");
 
-                _logger.Debug("Connecting to mail server");
+            client.Connect(settings.Server, settings.Port, serverOption);
 
-                client.Connect(settings.Server, settings.Port, serverOption);
+            if (!string.IsNullOrWhiteSpace(settings.Username))
+            {
+                _logger.Debug("Authenticating to mail server");
 
-                if (!string.IsNullOrWhiteSpace(settings.Username))
-                {
-                    _logger.Debug("Authenticating to mail server");
-
-                    client.Authenticate(settings.Username, settings.Password);
-                }
-
-                _logger.Debug("Sending to mail server");
-
-
-                client.Send(email);
-
-                _logger.Debug("Sent to mail server, disconnecting");
-
-                client.Disconnect(true);
-
-                _logger.Debug("Disconnecting from mail server");
+                client.Authenticate(settings.Username, settings.Password);
             }
+
+            _logger.Debug("Sending to mail server");
+
+            client.Send(email);
+
+            _logger.Debug("Sent to mail server, disconnecting");
+
+            client.Disconnect(true);
+
+            _logger.Debug("Disconnecting from mail server");
         }
 
         public ValidationFailure Test(EmailSettings settings)
@@ -160,7 +187,7 @@ namespace NzbDrone.Core.Notifications.Email
             catch (Exception ex)
             {
                 _logger.Error(ex, "Unable to send test email");
-                return new ValidationFailure("Server", "Unable to send test email");
+                return new ValidationFailure("Server", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;

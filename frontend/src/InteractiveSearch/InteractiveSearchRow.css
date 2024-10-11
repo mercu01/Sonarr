@@ -4,9 +4,7 @@
   width: 80px;
 }
 
-.title {
-  composes: cell from '~Components/Table/Cells/TableRowCell.css';
-
+.titleContent {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24,17 +22,21 @@
 }
 
 .quality,
-.language {
+.languages {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
   text-align: center;
 }
 
-.language {
+.quality {
+  white-space: nowrap;
+}
+
+.languages {
   width: 100px;
 }
 
-.preferredWordScore {
+.customFormatScore {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
   width: 55px;
@@ -43,7 +45,7 @@
 }
 
 .rejected,
-.download {
+.indexerFlags {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
   width: 50px;
@@ -60,4 +62,40 @@
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
   width: 75px;
+}
+
+.download {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 80px;
+}
+
+.manualDownloadContent {
+  position: relative;
+  display: inline-block;
+  margin: 0 2px;
+  width: 22px;
+  height: 20.39px;
+  vertical-align: middle;
+  line-height: 20.39px;
+
+  &:hover {
+    color: var(--iconButtonHoverColor);
+  }
+}
+
+.interactiveIcon {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  /* width: 100%; */
+  text-align: center;
+}
+
+.downloadIcon {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  /* width: 100%; */
+  text-align: center;
 }

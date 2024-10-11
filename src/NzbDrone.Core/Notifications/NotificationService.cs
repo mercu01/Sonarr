@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
@@ -18,41 +19,35 @@ namespace NzbDrone.Core.Notifications
     public class NotificationService
         : IHandle<EpisodeGrabbedEvent>,
           IHandle<EpisodeImportedEvent>,
+          IHandle<DownloadCompletedEvent>,
+          IHandle<UntrackedDownloadCompletedEvent>,
           IHandle<SeriesRenamedEvent>,
+          IHandle<SeriesAddCompletedEvent>,
           IHandle<SeriesDeletedEvent>,
           IHandle<EpisodeFileDeletedEvent>,
           IHandle<HealthCheckFailedEvent>,
+          IHandle<HealthCheckRestoredEvent>,
           IHandle<UpdateInstalledEvent>,
+          IHandle<ManualInteractionRequiredEvent>,
           IHandleAsync<DeleteCompletedEvent>,
           IHandleAsync<DownloadsProcessedEvent>,
           IHandleAsync<RenameCompletedEvent>,
           IHandleAsync<HealthCheckCompleteEvent>
     {
         private readonly INotificationFactory _notificationFactory;
+        private readonly INotificationStatusService _notificationStatusService;
         private readonly Logger _logger;
 
-        public NotificationService(INotificationFactory notificationFactory, Logger logger)
+        public NotificationService(INotificationFactory notificationFactory, INotificationStatusService notificationStatusService, Logger logger)
         {
             _notificationFactory = notificationFactory;
+            _notificationStatusService = notificationStatusService;
             _logger = logger;
         }
 
         private string GetMessage(Series series, List<Episode> episodes, QualityModel quality)
         {
-            var qualityString = quality.Quality.ToString();
-
-            if (quality.Revision.Version > 1)
-            {
-                if (series.SeriesType == SeriesTypes.Anime)
-                {
-                    qualityString += " v" + quality.Revision.Version;
-                }
-
-                else
-                {
-                    qualityString += " Proper";
-                }
-            }
+            var qualityString = GetQualityString(series, quality);
 
             if (series.SeriesType == SeriesTypes.Daily)
             {
@@ -76,6 +71,35 @@ namespace NzbDrone.Core.Notifications
                                     episodeNumbers,
                                     episodeTitles,
                                     qualityString);
+        }
+
+        private string GetFullSeasonMessage(Series series, int seasonNumber, QualityModel quality)
+        {
+            var qualityString = GetQualityString(series, quality);
+
+            return string.Format("{0} - Season {1} [{2}]",
+                series.Title,
+                seasonNumber,
+                qualityString);
+        }
+
+        private string GetQualityString(Series series, QualityModel quality)
+        {
+            var qualityString = quality.Quality.ToString();
+
+            if (quality.Revision.Version > 1)
+            {
+                if (series.SeriesType == SeriesTypes.Anime)
+                {
+                    qualityString += " v" + quality.Revision.Version;
+                }
+                else
+                {
+                    qualityString += " Proper";
+                }
+            }
+
+            return qualityString;
         }
 
         private bool ShouldHandleSeries(ProviderDefinition definition, Series series)
@@ -128,12 +152,17 @@ namespace NzbDrone.Core.Notifications
             {
                 try
                 {
-                    if (!ShouldHandleSeries(notification.Definition, message.Episode.Series)) continue;
-                    notification.OnGrab(grabMessage);
-                }
+                    if (!ShouldHandleSeries(notification.Definition, message.Episode.Series))
+                    {
+                        continue;
+                    }
 
+                    notification.OnGrab(grabMessage);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                }
                 catch (Exception ex)
                 {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Error(ex, "Unable to send OnGrab notification to {0}", notification.Definition.Name);
                 }
             }
@@ -150,11 +179,13 @@ namespace NzbDrone.Core.Notifications
             {
                 Message = GetMessage(message.EpisodeInfo.Series, message.EpisodeInfo.Episodes, message.EpisodeInfo.Quality),
                 Series = message.EpisodeInfo.Series,
+                EpisodeInfo = message.EpisodeInfo,
                 EpisodeFile = message.ImportedEpisode,
                 OldFiles = message.OldFiles,
                 SourcePath = message.EpisodeInfo.Path,
                 DownloadClientInfo = message.DownloadClientInfo,
-                DownloadId = message.DownloadId
+                DownloadId = message.DownloadId,
+                Release = message.EpisodeInfo.Release
             };
 
             foreach (var notification in _notificationFactory.OnDownloadEnabled())
@@ -166,13 +197,100 @@ namespace NzbDrone.Core.Notifications
                         if (downloadMessage.OldFiles.Empty() || ((NotificationDefinition)notification.Definition).OnUpgrade)
                         {
                             notification.OnDownload(downloadMessage);
+                            _notificationStatusService.RecordSuccess(notification.Definition.Id);
                         }
                     }
                 }
-
                 catch (Exception ex)
                 {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Warn(ex, "Unable to send OnDownload notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void Handle(DownloadCompletedEvent message)
+        {
+            var series = message.TrackedDownload.RemoteEpisode.Series;
+            var episodes = message.TrackedDownload.RemoteEpisode.Episodes;
+            var parsedEpisodeInfo = message.TrackedDownload.RemoteEpisode.ParsedEpisodeInfo;
+
+            var downloadMessage = new ImportCompleteMessage
+            {
+                Message = parsedEpisodeInfo.FullSeason
+                    ? GetFullSeasonMessage(series, episodes.First().SeasonNumber, parsedEpisodeInfo.Quality)
+                    : GetMessage(series, episodes, parsedEpisodeInfo.Quality),
+                Series = series,
+                Episodes = episodes,
+                EpisodeFiles = message.EpisodeFiles,
+                DownloadClientInfo = message.TrackedDownload.DownloadItem.DownloadClientInfo,
+                DownloadId = message.TrackedDownload.DownloadItem.DownloadId,
+                Release = message.Release,
+                SourcePath = message.TrackedDownload.DownloadItem.OutputPath.FullPath,
+                DestinationPath = message.EpisodeFiles.Select(e => Path.Join(series.Path, e.RelativePath)).ToList().GetLongestCommonPath(),
+                ReleaseGroup = parsedEpisodeInfo.ReleaseGroup,
+                ReleaseQuality = parsedEpisodeInfo.Quality
+            };
+
+            foreach (var notification in _notificationFactory.OnImportCompleteEnabled())
+            {
+                try
+                {
+                    if (ShouldHandleSeries(notification.Definition, series))
+                    {
+                        if (((NotificationDefinition)notification.Definition).OnImportComplete)
+                        {
+                            notification.OnImportComplete(downloadMessage);
+                            _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnImportComplete notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void Handle(UntrackedDownloadCompletedEvent message)
+        {
+            var series = message.Series;
+            var episodes = message.Episodes;
+            var parsedEpisodeInfo = message.ParsedEpisodeInfo;
+
+            var downloadMessage = new ImportCompleteMessage
+            {
+                Message = parsedEpisodeInfo.FullSeason
+                    ? GetFullSeasonMessage(series, episodes.First().SeasonNumber, parsedEpisodeInfo.Quality)
+                    : GetMessage(series, episodes, parsedEpisodeInfo.Quality),
+                Series = series,
+                Episodes = episodes,
+                EpisodeFiles = message.EpisodeFiles,
+                SourcePath = message.SourcePath,
+                SourceTitle = parsedEpisodeInfo.ReleaseTitle,
+                DestinationPath = message.EpisodeFiles.Select(e => Path.Join(series.Path, e.RelativePath)).ToList().GetLongestCommonPath(),
+                ReleaseGroup = parsedEpisodeInfo.ReleaseGroup,
+                ReleaseQuality = parsedEpisodeInfo.Quality
+            };
+
+            foreach (var notification in _notificationFactory.OnImportCompleteEnabled())
+            {
+                try
+                {
+                    if (ShouldHandleSeries(notification.Definition, series))
+                    {
+                        if (((NotificationDefinition)notification.Definition).OnImportComplete)
+                        {
+                            notification.OnImportComplete(downloadMessage);
+                            _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnImportComplete notification to: " + notification.Definition.Name);
                 }
             }
         }
@@ -186,11 +304,12 @@ namespace NzbDrone.Core.Notifications
                     if (ShouldHandleSeries(notification.Definition, message.Series))
                     {
                         notification.OnRename(message.Series, message.RenamedFiles);
+                        _notificationStatusService.RecordSuccess(notification.Definition.Id);
                     }
                 }
-
                 catch (Exception ex)
                 {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Warn(ex, "Unable to send OnRename notification to: " + notification.Definition.Name);
                 }
             }
@@ -208,10 +327,64 @@ namespace NzbDrone.Core.Notifications
                 try
                 {
                     notification.OnApplicationUpdate(updateMessage);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
                 }
                 catch (Exception ex)
                 {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Warn(ex, "Unable to send OnApplicationUpdate notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void Handle(ManualInteractionRequiredEvent message)
+        {
+            var series = message.Episode?.Series;
+            var mess = "";
+
+            if (series != null)
+            {
+                mess = GetMessage(series, message.Episode.Episodes, message.Episode.ParsedEpisodeInfo.Quality);
+            }
+
+            if (mess.IsNullOrWhiteSpace() && message.TrackedDownload.DownloadItem != null)
+            {
+                mess = message.TrackedDownload.DownloadItem.Title;
+            }
+
+            if (mess.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            var manualInteractionMessage = new ManualInteractionRequiredMessage
+            {
+                Message = mess,
+                Series = series,
+                Quality = message.Episode?.ParsedEpisodeInfo.Quality,
+                Episode = message.Episode,
+                TrackedDownload = message.TrackedDownload,
+                DownloadClientInfo = message.TrackedDownload.DownloadItem?.DownloadClientInfo,
+                DownloadId = message.TrackedDownload.DownloadItem?.DownloadId,
+                Release = message.Release
+            };
+
+            foreach (var notification in _notificationFactory.OnManualInteractionEnabled())
+            {
+                try
+                {
+                    if (!ShouldHandleSeries(notification.Definition, message.Episode.Series))
+                    {
+                        continue;
+                    }
+
+                    notification.OnManualInteractionRequired(manualInteractionMessage);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Error(ex, "Unable to send OnManualInteractionRequired notification to {0}", notification.Definition.Name);
                 }
             }
         }
@@ -240,32 +413,66 @@ namespace NzbDrone.Core.Notifications
                         if (ShouldHandleSeries(notification.Definition, deleteMessage.EpisodeFile.Series))
                         {
                             notification.OnEpisodeFileDelete(deleteMessage);
+                            _notificationStatusService.RecordSuccess(notification.Definition.Id);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "Unable to send OnDelete notification to: " + notification.Definition.Name);
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnEpisodeFileDelete notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void Handle(SeriesAddCompletedEvent message)
+        {
+            var series = message.Series;
+            var addMessage = new SeriesAddMessage
+            {
+                Series = series,
+                Message = series.Title
+            };
+
+            foreach (var notification in _notificationFactory.OnSeriesAddEnabled())
+            {
+                try
+                {
+                    if (ShouldHandleSeries(notification.Definition, series))
+                    {
+                        notification.OnSeriesAdd(addMessage);
+                        _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnSeriesAdd notification to: " + notification.Definition.Name);
                 }
             }
         }
 
         public void Handle(SeriesDeletedEvent message)
         {
-            var deleteMessage = new SeriesDeleteMessage(message.Series, message.DeleteFiles);
-
-            foreach (var notification in _notificationFactory.OnSeriesDeleteEnabled())
+            foreach (var series in message.Series)
             {
-                try
+                var deleteMessage = new SeriesDeleteMessage(series, message.DeleteFiles);
+
+                foreach (var notification in _notificationFactory.OnSeriesDeleteEnabled())
                 {
-                    if (ShouldHandleSeries(notification.Definition, deleteMessage.Series))
+                    try
                     {
-                        notification.OnSeriesDelete(deleteMessage);
+                        if (ShouldHandleSeries(notification.Definition, deleteMessage.Series))
+                        {
+                            notification.OnSeriesDelete(deleteMessage);
+                            _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Warn(ex, "Unable to send OnDelete notification to: " + notification.Definition.Name);
+                    catch (Exception ex)
+                    {
+                        _notificationStatusService.RecordFailure(notification.Definition.Id);
+                        _logger.Warn(ex, "Unable to send OnSeriesDelete notification to: " + notification.Definition.Name);
+                    }
                 }
             }
         }
@@ -275,7 +482,7 @@ namespace NzbDrone.Core.Notifications
             // Don't send health check notifications during the start up grace period,
             // once that duration expires they they'll be retested and fired off if necessary.
 
-            if (message.IsInStartupGraceperiod)
+            if (message.IsInStartupGracePeriod)
             {
                 return;
             }
@@ -287,12 +494,38 @@ namespace NzbDrone.Core.Notifications
                     if (ShouldHandleHealthFailure(message.HealthCheck, ((NotificationDefinition)notification.Definition).IncludeHealthWarnings))
                     {
                         notification.OnHealthIssue(message.HealthCheck);
+                        _notificationStatusService.RecordSuccess(notification.Definition.Id);
                     }
                 }
-
                 catch (Exception ex)
                 {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Warn(ex, "Unable to send OnHealthIssue notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void Handle(HealthCheckRestoredEvent message)
+        {
+            if (message.IsInStartupGracePeriod)
+            {
+                return;
+            }
+
+            foreach (var notification in _notificationFactory.OnHealthRestoredEnabled())
+            {
+                try
+                {
+                    if (ShouldHandleHealthFailure(message.PreviousCheck, ((NotificationDefinition)notification.Definition).IncludeHealthWarnings))
+                    {
+                        notification.OnHealthRestored(message.PreviousCheck);
+                        _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnHealthRestored notification to: " + notification.Definition.Name);
                 }
             }
         }

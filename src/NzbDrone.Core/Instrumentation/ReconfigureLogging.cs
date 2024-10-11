@@ -2,13 +2,16 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NLog.Config;
+using NLog.Targets;
 using NLog.Targets.Syslog;
 using NLog.Targets.Syslog.Settings;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Instrumentation;
 using NzbDrone.Common.Instrumentation.Sentry;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Configuration.Events;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Instrumentation
@@ -28,11 +31,17 @@ namespace NzbDrone.Core.Instrumentation
             LogLevel minimumConsoleLogLevel;
 
             if (_configFileProvider.ConsoleLogLevel.IsNotNullOrWhiteSpace())
+            {
                 minimumConsoleLogLevel = LogLevel.FromString(_configFileProvider.ConsoleLogLevel);
+            }
             else if (minimumLogLevel > LogLevel.Info)
+            {
                 minimumConsoleLogLevel = minimumLogLevel;
+            }
             else
+            {
                 minimumConsoleLogLevel = LogLevel.Info;
+            }
 
             if (_configFileProvider.SyslogServer.IsNotNullOrWhiteSpace())
             {
@@ -42,15 +51,20 @@ namespace NzbDrone.Core.Instrumentation
 
             var rules = LogManager.Configuration.LoggingRules;
 
-            //Console
+            // Console
+            ReconfigureConsole();
             SetMinimumLogLevel(rules, "consoleLogger", minimumConsoleLogLevel);
 
-            //Log Files
+            // Log Files
             SetMinimumLogLevel(rules, "appFileInfo", minimumLogLevel <= LogLevel.Info ? LogLevel.Info : LogLevel.Off);
             SetMinimumLogLevel(rules, "appFileDebug", minimumLogLevel <= LogLevel.Debug ? LogLevel.Debug : LogLevel.Off);
             SetMinimumLogLevel(rules, "appFileTrace", minimumLogLevel <= LogLevel.Trace ? LogLevel.Trace : LogLevel.Off);
+            ReconfigureFile();
 
-            //Sentry
+            // Log Sql
+            SqlBuilderExtensions.LogSql = _configFileProvider.LogSql;
+
+            // Sentry
             ReconfigureSentry();
 
             LogManager.ReconfigExistingLoggers();
@@ -72,11 +86,19 @@ namespace NzbDrone.Core.Instrumentation
                 {
                     rule.DisableLoggingForLevel(logLevel);
                 }
-
                 else
                 {
                     rule.EnableLoggingForLevel(logLevel);
                 }
+            }
+        }
+
+        private void ReconfigureFile()
+        {
+            foreach (var target in LogManager.Configuration.AllTargets.OfType<NzbDroneFileTarget>())
+            {
+                target.MaxArchiveFiles = _configFileProvider.LogRotate;
+                target.ArchiveAboveSize = _configFileProvider.LogSizeLimit.Megabytes();
             }
         }
 
@@ -85,7 +107,24 @@ namespace NzbDrone.Core.Instrumentation
             var sentryTarget = LogManager.Configuration.AllTargets.OfType<SentryTarget>().FirstOrDefault();
             if (sentryTarget != null)
             {
-                sentryTarget.SentryEnabled = RuntimeInfo.IsProduction && _configFileProvider.AnalyticsEnabled || RuntimeInfo.IsDevelopment;
+                sentryTarget.SentryEnabled = (RuntimeInfo.IsProduction && _configFileProvider.AnalyticsEnabled) || RuntimeInfo.IsDevelopment;
+                sentryTarget.FilterEvents = _configFileProvider.FilterSentryEvents;
+            }
+        }
+
+        private void ReconfigureConsole()
+        {
+            var consoleTarget = LogManager.Configuration.AllTargets.OfType<ColoredConsoleTarget>().FirstOrDefault();
+
+            if (consoleTarget != null)
+            {
+                var format = _configFileProvider.ConsoleLogFormat;
+
+                consoleTarget.Layout = format switch
+                {
+                    ConsoleLogFormat.Clef => NzbDroneLogger.ClefLogLayout,
+                    _ => NzbDroneLogger.ConsoleLogLayout
+                };
             }
         }
 
@@ -97,7 +136,7 @@ namespace NzbDrone.Core.Instrumentation
             syslogTarget.MessageSend.Protocol = ProtocolType.Udp;
             syslogTarget.MessageSend.Udp.Port = syslogPort;
             syslogTarget.MessageSend.Udp.Server = syslogServer;
-            syslogTarget.MessageSend.Udp.ReconnectInterval = 500;
+            syslogTarget.MessageSend.Retry.ConstantBackoff.BaseDelay = 500;
             syslogTarget.MessageCreation.Rfc = RfcNumber.Rfc5424;
             syslogTarget.MessageCreation.Rfc5424.AppName = _configFileProvider.InstanceName;
 

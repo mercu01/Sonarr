@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
@@ -14,14 +15,16 @@ namespace NzbDrone.Core.DecisionEngine
     {
         private readonly IConfigService _configService;
         private readonly IDelayProfileService _delayProfileService;
+        private readonly IQualityDefinitionService _qualityDefinitionService;
 
         public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
         public delegate int CompareDelegate<TSubject, TValue>(DownloadDecision x, DownloadDecision y);
 
-        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService)
+        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityDefinitionService qualityDefinitionService)
         {
             _configService = configService;
             _delayProfileService = delayProfileService;
+            _qualityDefinitionService = qualityDefinitionService;
         }
 
         public int Compare(DownloadDecision x, DownloadDecision y)
@@ -29,8 +32,7 @@ namespace NzbDrone.Core.DecisionEngine
             var comparers = new List<CompareDelegate>
             {
                 CompareQuality,
-                CompareLanguage,
-                ComparePreferredWordScore,
+                CompareCustomFormatScore,
                 CompareProtocol,
                 CompareEpisodeCount,
                 CompareEpisodeNumber,
@@ -55,7 +57,7 @@ namespace NzbDrone.Core.DecisionEngine
         private int CompareByReverse<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)
             where TValue : IComparable<TValue>
         {
-            return CompareBy(left, right, funcValue)*-1;
+            return CompareBy(left, right, funcValue) * -1;
         }
 
         private int CompareAll(params int[] comparers)
@@ -77,18 +79,12 @@ namespace NzbDrone.Core.DecisionEngine
 
             return CompareAll(
                 CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.QualityProfile.Value.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality)),
-                CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.ParsedEpisodeInfo.Quality.Revision)
-                );
+                CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.ParsedEpisodeInfo.Quality.Revision));
         }
 
-        private int CompareLanguage(DownloadDecision x, DownloadDecision y)
+        private int CompareCustomFormatScore(DownloadDecision x, DownloadDecision y)
         {
-            return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.LanguageProfile.Value.Languages.FindIndex(l => l.Language == remoteEpisode.ParsedEpisodeInfo.Language));
-        }
-
-        private int ComparePreferredWordScore(DownloadDecision x, DownloadDecision y)
-        {
-            return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.PreferredWordScore);
+            return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteMovie => remoteMovie.CustomFormatScore);
         }
 
         private int CompareProtocol(DownloadDecision x, DownloadDecision y)
@@ -105,7 +101,8 @@ namespace NzbDrone.Core.DecisionEngine
 
         private int CompareEpisodeCount(DownloadDecision x, DownloadDecision y)
         {
-            var seasonPackCompare = CompareBy(x.RemoteEpisode, y.RemoteEpisode,
+            var seasonPackCompare = CompareBy(x.RemoteEpisode,
+                y.RemoteEpisode,
                 remoteEpisode => remoteEpisode.ParsedEpisodeInfo.FullSeason);
 
             if (seasonPackCompare != 0)
@@ -130,7 +127,7 @@ namespace NzbDrone.Core.DecisionEngine
         private int ComparePeersIfTorrent(DownloadDecision x, DownloadDecision y)
         {
             // Different protocols should get caught when checking the preferred protocol,
-            // since we're dealing with the same series in our comparisions
+            // since we're dealing with the same series in our comparisons
             if (x.RemoteEpisode.Release.DownloadProtocol != DownloadProtocol.Torrent ||
                 y.RemoteEpisode.Release.DownloadProtocol != DownloadProtocol.Torrent)
             {
@@ -186,9 +183,25 @@ namespace NzbDrone.Core.DecisionEngine
 
         private int CompareSize(DownloadDecision x, DownloadDecision y)
         {
-            // TODO: Is smaller better? Smaller for usenet could mean no par2 files.
+            var sizeCompare =  CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
+            {
+                var preferredSize = _qualityDefinitionService.Get(remoteEpisode.ParsedEpisodeInfo.Quality.Quality).PreferredSize;
 
-            return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Release.Size.Round(200.Megabytes()));
+                // If no value for preferred it means unlimited so fallback to sort largest is best
+                if (preferredSize.HasValue && remoteEpisode.Series.Runtime > 0)
+                {
+                    var preferredMovieSize = remoteEpisode.Series.Runtime * preferredSize.Value.Megabytes();
+
+                    // Calculate closest to the preferred size
+                    return Math.Abs((remoteEpisode.Release.Size - preferredMovieSize).Round(200.Megabytes())) * (-1);
+                }
+                else
+                {
+                    return remoteEpisode.Release.Size.Round(200.Megabytes());
+                }
+            });
+
+            return sizeCompare;
         }
     }
 }

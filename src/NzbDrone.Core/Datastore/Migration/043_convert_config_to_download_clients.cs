@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using FluentMigrator;
@@ -19,11 +19,11 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             var config = new Dictionary<string, string>();
 
-            using (IDbCommand configCmd = conn.CreateCommand())
+            using (var configCmd = conn.CreateCommand())
             {
                 configCmd.Transaction = tran;
-                configCmd.CommandText = @"SELECT * FROM Config";
-                using (IDataReader configReader = configCmd.ExecuteReader())
+                configCmd.CommandText = "SELECT * FROM \"Config\"";
+                using (var configReader = configCmd.ExecuteReader())
                 {
                     var keyIndex = configReader.GetOrdinal("Key");
                     var valueIndex = configReader.GetOrdinal("Value");
@@ -62,7 +62,6 @@ namespace NzbDrone.Core.Datastore.Migration
 
                 AddDownloadClient(conn, tran, "Sabnzbd", "Sabnzbd", settings.ToJson(), "SabnzbdSettings", 1);
             }
-
             else if (client.Equals("nzbget", StringComparison.InvariantCultureIgnoreCase))
             {
                 var settings = new ClientSettingsForMigration
@@ -78,7 +77,6 @@ namespace NzbDrone.Core.Datastore.Migration
 
                 AddDownloadClient(conn, tran, "Nzbget", "Nzbget", settings.ToJson(), "NzbgetSettings", 1);
             }
-
             else if (client.Equals("pneumatic", StringComparison.InvariantCultureIgnoreCase))
             {
                 var settings = new FolderSettingsForMigration
@@ -88,7 +86,6 @@ namespace NzbDrone.Core.Datastore.Migration
 
                 AddDownloadClient(conn, tran, "Pneumatic", "Pneumatic", settings.ToJson(), "FolderSettings", 1);
             }
-
             else if (client.Equals("blackhole", StringComparison.InvariantCultureIgnoreCase))
             {
                 var settings = new FolderSettingsForMigration
@@ -108,18 +105,23 @@ namespace NzbDrone.Core.Datastore.Migration
 
             if (config.ContainsKey(key))
             {
-                return (T) Convert.ChangeType(config[key], typeof (T));
+                return (T)Convert.ChangeType(config[key], typeof(T));
             }
 
             return defaultValue;
         }
 
-        private void AddDownloadClient(IDbConnection conn, IDbTransaction tran, string name, string implementation, string settings,
-                                                                                string configContract, int protocol)
+        private void AddDownloadClient(IDbConnection conn,
+            IDbTransaction tran,
+            string name,
+            string implementation,
+            string settings,
+            string configContract,
+            int protocol)
         {
-            using (IDbCommand updateCmd = conn.CreateCommand())
+            using (var updateCmd = conn.CreateCommand())
             {
-                var text = string.Format("INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Protocol) VALUES (1, ?, ?, ?, ?, ?)");
+                var text = string.Format("INSERT INTO \"DownloadClients\" (\"Enable\", \"Name\", \"Implementation\", \"Settings\", \"ConfigContract\", \"Protocol\") VALUES (1, ?, ?, ?, ?, ?)");
                 updateCmd.AddParameter(name);
                 updateCmd.AddParameter(implementation);
                 updateCmd.AddParameter(settings);
@@ -134,9 +136,9 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void DeleteOldConfigValues(IDbConnection conn, IDbTransaction tran)
         {
-            using (IDbCommand updateCmd = conn.CreateCommand())
+            using (var updateCmd = conn.CreateCommand())
             {
-                var text = "DELETE FROM Config WHERE [KEY] IN ('nzbgetusername', 'nzbgetpassword', 'nzbgethost', 'nzbgetport', " +
+                var text = "DELETE FROM \"Config\" WHERE [KEY] IN ('nzbgetusername', 'nzbgetpassword', 'nzbgethost', 'nzbgetport', " +
                            "'nzbgettvcategory', 'nzbgetrecenttvpriority', 'nzbgetoldertvpriority', 'sabhost', 'sabport', " +
                            "'sabapikey', 'sabusername', 'sabpassword', 'sabtvcategory', 'sabrecenttvpriority', " +
                            "'saboldertvpriority', 'sabusessl', 'downloadclient', 'blackholefolder', 'pneumaticfolder')";

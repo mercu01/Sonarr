@@ -14,14 +14,17 @@ namespace NzbDrone.Core.Validation
 
     public class UrlValidator : PropertyValidator
     {
-        public UrlValidator()
-            : base("Invalid Url")
-        {
-        }
+        protected override string GetDefaultMessageTemplate() => "Invalid Url: '{url}'";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {
-            if (context.PropertyValue == null) return false;
+            if (context.PropertyValue == null)
+            {
+                return false;
+            }
+
+            context.MessageFormatter.AppendArgument("url", context.PropertyValue.ToString());
+
             return context.PropertyValue.ToString().IsValidUrl();
         }
     }

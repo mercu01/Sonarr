@@ -1,7 +1,6 @@
 using System;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
-using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.Trakt
@@ -16,31 +15,31 @@ namespace NzbDrone.Core.Notifications.Trakt
         }
     }
 
-    public class TraktSettings : IProviderConfig
+    public class TraktSettings : NotificationSettingsBase<TraktSettings>
     {
-        private static readonly TraktSettingsValidator Validator = new TraktSettingsValidator();
+        private static readonly TraktSettingsValidator Validator = new ();
 
         public TraktSettings()
         {
             SignIn = "startOAuth";
         }
 
-        [FieldDefinition(0, Label = "Access Token", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "NotificationsTraktSettingsAccessToken", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string AccessToken { get; set; }
 
-        [FieldDefinition(1, Label = "Refresh Token", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(1, Label = "NotificationsTraktSettingsRefreshToken", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string RefreshToken { get; set; }
 
-        [FieldDefinition(2, Label = "Expires", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(2, Label = "NotificationsTraktSettingsExpires", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public DateTime Expires { get; set; }
 
-        [FieldDefinition(3, Label = "Auth User", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(3, Label = "NotificationsTraktSettingsAuthUser", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string AuthUser { get; set; }
 
-        [FieldDefinition(4, Label = "Authenticate with Trakt", Type = FieldType.OAuth)]
+        [FieldDefinition(4, Label = "NotificationsTraktSettingsAuthenticateWithTrakt", Type = FieldType.OAuth)]
         public string SignIn { get; set; }
 
-        public NzbDroneValidationResult Validate()
+        public override NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
         }

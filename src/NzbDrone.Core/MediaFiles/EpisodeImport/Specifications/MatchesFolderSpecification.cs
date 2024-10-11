@@ -33,12 +33,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
 
             if (fileInfo != null && fileInfo.IsPossibleSceneSeasonSpecial)
             {
-                fileInfo = _parsingService.ParseSpecialEpisodeTitle(fileInfo, fileInfo.ReleaseTitle, localEpisode.Series.TvdbId, 0);
+                fileInfo = _parsingService.ParseSpecialEpisodeTitle(fileInfo, fileInfo.ReleaseTitle, localEpisode.Series.TvdbId, 0, null);
             }
 
             if (folderInfo != null && folderInfo.IsPossibleSceneSeasonSpecial)
             {
-                folderInfo = _parsingService.ParseSpecialEpisodeTitle(folderInfo, folderInfo.ReleaseTitle, localEpisode.Series.TvdbId, 0);
+                folderInfo = _parsingService.ParseSpecialEpisodeTitle(folderInfo, folderInfo.ReleaseTitle, localEpisode.Series.TvdbId, 0, null);
             }
 
             if (folderInfo == null)
@@ -60,11 +60,6 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
             {
                 _logger.Debug("No episode numbers in folder ParsedEpisodeInfo, skipping check");
                 return Decision.Accept();
-            }
-
-            if (folderEpisodes.First().SeasonNumber != fileEpisodes.FirstOrDefault()?.SeasonNumber)
-            {
-                return Decision.Reject("Season number {0} was unexpected considering the folder name {1}", fileInfo.SeasonNumber, folderInfo.ReleaseTitle);
             }
 
             var unexpected = fileEpisodes.Where(e => folderEpisodes.All(o => o.Id != e.Id)).ToList();

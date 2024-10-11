@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace NzbDrone.Core.Annotations
@@ -15,6 +16,7 @@ namespace NzbDrone.Core.Annotations
         public string Label { get; set; }
         public string Unit { get; set; }
         public string HelpText { get; set; }
+        public string HelpTextWarning { get; set; }
         public string HelpLink { get; set; }
         public FieldType Type { get; set; }
         public bool Advanced { get; set; }
@@ -23,6 +25,7 @@ namespace NzbDrone.Core.Annotations
         public string Section { get; set; }
         public HiddenType Hidden { get; set; }
         public PrivacyLevel Privacy { get; set; }
+        public string Placeholder { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
@@ -40,13 +43,44 @@ namespace NzbDrone.Core.Annotations
         public string RequestAction { get; set; }
     }
 
-    public class FieldSelectOption
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
+    public class FieldTokenAttribute : Attribute
     {
-        public int Value { get; set; }
+        public FieldTokenAttribute(TokenField field, string label = "", string token = "", object value = null)
+        {
+            Label = label;
+            Field = field;
+            Token = token;
+            Value = value?.ToString();
+        }
+
+        public string Label { get; set; }
+        public TokenField Field { get; set; }
+        public string Token { get; set; }
+        public string Value { get; set; }
+    }
+
+    public class FieldSelectOption<T>
+        where T : struct
+    {
+        public T Value { get; set; }
         public string Name { get; set; }
         public int Order { get; set; }
         public string Hint { get; set; }
-        public int? ParentValue { get; set; }
+        public T? ParentValue { get; set; }
+        public bool? IsDisabled { get; set; }
+        public Dictionary<string, object> AdditionalProperties { get; set; }
+    }
+
+    public class FieldSelectStringOption
+    {
+        public string Value { get; set; }
+        public string Name { get; set; }
+        public int Order { get; set; }
+        public string Hint { get; set; }
+        public string ParentValue { get; set; }
+        public bool? IsDisabled { get; set; }
+        public Dictionary<string, object> AdditionalProperties { get; set; }
     }
 
     public enum FieldType
@@ -64,7 +98,10 @@ namespace NzbDrone.Core.Annotations
         Captcha,
         OAuth,
         Device,
-        TagSelect
+        TagSelect,
+        RootFolder,
+        QualityProfile,
+        SeriesTag
     }
 
     public enum HiddenType
@@ -80,5 +117,12 @@ namespace NzbDrone.Core.Annotations
         Password,
         ApiKey,
         UserName
+    }
+
+    public enum TokenField
+    {
+        Label,
+        HelpText,
+        HelpTextWarning
     }
 }

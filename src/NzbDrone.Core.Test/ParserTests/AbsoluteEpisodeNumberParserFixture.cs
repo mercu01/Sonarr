@@ -1,11 +1,12 @@
+using System.IO;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.ParserTests
 {
-
     [TestFixture]
     public class AbsoluteEpisodeNumberParserFixture : CoreTest
     {
@@ -47,14 +48,16 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Initial_Series_Title_-_03(DVD)_-_(Central_Anime)[629BD592].mkv", "Initial Series Title", 3, 0, 0)]
         [TestCase("Initial_Series_Title - 14 DVD - Central Anime", "Initial Series Title", 14, 0, 0)]
         [TestCase("Initial_Series_Title_-_14(DVD)_-_(Central_Anime)[0183D922].mkv", "Initial Series Title", 14, 0, 0)]
-//        [TestCase("Initial D - 4th Stage Ep 01.mkv", "Initial D - 4th Stage", 1, 0, 0)]
+
+// [TestCase("Initial D - 4th Stage Ep 01.mkv", "Initial D - 4th Stage", 1, 0, 0)]
         [TestCase("[ChihiroDesuYo].Series.Title.-.09.1280x720.10bit.AAC.[24CCE81D]", "Series Title", 9, 0, 0)]
         [TestCase("Series Title - 001 - Fairy Tail", "Series Title", 001, 0, 0)]
         [TestCase("Series Title - 049 - The Day of Fated Meeting", "Series Title", 049, 0, 0)]
         [TestCase("Series Title - 050 - Special Request Watch Out for the Guy You Like!", "Series Title", 050, 0, 0)]
         [TestCase("Series Title - 099 - Natsu vs. Gildarts", "Series Title", 099, 0, 0)]
         [TestCase("Series Title - 100 - Mest", "Series Title", 100, 0, 0)]
-//        [TestCase("Fairy Tail - 101 - Mest", "Fairy Tail", 101, 0, 0)] //This gets caught up in the 'see' numbering
+
+// [TestCase("Fairy Tail - 101 - Mest", "Fairy Tail", 101, 0, 0)] //This gets caught up in the 'see' numbering
         [TestCase("[Exiled-Destiny] Series Title Ep01 (D2201EC5).mkv", "Series Title", 1, 0, 0)]
         [TestCase("[Commie] Series Title - 23 [5396CA24].mkv", "Series Title", 23, 0, 0)]
         [TestCase("[FFF] Series Title - 01 [1FB538B5].mkv", "Series Title", 1, 0, 0)]
@@ -77,7 +80,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title (2014) - 39 (137) [v2][720p.HDTV][Unison Fansub]", "Series Title (2014)", 39, 0, 0)]
         [TestCase("[HorribleSubs] Series Title 21 - 101 [480p].mkv", "Series Title 21", 101, 0, 0)]
         [TestCase("[Cthuyuu].Series.Title.-.03.[720p.H264.AAC][8AD82C3A]", "Series Title", 3, 0, 0)]
-        //[TestCase("Series.Title.-.03.(1280x720.HEVC.AAC)", "Series Title", 3, 0, 0)]
+
+        // [TestCase("Series.Title.-.03.(1280x720.HEVC.AAC)", "Series Title", 3, 0, 0)]
         [TestCase("[Cthuyuu] Series Title - 03 [720p H264 AAC][8AD82C3A]", "Series Title", 3, 0, 0)]
         [TestCase("Series Title Episode 56 [VOSTFR V2][720p][AAC]-Mystic Z-Team", "Series Title", 56, 0, 0)]
         [TestCase("[Mystic Z-Team] Series Title Episode 69 [VOSTFR_Finale][1080p][AAC].mp4", "Series Title", 69, 0, 0)]
@@ -97,6 +101,10 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Abc Abc Abc Abc Episode 10 VOSTFR (1920x1080) Miracle Sharingan Fansub.MKV - Team - (� suivre)", "Abc Abc Abc Abc", 10, 0, 0)]
         [TestCase("[Glenn] Series! 3 - 11 (1080p AAC)[C34B2B3B].mkv", "Series! 3", 11, 0, 0)]
         [TestCase("SeriesTitle.E1135.Lasst.den.Mond.am.Himmel.stehen.GERMAN.1080p.WEBRip.x264-Group", "SeriesTitle", 1135, 0, 0)]
+        [TestCase("SeriesTitle E1135 Lasst den Mond am Himmel stehen GERMAN 1080p WEBRip x264-Group", "SeriesTitle", 1135, 0, 0)]
+        [TestCase("SeriesTitle.E1206.In.seinen.Augen.2022.GERMAN.1080p.WEB.h264-Group", "SeriesTitle", 1206, 0, 0)]
+        [TestCase("SeriesTitle E1206 In seinen Augen 2022 GERMAN 1080p WEB h264-Group", "SeriesTitle", 1206, 0, 0)]
+        [TestCase("Series.Title.E195.Zurueck.auf.die.Grand.Line.UNCUT.German.Dubbed.1999.ANiME.DVDRiP.XviD-Group", "Series Title", 195, 0, 0)]
         [TestCase("[HorribleSubs] Series 100 - 07 [1080p].mkv", "Series 100", 7, 0, 0)]
         [TestCase("[HorribleSubs] Series 100 S2 - 07 [1080p].mkv", "Series 100 S2", 7, 0, 0)]
         [TestCase("[abc] Adventure Series: 30 [Web][MKV][h264][720p][AAC 2.0][abc]", "Adventure Series:", 30, 0, 0)]
@@ -110,7 +118,27 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Anime Title S21 999", "Anime Title S21", 999, 0, 0)]
         [TestCase("Anime Title S21 1000", "Anime Title S21", 1000, 0, 0)]
         [TestCase("[HatSubs] Anime Title 1004 [E63F2984].mkv", "Anime Title", 1004, 0, 0)]
-        //[TestCase("", "", 0, 0, 0)]
+        [TestCase("Anime Title 100 S3 - 01 (1080p) [5A493522]", "Anime Title 100 S3", 1, 0, 0)]
+        [TestCase("[SubsPlease] Anime Title 100 S3 - 01 (1080p) [5A493522]", "Anime Title 100 S3", 1, 0, 0)]
+        [TestCase("[CameEsp] Another Anime 100 - Another 100 Anime - 01 [720p][ESP-ENG][mkv]", "Another Anime 100 - Another 100 Anime", 1, 0, 0)]
+        [TestCase("[SubsPlease] Another Anime 100 - Another 100 Anime - 01 (1080p) [4E6B4518].mkv", "Another Anime 100 - Another 100 Anime", 1, 0, 0)]
+        [TestCase("Some show 69. Blm (29.10.2023) 1080p WebDL #turkseed", "Some show", 69, 0, 0)]
+        [TestCase("Soap opera 01 BLM(01.11.2023) 1080p HDTV AC3 x264 TURG", "Soap opera",  1, 0, 0)]
+        [TestCase("Turkish show 60.Bolum (31.01.2023) 720p WebDL AAC H.264 - TURG", "Turkish show",  60, 0, 0)]
+        [TestCase("Different show 1. Bölüm (23.10.2023) 720p WebDL AAC H.264 - TURG", "Different show",  1, 0, 0)]
+        [TestCase("Dubbed show 79.BLM Sezon Finali(25.06.2023) 720p WEB-DL AAC2.0 H.264-TURG", "Dubbed show", 79, 0, 0)]
+        [TestCase("Exclusive BLM Documentary with no false positives EP03.1080p.AAC.x264", "Exclusive BLM Documentary with no false positives", 3, 0, 0)]
+        [TestCase("[SubsPlease] Title de Series S2 - 03 (540p) [63501322]", "Title de Series S2", 3, 0, 0)]
+        [TestCase("[Naruto-Kun.Hu] Dr Series S3 - 21 [1080p]", "Dr Series S3", 21, 0, 0)]
+        [TestCase("[Naruto-Kun.Hu] Series Title - 12 [1080p].mkv", "Series Title", 12, 0, 0)]
+        [TestCase("[Naruto-Kun.Hu] Anime Triangle - 08 [1080p].mkv", "Anime Triangle", 8, 0, 0)]
+        [TestCase("[Mystic Z-Team] Series Title Super - Episode 013 VF - Non-censuré [720p].mp4", "Series Title Super", 13, 0, 0)]
+        [TestCase("Series Title Kai Episodio 13 Audio Latino", "Series Title Kai", 13, 0, 0)]
+        [TestCase("Series_Title_2_[01]_[AniLibria_TV]_[WEBRip_1080p]", "Series Title 2", 1, 0, 0)]
+        [TestCase("[SubsPlease] Series Title - 100 Years Quest - 01 (1080p) [1107F3A9].mkv", "Series Title - 100 Years Quest", 1, 0, 0)]
+        [TestCase("[SubsPlease] Series Title 100 Years Quest - 01 (1080p) [1107F3A9].mkv", "Series Title 100 Years Quest", 1, 0, 0)]
+
+        // [TestCase("", "", 0, 0, 0)]
         public void should_parse_absolute_numbers(string postTitle, string title, int absoluteEpisodeNumber, int seasonNumber, int episodeNumber)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -147,14 +175,16 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Some Anime Show (2011) Episode 99-100 [1080p] [Dual.Audio] [x265]", "Some Anime Show (2011)", 99, 100)]
         [TestCase("Some Anime Show 1-13 (English Dub) [720p]", "Some Anime Show", 1, 13)]
         [TestCase("Series.Title.Ep01-12.Complete.English.AC3.DL.1080p.BluRay.x264", "Series Title", 1, 12)]
-        [TestCase("[Judas] Some Anime Show 091-123 [1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs]", "Some Anime Show", 91, 123 )]
+        [TestCase("[Judas] Some Anime Show 091-123 [1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs]", "Some Anime Show", 91, 123)]
         [TestCase("[Judas] Some Anime Show - 091-123 [1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs]", "Some Anime Show", 91, 123)]
         [TestCase("[HorribleSubs] Some Anime Show 01 - 119 [1080p] [Batch]", "Some Anime Show", 1, 119)]
         [TestCase("[Erai-raws] Series Title! - 01~10 [1080p][Multiple Subtitle]", "Series Title!", 1, 10)]
         [TestCase("[Erai-raws] Series-Title! 2 - 01~10 [1080p][Multiple Subtitle]", "Series-Title! 2", 1, 10)]
         [TestCase("[Erai-raws] Series Title! - 01 ~ 10 [1080p][Multiple Subtitle]", "Series Title!", 1, 10)]
         [TestCase("[Erai-raws] Series-Title! 2 - 01 ~ 10 [1080p][Multiple Subtitle]", "Series-Title! 2", 1, 10)]
-        //        [TestCase("", "", 1, 2)]
+        [TestCase("Series_Title_2_[01-05]_[AniLibria_TV]_[WEBRip_1080p]", "Series Title 2", 1, 5)]
+
+        // [TestCase("", "", 1, 2)]
         public void should_parse_multi_episode_absolute_numbers(string postTitle, string title, int firstAbsoluteEpisodeNumber, int lastAbsoluteEpisodeNumber)
         {
             var absoluteEpisodeNumbers = Enumerable.Range(firstAbsoluteEpisodeNumber, lastAbsoluteEpisodeNumber - firstAbsoluteEpisodeNumber + 1)
@@ -180,6 +210,8 @@ namespace NzbDrone.Core.Test.ParserTests
             result.SeasonNumber.Should().Be(seasonNumber);
         }
 
+        [TestCase("[Anime Time] Series no Mayo - 12.5.mkv", "Series no Mayo", 12.5)]
+        [TestCase("[SubsPlease] Series Title - 26.5.1 (1080p) [29AF1C23].mkv", "Series Title", 26.5)]
         [TestCase("[HorribleSubs] Show Slayer - 10.5 [1080p].mkv", "Show Slayer", 10.5)]
         public void should_handle_anime_recap_numbering(string postTitle, string title, double specialEpisodeNumber)
         {
@@ -192,5 +224,16 @@ namespace NzbDrone.Core.Test.ParserTests
             result.FullSeason.Should().BeFalse();
         }
 
+        [TestCase("Series Title 921-928 [English Dub][1080p][onepiecedubb]", "921.mkv", "Series Title", 921)]
+        public void should_handle_ambiguously_named_anime_files_in_batch_release(string releaseName, string filename, string title, int absoluteEpisodeNumber)
+        {
+            var result = Parser.Parser.ParsePath(Path.Combine(@"C:\Test".AsOsAgnostic(), releaseName, filename));
+            result.Should().NotBeNull();
+            result.AbsoluteEpisodeNumbers.Single().Should().Be(absoluteEpisodeNumber);
+            result.SeasonNumber.Should().Be(0);
+            result.EpisodeNumbers.Should().BeEmpty();
+            result.SeriesTitle.Should().Be(title);
+            result.FullSeason.Should().BeFalse();
+        }
     }
 }

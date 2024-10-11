@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
@@ -32,7 +34,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
             var recentFeed = ReadAllText(@"Files/Indexers/Nyaa/Nyaa.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
+                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
                 .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
 
             var releases = Subject.FetchRecent();
@@ -57,15 +59,15 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
         }*/
 
         [Test]
-        public void should_parse_2021_recent_feed_from_Nyaa()
+        public async Task should_parse_2021_recent_feed_from_Nyaa()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Nyaa/Nyaa2021.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(3);
             releases.First().Should().BeOfType<TorrentInfo>();
@@ -79,10 +81,10 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
             torrentInfo.CommentUrl.Should().BeNullOrEmpty();
             torrentInfo.Indexer.Should().Be(Subject.Definition.Name);
             torrentInfo.PublishDate.Should().Be(DateTime.Parse("Tue, 24 Aug 2021 22:18:46"));
-            torrentInfo.Size.Should().Be(639211930); //609.6 MiB
+            torrentInfo.Size.Should().Be(639211930); // 609.6 MiB
             torrentInfo.MagnetUrl.Should().Be(null);
             torrentInfo.Seeders.Should().Be(4);
-            torrentInfo.Peers.Should().Be(3+4);
+            torrentInfo.Peers.Should().Be(3 + 4);
         }
     }
 }

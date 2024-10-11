@@ -1,8 +1,8 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
-import { icons } from 'Helpers/Props';
 import Icon from 'Components/Icon';
+import { icons } from 'Helpers/Props';
 import Button from './Button';
 import styles from './SpinnerButton.css';
 
@@ -42,6 +42,7 @@ function SpinnerButton(props) {
 }
 
 SpinnerButton.propTypes = {
+  ...Button.Props,
   className: PropTypes.string.isRequired,
   isSpinning: PropTypes.bool.isRequired,
   isDisabled: PropTypes.bool,

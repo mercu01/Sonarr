@@ -1,12 +1,12 @@
-using FluentMigrator;
-using NzbDrone.Core.Datastore.Converters;
-using NzbDrone.Core.Datastore.Migration.Framework;
-using NzbDrone.Core.Languages;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using FluentMigrator;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Datastore.Converters;
+using NzbDrone.Core.Datastore.Migration.Framework;
+using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.Datastore.Migration
 {
@@ -23,35 +23,36 @@ namespace NzbDrone.Core.Datastore.Migration
 
             Execute.WithConnection(InsertDefaultLanguages);
 
-            Delete.Column("Language").FromTable("Profiles");                                
+            Delete.Column("Language").FromTable("Profiles");
         }
 
         private void InsertDefaultLanguages(IDbConnection conn, IDbTransaction tran)
         {
             var profiles = GetLanguageProfiles(conn, tran);
-            var languageConverter = new EmbeddedDocumentConverter(new LanguageIntConverter());
+            var languageConverter = new EmbeddedDocumentConverter<List<LanguageProfileItem111>>(new LanguageIntConverter());
 
             foreach (var profile in profiles.OrderBy(p => p.Id))
             {
-                using (IDbCommand insertNewLanguageProfileCmd = conn.CreateCommand())
+                using (var insertNewLanguageProfileCmd = conn.CreateCommand())
                 {
-                    var itemsJson = languageConverter.ToDB(profile.Languages);
                     insertNewLanguageProfileCmd.Transaction = tran;
-                    insertNewLanguageProfileCmd.CommandText = "INSERT INTO LanguageProfiles (Id, Name, Cutoff, Languages) VALUES (?, ?, ?, ?)";
+                    insertNewLanguageProfileCmd.CommandText = "INSERT INTO \"LanguageProfiles\" (\"Id\", \"Name\", \"Cutoff\", \"Languages\") VALUES (?, ?, ?, ?)";
                     insertNewLanguageProfileCmd.AddParameter(profile.Id);
                     insertNewLanguageProfileCmd.AddParameter(profile.Name);
                     insertNewLanguageProfileCmd.AddParameter(profile.Cutoff.Id);
-                    insertNewLanguageProfileCmd.AddParameter(itemsJson);
+                    var param = insertNewLanguageProfileCmd.CreateParameter();
+                    languageConverter.SetValue(param, profile.Languages);
+                    insertNewLanguageProfileCmd.Parameters.Add(param);
 
                     insertNewLanguageProfileCmd.ExecuteNonQuery();
                 }
 
-                using (IDbCommand updateSeriesCmd = conn.CreateCommand())
+                using (var updateSeriesCmd = conn.CreateCommand())
                 {
                     foreach (var profileId in profile.ProfileIds)
                     {
                         updateSeriesCmd.Transaction = tran;
-                        updateSeriesCmd.CommandText = "UPDATE Series SET LanguageProfileId = ? WHERE ProfileId = ?";
+                        updateSeriesCmd.CommandText = "UPDATE \"Series\" SET \"LanguageProfileId\" = ? WHERE \"ProfileId\" = ?";
                         updateSeriesCmd.AddParameter(profile.Id);
                         updateSeriesCmd.AddParameter(profileId);
                         updateSeriesCmd.ExecuteNonQuery();
@@ -76,7 +77,6 @@ namespace NzbDrone.Core.Datastore.Migration
                          });
 
             return profiles;
-            
         }
 
         private List<LanguageProfile111> GetLanguageProfiles(IDbConnection conn, IDbTransaction tran)
@@ -84,12 +84,12 @@ namespace NzbDrone.Core.Datastore.Migration
             var profiles = GetDefaultLanguageProfiles();
             var thereAreProfiles = false;
 
-            using (IDbCommand getProfilesCmd = conn.CreateCommand())
+            using (var getProfilesCmd = conn.CreateCommand())
             {
                 getProfilesCmd.Transaction = tran;
-                getProfilesCmd.CommandText = @"SELECT Id, Language FROM Profiles";
+                getProfilesCmd.CommandText = "SELECT \"Id\", \"Language\" FROM \"Profiles\"";
 
-                using (IDataReader profileReader = getProfilesCmd.ExecuteReader())
+                using (var profileReader = getProfilesCmd.ExecuteReader())
                 {
                     while (profileReader.Read())
                     {
@@ -105,7 +105,7 @@ namespace NzbDrone.Core.Datastore.Migration
                         {
                             _logger.Debug("Language field not found in Profiles, using English as default." + e.Message);
                         }
-                        
+
                         if (profiles.None(p => p.Cutoff.Id == lang))
                         {
                             var language = Language.FindById(lang);
@@ -165,7 +165,7 @@ namespace NzbDrone.Core.Datastore.Migration
             public Language Cutoff { get; set; }
             public List<LanguageProfileItem111> Languages { get; set; }
 
-            public LanguageProfile111 ()
+            public LanguageProfile111()
             {
                 ProfileIds = new List<int>();
             }

@@ -11,7 +11,10 @@ namespace NzbDrone.Core.Notifications.Discord
         Links,
         Release,
         Poster,
-        Fanart
+        Fanart,
+        Indexer,
+        CustomFormats,
+        CustomFormatScore
     }
 
     public enum DiscordImportFieldType
@@ -27,6 +30,22 @@ namespace NzbDrone.Core.Notifications.Discord
         Subtitles,
         Links,
         Release,
+        Poster,
+        Fanart,
+        CustomFormats,
+        CustomFormatScore
+    }
+
+    public enum DiscordManualInteractionFieldType
+    {
+        Overview,
+        Rating,
+        Genres,
+        Quality,
+        Group,
+        Size,
+        Links,
+        DownloadTitle,
         Poster,
         Fanart
     }

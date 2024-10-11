@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using LogentriesNLog;
 using NLog;
 using NLog.Config;
+using NLog.Layouts.ClefJsonLayout;
 using NLog.Targets;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
@@ -14,13 +13,16 @@ namespace NzbDrone.Common.Instrumentation
 {
     public static class NzbDroneLogger
     {
+        private const string FILE_LOG_LAYOUT = @"${date:format=yyyy-MM-dd HH\:mm\:ss.f}|${level}|${logger}|${message}${onexception:inner=${newline}${newline}[v${assembly-version}] ${exception:format=ToString}${newline}}";
+        public const string ConsoleLogLayout = "[${level}] ${logger}: ${message} ${onexception:inner=${newline}${newline}[v${assembly-version}] ${exception:format=ToString}${newline}}";
+        public static CompactJsonLayout ClefLogLayout = new CompactJsonLayout();
+
         private static bool _isConfigured;
 
         static NzbDroneLogger()
         {
             LogManager.Configuration = new LoggingConfiguration();
         }
-
 
         public static void Register(IStartupContext startupContext, bool updateApp, bool inConsole)
         {
@@ -35,17 +37,18 @@ namespace NzbDrone.Common.Instrumentation
 
             var appFolderInfo = new AppFolderInfo(startupContext);
 
+            RegisterGlobalFilters();
+
             if (Debugger.IsAttached)
             {
                 RegisterDebugger();
             }
 
-            RegisterSentry(updateApp);
+            RegisterSentry(updateApp, appFolderInfo);
 
             if (updateApp)
             {
                 RegisterUpdateFile(appFolderInfo);
-                RegisterLogEntries();
             }
             else
             {
@@ -62,20 +65,7 @@ namespace NzbDrone.Common.Instrumentation
             LogManager.ReconfigExistingLoggers();
         }
 
-        private static void RegisterLogEntries()
-        {
-            var target = new LogentriesTarget();
-            target.Name = "logentriesTarget";
-            target.Token = "d3a83ee9-74fb-4045-ad25-a84c1d4d7c81";
-            target.LogHostname = true;
-            target.Debug = false;
-
-            var loggingRule = new LoggingRule("*", LogLevel.Info, target);
-            LogManager.Configuration.AddTarget("logentries", target);
-            LogManager.Configuration.LoggingRules.Add(loggingRule);
-        }
-
-        private static void RegisterSentry(bool updateClient)
+        private static void RegisterSentry(bool updateClient, IAppFolderInfo appFolderInfo)
         {
             string dsn;
 
@@ -84,7 +74,6 @@ namespace NzbDrone.Common.Instrumentation
                 dsn = RuntimeInfo.IsProduction
                     ? "https://80777986b95f44a1a90d1eb2f3af1e36@sentry.sonarr.tv/11"
                     : "https://6168f0946aba4e60ac23e469ac08eac5@sentry.sonarr.tv/9";
-
             }
             else
             {
@@ -96,7 +85,7 @@ namespace NzbDrone.Common.Instrumentation
             Target target;
             try
             {
-                target = new SentryTarget(dsn)
+                target = new SentryTarget(dsn, appFolderInfo)
                 {
                     Name = "sentryTarget",
                     Layout = "${message}"
@@ -122,7 +111,7 @@ namespace NzbDrone.Common.Instrumentation
 
         private static void RegisterDebugger()
         {
-            DebuggerTarget target = new DebuggerTarget();
+            var target = new DebuggerTarget();
             target.Name = "debuggerLogger";
             target.Layout = "[${level}] [${threadid}] ${logger}: ${message} ${onexception:inner=${newline}${newline}[v${assembly-version}] ${exception:format=ToString}${newline}}";
 
@@ -138,15 +127,22 @@ namespace NzbDrone.Common.Instrumentation
             var coloredConsoleTarget = new ColoredConsoleTarget();
 
             coloredConsoleTarget.Name = "consoleLogger";
-            coloredConsoleTarget.Layout = "[${level}] ${logger}: ${message} ${onexception:inner=${newline}${newline}[v${assembly-version}] ${exception:format=ToString}${newline}}";
+
+            var logFormat = Enum.TryParse<ConsoleLogFormat>(Environment.GetEnvironmentVariable("SONARR__LOG__CONSOLEFORMAT"), out var formatEnumValue)
+                ? formatEnumValue
+                : ConsoleLogFormat.Standard;
+
+            coloredConsoleTarget.Layout = logFormat switch
+            {
+                ConsoleLogFormat.Clef => ClefLogLayout,
+                _ => ConsoleLogLayout
+            };
 
             var loggingRule = new LoggingRule("*", level, coloredConsoleTarget);
 
             LogManager.Configuration.AddTarget("console", coloredConsoleTarget);
             LogManager.Configuration.LoggingRules.Add(loggingRule);
         }
-
-        private const string FILE_LOG_LAYOUT = @"${date:format=yyyy-MM-dd HH\:mm\:ss.f}|${level}|${logger}|${message}${onexception:inner=${newline}${newline}[v${assembly-version}] ${exception:format=ToString}${newline}}";
 
         private static void RegisterAppFile(IAppFolderInfo appFolderInfo)
         {
@@ -166,7 +162,7 @@ namespace NzbDrone.Common.Instrumentation
             fileTarget.ConcurrentWrites = false;
             fileTarget.ConcurrentWriteAttemptDelay = 50;
             fileTarget.ConcurrentWriteAttempts = 10;
-            fileTarget.ArchiveAboveSize = 1024000;
+            fileTarget.ArchiveAboveSize = 1.Megabytes();
             fileTarget.MaxArchiveFiles = maxArchiveFiles;
             fileTarget.EnableFileDelete = true;
             fileTarget.ArchiveNumbering = ArchiveNumberingMode.Rolling;
@@ -214,6 +210,17 @@ namespace NzbDrone.Common.Instrumentation
             LogManager.Configuration.LoggingRules.Insert(0, rule);
         }
 
+        private static void RegisterGlobalFilters()
+        {
+            LogManager.Setup().LoadConfiguration(c =>
+            {
+                c.ForLogger("System.*").WriteToNil(LogLevel.Warn);
+                c.ForLogger("Microsoft.*").WriteToNil(LogLevel.Warn);
+                c.ForLogger("Microsoft.Hosting.Lifetime*").WriteToNil(LogLevel.Info);
+                c.ForLogger("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware").WriteToNil(LogLevel.Fatal);
+            });
+        }
+
         public static Logger GetLogger(Type obj)
         {
             return LogManager.GetLogger(obj.Name.Replace("NzbDrone.", ""));
@@ -223,6 +230,11 @@ namespace NzbDrone.Common.Instrumentation
         {
             return GetLogger(obj.GetType());
         }
+    }
 
+    public enum ConsoleLogFormat
+    {
+        Standard,
+        Clef
     }
 }

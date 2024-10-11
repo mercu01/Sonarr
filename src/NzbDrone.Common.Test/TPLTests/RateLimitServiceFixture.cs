@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.TPL;
 using NzbDrone.Test.Common;
-using FluentAssertions;
 
 namespace NzbDrone.Common.Test.TPLTests
 {
     [TestFixture]
+    [Platform(Exclude = "MacOsX")]
     public class RateLimitServiceFixture : TestBase<RateLimitService>
     {
         private DateTime _epoch;
@@ -119,7 +120,7 @@ namespace NzbDrone.Common.Test.TPLTests
 
             Subject.WaitAndPulse("me", "sub", TimeSpan.FromMilliseconds(100));
 
-            (GetRateLimitStore()["me"] - _epoch).Should().BeCloseTo(TimeSpan.FromMilliseconds(200));
+            (GetRateLimitStore()["me"] - _epoch).Should().BeCloseTo(TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(20));
         }
     }
 }

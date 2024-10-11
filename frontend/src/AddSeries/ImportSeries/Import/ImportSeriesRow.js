@@ -1,23 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes } from 'Helpers/Props';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import VirtualTableRowCell from 'Components/Table/Cells/VirtualTableRowCell';
 import VirtualTableSelectCell from 'Components/Table/Cells/VirtualTableSelectCell';
+import { inputTypes } from 'Helpers/Props';
 import ImportSeriesSelectSeriesConnector from './SelectSeries/ImportSeriesSelectSeriesConnector';
 import styles from './ImportSeriesRow.css';
 
 function ImportSeriesRow(props) {
   const {
     id,
+    relativePath,
     monitor,
     qualityProfileId,
-    languageProfileId,
     seasonFolder,
     seriesType,
     selectedSeries,
     isExistingSeries,
-    showLanguageProfile,
     isSelected,
     onSelectedChange,
     onInputChange
@@ -34,7 +33,7 @@ function ImportSeriesRow(props) {
       />
 
       <VirtualTableRowCell className={styles.folder}>
-        {id}
+        {relativePath}
       </VirtualTableRowCell>
 
       <VirtualTableRowCell className={styles.monitor}>
@@ -51,17 +50,6 @@ function ImportSeriesRow(props) {
           type={inputTypes.QUALITY_PROFILE_SELECT}
           name="qualityProfileId"
           value={qualityProfileId}
-          onChange={onInputChange}
-        />
-      </VirtualTableRowCell>
-
-      <VirtualTableRowCell
-        className={showLanguageProfile ? styles.languageProfile : styles.hideLanguageProfile}
-      >
-        <FormInputGroup
-          type={inputTypes.LANGUAGE_PROFILE_SELECT}
-          name="languageProfileId"
-          value={languageProfileId}
           onChange={onInputChange}
         />
       </VirtualTableRowCell>
@@ -97,15 +85,14 @@ function ImportSeriesRow(props) {
 
 ImportSeriesRow.propTypes = {
   id: PropTypes.string.isRequired,
+  relativePath: PropTypes.string.isRequired,
   monitor: PropTypes.string.isRequired,
   qualityProfileId: PropTypes.number.isRequired,
-  languageProfileId: PropTypes.number.isRequired,
   seriesType: PropTypes.string.isRequired,
   seasonFolder: PropTypes.bool.isRequired,
   selectedSeries: PropTypes.object,
   isExistingSeries: PropTypes.bool.isRequired,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
-  showLanguageProfile: PropTypes.bool.isRequired,
   isSelected: PropTypes.bool,
   onSelectedChange: PropTypes.func.isRequired,
   onInputChange: PropTypes.func.isRequired

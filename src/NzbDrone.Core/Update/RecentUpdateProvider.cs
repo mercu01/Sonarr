@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Configuration;
@@ -30,7 +29,7 @@ namespace NzbDrone.Core.Update
         {
             var branch = _configFileProvider.Branch;
             var version = BuildInfo.Version;
-            var prevVersion = _updateHistoryService.PreviouslyInstalled();
+            var prevVersion = _configFileProvider.LogDbEnabled ? _updateHistoryService.PreviouslyInstalled() : null;
             return _updatePackageProvider.GetRecentUpdates(branch, version, prevVersion);
         }
     }

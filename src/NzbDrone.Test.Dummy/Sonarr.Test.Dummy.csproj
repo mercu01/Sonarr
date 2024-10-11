@@ -1,11 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net462</TargetFramework>
-    <Platforms>x86</Platforms>
+    <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
-  <ItemGroup>
-    <!-- Workaround to ensure sqlite3.dll is copied -->
-    <ProjectReference Include="..\NzbDrone.Common\Sonarr.Common.csproj" />
-  </ItemGroup>
 </Project>

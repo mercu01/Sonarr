@@ -1,4 +1,3 @@
-﻿using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Notifications
@@ -14,7 +13,8 @@ namespace NzbDrone.Core.Notifications
         {
             return Message;
         }
-        public SeriesDeleteMessage (Series series, bool deleteFiles)
+
+        public SeriesDeleteMessage(Series series, bool deleteFiles)
         {
             Series = series;
             DeletedFiles = deleteFiles;
@@ -25,4 +25,3 @@ namespace NzbDrone.Core.Notifications
         }
     }
 }
-

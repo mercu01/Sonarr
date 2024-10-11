@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, sizes } from 'Helpers/Props';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputHelpText from 'Components/Form/FormInputHelpText';
+import FormLabel from 'Components/Form/FormLabel';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import Measure from 'Components/Measure';
-import QualityProfileItemDragSource from './QualityProfileItemDragSource';
+import { icons, kinds, sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import QualityProfileItemDragPreview from './QualityProfileItemDragPreview';
+import QualityProfileItemDragSource from './QualityProfileItemDragSource';
 import styles from './QualityProfileItems.css';
 
 class QualityProfileItems extends Component {
@@ -36,11 +37,11 @@ class QualityProfileItems extends Component {
     } else {
       this.setState({ qualitiesHeight: height });
     }
-  }
+  };
 
   onToggleEditGroupsMode = () => {
     this.props.onToggleEditGroupsMode();
-  }
+  };
 
   //
   // Render
@@ -69,12 +70,12 @@ class QualityProfileItems extends Component {
     return (
       <FormGroup size={sizes.EXTRA_SMALL}>
         <FormLabel size={sizes.SMALL}>
-          Qualities
+          {translate('Qualities')}
         </FormLabel>
 
         <div>
           <FormInputHelpText
-            text="Qualities higher in the list are more preferred. Qualities within the same group are equal. Only checked qualities are wanted"
+            text={translate('QualitiesHelpText')}
           />
 
           {
@@ -115,7 +116,7 @@ class QualityProfileItems extends Component {
               />
 
               {
-                editGroups ? 'Done Editing Groups' : 'Edit Groups'
+                editGroups ? translate('DoneEditingGroups') : translate('EditGroups')
               }
             </div>
           </Button>

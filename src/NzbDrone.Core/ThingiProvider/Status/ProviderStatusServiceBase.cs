@@ -59,6 +59,11 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
         public virtual void RecordSuccess(int providerId)
         {
+            if (providerId <= 0)
+            {
+                return;
+            }
+
             lock (_syncRoot)
             {
                 var status = GetProviderStatus(providerId);
@@ -79,6 +84,11 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
         protected virtual void RecordFailure(int providerId, TimeSpan minimumBackOff, bool escalate)
         {
+            if (providerId <= 0)
+            {
+                return;
+            }
+
             lock (_syncRoot)
             {
                 var status = GetProviderStatus(providerId);
@@ -116,7 +126,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
                 if (inStartupGracePeriod && minimumBackOff == TimeSpan.Zero && status.DisabledTill.HasValue)
                 {
-                    var maximumDisabledTill = now + TimeSpan.FromSeconds(EscalationBackOff.Periods[1]);
+                    var maximumDisabledTill = now + TimeSpan.FromSeconds(EscalationBackOff.Periods[2]);
                     if (maximumDisabledTill < status.DisabledTill)
                     {
                         status.DisabledTill = maximumDisabledTill;
@@ -141,12 +151,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
         public virtual void HandleAsync(ProviderDeletedEvent<TProvider> message)
         {
-            var providerStatus = _providerStatusRepository.FindByProviderId(message.ProviderId);
-
-            if (providerStatus != null)
-            {
-                _providerStatusRepository.Delete(providerStatus);
-            }
+            _providerStatusRepository.DeleteByProviderId(message.ProviderId);
         }
     }
 }

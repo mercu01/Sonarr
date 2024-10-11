@@ -1,17 +1,19 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using FluentValidation.Results;
+using NLog;
 using NzbDrone.Common.Disk;
-using NzbDrone.Common.Http;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Validation;
-using NLog;
-using FluentValidation.Results;
-using System.Net;
 using NzbDrone.Core.RemotePathMappings;
+using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.Deluge
 {
@@ -25,8 +27,10 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                       IConfigService configService,
                       IDiskProvider diskProvider,
                       IRemotePathMappingService remotePathMappingService,
+                      ILocalizationService localizationService,
+                      IBlocklistService blocklistService,
                       Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _proxy = proxy;
         }
@@ -44,7 +48,8 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 catch (DownloadClientUnavailableException)
                 {
                     _logger.Warn("Failed to set torrent post-import label \"{0}\" for {1} in Deluge. Does the label exist?",
-                        Settings.TvImportedCategory, downloadClientItem.Title);
+                        Settings.TvImportedCategory,
+                        downloadClientItem.Title);
                 }
             }
         }
@@ -67,8 +72,8 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             var isRecentEpisode = remoteEpisode.IsRecentEpisode();
 
-            if (isRecentEpisode && Settings.RecentTvPriority == (int)DelugePriority.First ||
-                !isRecentEpisode && Settings.OlderTvPriority == (int)DelugePriority.First)
+            if ((isRecentEpisode && Settings.RecentTvPriority == (int)DelugePriority.First) ||
+                (!isRecentEpisode && Settings.OlderTvPriority == (int)DelugePriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(actualHash, Settings);
             }
@@ -94,8 +99,8 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             var isRecentEpisode = remoteEpisode.IsRecentEpisode();
 
-            if (isRecentEpisode && Settings.RecentTvPriority == (int)DelugePriority.First ||
-                !isRecentEpisode && Settings.OlderTvPriority == (int)DelugePriority.First)
+            if ((isRecentEpisode && Settings.RecentTvPriority == (int)DelugePriority.First) ||
+                (!isRecentEpisode && Settings.OlderTvPriority == (int)DelugePriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(actualHash, Settings);
             }
@@ -119,17 +124,29 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             }
 
             var items = new List<DownloadClientItem>();
+            var ignoredCount = 0;
 
             foreach (var torrent in torrents)
             {
-                if (torrent.Hash == null) continue;
+                // Silently ignore torrents with no hash
+                if (torrent.Hash.IsNullOrWhiteSpace())
+                {
+                    continue;
+                }
+
+                // Ignore torrents without a name, but track to log a single warning for all invalid torrents.
+                if (torrent.Name.IsNullOrWhiteSpace())
+                {
+                    ignoredCount++;
+                    continue;
+                }
 
                 var item = new DownloadClientItem();
                 item.DownloadId = torrent.Hash.ToUpper();
                 item.Title = torrent.Name;
                 item.Category = Settings.TvCategory;
 
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.TvImportedCategory.IsNotNullOrWhiteSpace());
 
                 var outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.DownloadPath));
                 item.OutputPath = outputPath + torrent.Name;
@@ -151,7 +168,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 if (torrent.State == DelugeTorrentStatus.Error)
                 {
                     item.Status = DownloadItemStatus.Warning;
-                    item.Message = "Deluge is reporting an error";
+                    item.Message = _localizationService.GetLocalizedString("DownloadClientDelugeTorrentStateError");
                 }
                 else if (torrent.IsFinished && torrent.State != DelugeTorrentStatus.Checking)
                 {
@@ -171,14 +188,20 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 }
 
                 // Here we detect if Deluge is managing the torrent and whether the seed criteria has been met.
-                // This allows drone to delete the torrent as appropriate.
+                // This allows Sonarr to delete the torrent as appropriate.
                 item.CanMoveFiles = item.CanBeRemoved =
+                    item.DownloadClientInfo.RemoveCompletedDownloads &&
                     torrent.IsAutoManaged &&
                     torrent.StopAtRatio &&
                     torrent.Ratio >= torrent.StopRatio &&
                     torrent.State == DelugeTorrentStatus.Paused;
 
                 items.Add(item);
+            }
+
+            if (ignoredCount > 0)
+            {
+                _logger.Warn("{0} torrent(s) were ignored because they did not have a title. Check Deluge and remove any invalid torrents");
             }
 
             return items;
@@ -192,12 +215,21 @@ namespace NzbDrone.Core.Download.Clients.Deluge
         public override DownloadClientInfo GetStatus()
         {
             var config = _proxy.GetConfig(Settings);
+            var label = _proxy.GetLabelOptions(Settings);
+            OsPath destDir;
 
-            var destDir = new OsPath(config.GetValueOrDefault("download_location") as string);
-
-            if (config.GetValueOrDefault("move_completed", false).ToString() == "True")
+            if (label != null && label.ApplyMoveCompleted && label.MoveCompleted)
+            {
+                // if label exists and a label completed path exists and is enabled use it instead of global
+                destDir = new OsPath(label.MoveCompletedPath);
+            }
+            else if (config.GetValueOrDefault("move_completed", false).ToString() == "True")
             {
                 destDir = new OsPath(config.GetValueOrDefault("move_completed_path") as string);
+            }
+            else
+            {
+                destDir = new OsPath(config.GetValueOrDefault("download_location") as string);
             }
 
             var status = new DownloadClientInfo
@@ -216,7 +248,11 @@ namespace NzbDrone.Core.Download.Clients.Deluge
         protected override void Test(List<ValidationFailure> failures)
         {
             failures.AddIfNotNull(TestConnection());
-            if (failures.HasErrors()) return;
+            if (failures.HasErrors())
+            {
+                return;
+            }
+
             failures.AddIfNotNull(TestCategory());
             failures.AddIfNotNull(TestGetTorrents());
         }
@@ -231,7 +267,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             {
                 _logger.Error(ex, ex.Message);
 
-                return new NzbDroneValidationFailure("Password", "Authentication failed");
+                return new NzbDroneValidationFailure("Password", _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailure"));
             }
             catch (WebException ex)
             {
@@ -239,29 +275,29 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 switch (ex.Status)
                 {
                     case WebExceptionStatus.ConnectFailure:
-                        return new NzbDroneValidationFailure("Host", "Unable to connect")
+                        return new NzbDroneValidationFailure("Host", _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect", new Dictionary<string, object> { { "clientName", Name } }))
                         {
-                            DetailedDescription = "Please verify the hostname and port."
+                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnectDetail")
                         };
                     case WebExceptionStatus.ConnectionClosed:
-                        return new NzbDroneValidationFailure("UseSsl", "Verify SSL settings")
+                        return new NzbDroneValidationFailure("UseSsl", _localizationService.GetLocalizedString("DownloadClientValidationVerifySsl"))
                         {
-                            DetailedDescription = "Please verify your SSL configuration on both Deluge and NzbDrone."
+                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationVerifySslDetail", new Dictionary<string, object> { { "clientName", Name } })
                         };
                     case WebExceptionStatus.SecureChannelFailure:
-                        return new NzbDroneValidationFailure("UseSsl", "Unable to connect through SSL")
+                        return new NzbDroneValidationFailure("UseSsl", _localizationService.GetLocalizedString("DownloadClientValidationSslConnectFailure"))
                         {
-                            DetailedDescription = "Drone is unable to connect to Deluge using SSL. This problem could be computer related. Please try to configure both drone and Deluge to not use SSL."
+                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationSslConnectFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
                         };
                     default:
-                        return new NzbDroneValidationFailure(string.Empty, "Unknown exception: " + ex.Message);
+                        return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationUnknownException", new Dictionary<string, object> { { "exception", ex.Message } }));
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to test connection");
 
-                return new NzbDroneValidationFailure("Host", "Unable to connect to Deluge")
+                return new NzbDroneValidationFailure("Host", _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect", new Dictionary<string, object> { { "clientName", Name } }))
                        {
                            DetailedDescription = ex.Message
                        };
@@ -281,9 +317,9 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             if (!enabledPlugins.Contains("Label"))
             {
-                return new NzbDroneValidationFailure("TvCategory", "Label plugin not activated")
+                return new NzbDroneValidationFailure("TvCategory", _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginInactive"))
                 {
-                    DetailedDescription = "You must have the Label plugin enabled in Deluge to use categories."
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginInactiveDetail", new Dictionary<string, object> { { "clientName", Name } })
                 };
             }
 
@@ -296,9 +332,9 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
                 if (!labels.Contains(Settings.TvCategory))
                 {
-                    return new NzbDroneValidationFailure("TvCategory", "Configuration of label failed")
+                    return new NzbDroneValidationFailure("TvCategory", _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailure"))
                     {
-                        DetailedDescription = "Sonarr was unable to add the label to Deluge."
+                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
                     };
                 }
             }
@@ -310,9 +346,9 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
                 if (!labels.Contains(Settings.TvImportedCategory))
                 {
-                    return new NzbDroneValidationFailure("TvImportedCategory", "Configuration of label failed")
+                    return new NzbDroneValidationFailure("TvImportedCategory", _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailure"))
                     {
-                        DetailedDescription = "Sonarr was unable to add the label to Deluge."
+                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
                     };
                 }
             }
@@ -329,7 +365,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             catch (Exception ex)
             {
                 _logger.Error(ex, "Unable to get torrents");
-                return new NzbDroneValidationFailure(string.Empty, "Failed to get the list of torrents: " + ex.Message);
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationTestTorrents", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;

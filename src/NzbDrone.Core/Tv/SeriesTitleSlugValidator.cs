@@ -9,15 +9,19 @@ namespace NzbDrone.Core.Tv
         private readonly ISeriesService _seriesService;
 
         public SeriesTitleSlugValidator(ISeriesService seriesService)
-            : base("Title slug '{slug}' is in use by series '{seriesTitle}'. Check the FAQ for more information")
         {
             _seriesService = seriesService;
         }
 
+        protected override string GetDefaultMessageTemplate() =>
+            "Title slug '{slug}' is in use by series '{seriesTitle}'. Check the FAQ for more information";
+
         protected override bool IsValid(PropertyValidatorContext context)
         {
-            if (context.PropertyValue == null) return true;
-
+            if (context.PropertyValue == null)
+            {
+                return true;
+            }
 
             dynamic instance = context.ParentContext.InstanceToValidate;
             var instanceId = (int)instance.Id;

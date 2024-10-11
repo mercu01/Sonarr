@@ -1,4 +1,5 @@
-﻿using System.IO;
+using System;
+using System.IO;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
@@ -15,9 +16,11 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
     {
         [Test]
         [IntegrationTest]
-        [Platform("Mono")]
+        [Platform("Linux")]
         public void should_get_version_info_from_actual_linux()
         {
+            NotBsd();
+
             Mocker.SetConstant<IDiskProvider>(Mocker.Resolve<DiskProvider>());
             var info = Subject.Read();
             info.FullName.Should().NotBeNullOrWhiteSpace();
@@ -26,26 +29,25 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
         }
 
         [Test]
-        public void should_return_null_if_etc_doestn_exist()
+        public void should_return_null_if_etc_doesnt_exist()
         {
             Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists("/etc/")).Returns(false);
             Subject.Read().Should().BeNull();
 
             Mocker.GetMock<IDiskProvider>()
-              .Verify(c => c.GetFiles(It.IsAny<string>(), SearchOption.TopDirectoryOnly), Times.Never());
+              .Verify(c => c.GetFiles(It.IsAny<string>(), false), Times.Never());
 
             Subject.Read().Should().BeNull();
         }
 
-
         [Test]
-        public void should_return_null_if_release_file_doestn_exist()
+        public void should_return_null_if_release_file_doesnt_exist()
         {
             Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists("/etc/")).Returns(true);
             Subject.Read().Should().BeNull();
 
             Mocker.GetMock<IDiskProvider>()
-              .Setup(c => c.GetFiles(It.IsAny<string>(), SearchOption.TopDirectoryOnly)).Returns(new string[0]);
+              .Setup(c => c.GetFiles(It.IsAny<string>(), false)).Returns(Array.Empty<string>());
 
             Subject.Read().Should().BeNull();
         }
@@ -57,7 +59,7 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
             Subject.Read().Should().BeNull();
 
             Mocker.GetMock<IDiskProvider>()
-              .Setup(c => c.GetFiles(It.IsAny<string>(), SearchOption.TopDirectoryOnly)).Returns(new[]
+              .Setup(c => c.GetFiles(It.IsAny<string>(), false)).Returns(new[]
                 {
                     "/etc/lsb-release",
                     "/etc/os-release"
@@ -76,7 +78,6 @@ namespace NzbDrone.Mono.Test.EnvironmentInfo.VersionAdapters
             version.Name.Should().Be("ubuntu");
             version.Version.Should().Be("14.04");
             version.FullName.Should().Be("Ubuntu 14.04.5 LTS");
-
         }
     }
 }

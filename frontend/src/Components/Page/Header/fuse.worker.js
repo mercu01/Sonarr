@@ -10,6 +10,10 @@ const fuseOptions = {
   keys: [
     'title',
     'alternateTitles.title',
+    'tvdbId',
+    'tvMazeId',
+    'imdbId',
+    'tmdbId',
     'tags.label'
   ]
 };

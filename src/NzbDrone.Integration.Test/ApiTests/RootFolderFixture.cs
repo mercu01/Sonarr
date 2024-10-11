@@ -1,7 +1,7 @@
 ﻿using System;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Api.RootFolders;
+using Sonarr.Api.V3.RootFolders;
 
 namespace NzbDrone.Integration.Test.ApiTests
 {
@@ -18,7 +18,7 @@ namespace NzbDrone.Integration.Test.ApiTests
         [Ignore("SignalR on CI seems unstable")]
         public void should_add_and_delete_root_folders()
         {
-            ConnectSignalR();
+            ConnectSignalR().Wait();
 
             var rootFolder = new RootFolderResource
             {
@@ -32,11 +32,9 @@ namespace NzbDrone.Integration.Test.ApiTests
 
             RootFolders.All().Should().OnlyContain(c => c.Id == postResponse.Id);
 
-
             RootFolders.Delete(postResponse.Id);
 
             RootFolders.All().Should().BeEmpty();
-
 
             SignalRMessages.Should().Contain(c => c.Name == "rootfolder");
         }

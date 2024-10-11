@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
@@ -35,7 +37,6 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                                                .With(p => p.FullSeason = false)
                                                                                .Build())
                                                  .Build();
-
         }
 
         private void GivenEpisodes(ParsedEpisodeInfo parsedEpisodeInfo, int[] episodeNumbers)
@@ -44,11 +45,11 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             var episodes = episodeNumbers.Select(n =>
                 Builder<Episode>.CreateNew()
-                                .With(e => e.Id = seasonNumber * 10 + n)
+                                .With(e => e.Id = (seasonNumber * 10) + n)
                                 .With(e => e.SeasonNumber = seasonNumber)
                                 .With(e => e.EpisodeNumber = n)
-                                .Build()
-            ).ToList();
+                                .Build())
+            .ToList();
 
             Mocker.GetMock<IParsingService>()
                   .Setup(s => s.GetEpisodes(parsedEpisodeInfo, It.IsAny<Series>(), true, null))
@@ -85,11 +86,11 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         public void should_should_be_accepted_for_full_season()
         {
             _localEpisode.Path = @"C:\Test\Unsorted\Series.Title.S01\S01E01.mkv".AsOsAgnostic();
-            _localEpisode.FolderEpisodeInfo.EpisodeNumbers = new int[0];
+            _localEpisode.FolderEpisodeInfo.EpisodeNumbers = Array.Empty<int>();
             _localEpisode.FolderEpisodeInfo.FullSeason = true;
 
             GivenEpisodes(_localEpisode.FileEpisodeInfo, _localEpisode.FileEpisodeInfo.EpisodeNumbers);
-            GivenEpisodes(_localEpisode.FolderEpisodeInfo, new []{ 1, 2, 3, 4, 5 });
+            GivenEpisodes(_localEpisode.FolderEpisodeInfo, new[] { 1, 2, 3, 4, 5 });
 
             Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
         }
@@ -232,11 +233,11 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             GivenEpisodes(actualInfo, actualInfo.EpisodeNumbers);
 
             Mocker.GetMock<IParsingService>()
-                .Setup(v => v.ParseSpecialEpisodeTitle(fileInfo, It.IsAny<string>(), 0, 0, null))
+                .Setup(v => v.ParseSpecialEpisodeTitle(fileInfo, It.IsAny<string>(), 0, 0, null, null))
                 .Returns(actualInfo);
 
             Mocker.GetMock<IParsingService>()
-                .Setup(v => v.ParseSpecialEpisodeTitle(folderInfo, It.IsAny<string>(), 0, 0, null))
+                .Setup(v => v.ParseSpecialEpisodeTitle(folderInfo, It.IsAny<string>(), 0, 0, null, null))
                 .Returns(actualInfo);
 
             Subject.IsSatisfiedBy(localEpisode, null).Accepted.Should().BeTrue();
@@ -251,10 +252,33 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             _localEpisode.FolderEpisodeInfo.SeasonNumber = 1;
             _localEpisode.FolderEpisodeInfo.EpisodeNumbers = new[] { 1, 2 };
 
-            GivenEpisodes(_localEpisode.FileEpisodeInfo, new []{ 1 });
+            GivenEpisodes(_localEpisode.FileEpisodeInfo, new[] { 1 });
             GivenEpisodes(_localEpisode.FolderEpisodeInfo, _localEpisode.FolderEpisodeInfo.EpisodeNumbers);
 
             _localEpisode.Path = @"C:\Test\Unsorted\Series.Title.S01.720p.HDTV-Sonarr\S02E01.mkv".AsOsAgnostic();
+
+            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_be_accepted_if_scene_season_number_matches_but_season_number_does_not()
+        {
+            _localEpisode.Path = @"C:\Test\Unsorted\Series.Title.S01\S01E01.mkv".AsOsAgnostic();
+            _localEpisode.FolderEpisodeInfo.EpisodeNumbers = Array.Empty<int>();
+            _localEpisode.FolderEpisodeInfo.FullSeason = true;
+
+            var episode = Builder<Episode>.CreateNew()
+                .With(e => e.Id = (1 * 10) + 5)
+                .With(e => e.SeasonNumber = 5)
+                .With(e => e.SceneSeasonNumber = 1)
+                .With(e => e.EpisodeNumber = 5)
+                .Build();
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(s => s.GetEpisodes(_localEpisode.FileEpisodeInfo, It.IsAny<Series>(), true, null))
+                .Returns(new List<Episode> { episode });
+
+            GivenEpisodes(_localEpisode.FolderEpisodeInfo, new[] { 1, 2, 3, 4, 5 });
 
             Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
         }

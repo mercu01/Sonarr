@@ -1,11 +1,11 @@
+import classNames from 'classnames';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
-import { icons, scrollDirections } from 'Helpers/Props';
 import IconButton from 'Components/Link/IconButton';
 import Scroller from 'Components/Scroller/Scroller';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
+import { icons, scrollDirections } from 'Helpers/Props';
 import TableHeader from './TableHeader';
 import TableHeaderCell from './TableHeaderCell';
 import TableSelectAllHeaderCell from './TableSelectAllHeaderCell';
@@ -66,7 +66,9 @@ function Table(props) {
             columns.map((column) => {
               const {
                 name,
-                isVisible
+                isVisible,
+                isSortable,
+                ...otherColumnProps
               } = column;
 
               if (!isVisible) {
@@ -84,6 +86,7 @@ function Table(props) {
                     name={name}
                     isSortable={false}
                     {...otherProps}
+                    {...otherColumnProps}
                   >
                     <TableOptionsModalWrapper
                       columns={columns}
@@ -107,7 +110,7 @@ function Table(props) {
                   {...getTableHeaderCellProps(otherProps)}
                   {...column}
                 >
-                  {column.label}
+                  {typeof column.label === 'function' ? column.label() : column.label}
                 </TableHeaderCell>
               );
             })
@@ -121,6 +124,7 @@ function Table(props) {
 }
 
 Table.propTypes = {
+  ...TableHeaderCell.props,
   className: PropTypes.string,
   horizontalScroll: PropTypes.bool.isRequired,
   selectAll: PropTypes.bool.isRequired,

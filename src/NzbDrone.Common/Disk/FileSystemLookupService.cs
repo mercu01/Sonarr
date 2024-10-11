@@ -71,7 +71,7 @@ namespace NzbDrone.Common.Disk
 
             if (
                 allowFoldersWithoutTrailingSlashes &&
-                query.IsPathValid() &&
+                query.IsPathValid(PathValidationType.CurrentOs) &&
                 _diskProvider.FolderExists(query))
             {
                 return GetResult(query, includeFiles);
@@ -125,7 +125,6 @@ namespace NzbDrone.Common.Disk
                     result.Files = GetFiles(path);
                 }
             }
-
             catch (DirectoryNotFoundException)
             {
                 return new FileSystemResult { Parent = GetParent(path) };

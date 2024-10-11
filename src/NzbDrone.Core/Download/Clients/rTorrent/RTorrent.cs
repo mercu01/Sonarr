@@ -1,21 +1,23 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
-using NzbDrone.Common.Disk;
-using NzbDrone.Common.Extensions;
-using NzbDrone.Common.EnvironmentInfo;
-using NzbDrone.Common.Http;
-using NzbDrone.Core.Configuration;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NLog;
-using NzbDrone.Core.Validation;
 using FluentValidation.Results;
+using NLog;
+using NzbDrone.Common.Disk;
+using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.Clients.rTorrent;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Localization;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
+using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.RTorrent
 {
@@ -24,7 +26,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
         private readonly IRTorrentProxy _proxy;
         private readonly IRTorrentDirectoryValidator _rTorrentDirectoryValidator;
         private readonly IDownloadSeedConfigProvider _downloadSeedConfigProvider;
-        private readonly string _imported_view = String.Concat(BuildInfo.AppName.ToLower(), "_imported");
+        private readonly string _imported_view = string.Concat(BuildInfo.AppName.ToLower(), "_imported");
 
         public RTorrent(IRTorrentProxy proxy,
                         ITorrentFileInfoReader torrentFileInfoReader,
@@ -34,8 +36,10 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
                         IRemotePathMappingService remotePathMappingService,
                         IDownloadSeedConfigProvider downloadSeedConfigProvider,
                         IRTorrentDirectoryValidator rTorrentDirectoryValidator,
+                        ILocalizationService localizationService,
+                        IBlocklistService blocklistService,
                         Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _proxy = proxy;
             _rTorrentDirectoryValidator = rTorrentDirectoryValidator;
@@ -54,8 +58,10 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "Failed to set torrent post-import label \"{0}\" for {1} in rTorrent. Does the label exist?",
-                        Settings.TvImportedCategory, downloadClientItem.Title);
+                    _logger.Warn(ex,
+                        "Failed to set torrent post-import label \"{0}\" for {1} in rTorrent. Does the label exist?",
+                        Settings.TvImportedCategory,
+                        downloadClientItem.Title);
                 }
             }
 
@@ -66,8 +72,10 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "Failed to set torrent post-import view \"{0}\" for {1} in rTorrent.",
-                    _imported_view, downloadClientItem.Title);
+                _logger.Warn(ex,
+                    "Failed to set torrent post-import view \"{0}\" for {1} in rTorrent.",
+                    _imported_view,
+                    downloadClientItem.Title);
             }
         }
 
@@ -111,7 +119,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
 
         public override string Name => "rTorrent";
 
-        public override ProviderMessage Message => new ProviderMessage($"Sonarr will handle automatic removal of torrents based on the current seed criteria in Settings->Indexers. After importing it will also set \"{_imported_view}\" as an rTorrent view, which can be used in rTorrent scripts to customize behavior.", ProviderMessageType.Info);
+        public override ProviderMessage Message => new ProviderMessage(_localizationService.GetLocalizedString("DownloadClientRTorrentProviderMessage", new Dictionary<string, object> { { "importedView", _imported_view } }), ProviderMessageType.Info);
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
@@ -120,18 +128,29 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             _logger.Debug("Retrieved metadata of {0} torrents in client", torrents.Count);
 
             var items = new List<DownloadClientItem>();
-            foreach (RTorrentTorrent torrent in torrents)
+            foreach (var torrent in torrents)
             {
                 // Don't concern ourselves with categories other than specified
-                if (Settings.TvCategory.IsNotNullOrWhiteSpace() && torrent.Category != Settings.TvCategory) continue;
+                if (Settings.TvCategory.IsNotNullOrWhiteSpace() && torrent.Category != Settings.TvCategory)
+                {
+                    continue;
+                }
+
+                // Ignore torrents with an empty path
+                if (torrent.Path.IsNullOrWhiteSpace())
+                {
+                    _logger.Warn("Torrent '{0}' has an empty download path and will not be processed. Adjust this to an absolute path in rTorrent", torrent.Name);
+                    continue;
+                }
 
                 if (torrent.Path.StartsWith("."))
                 {
-                    throw new DownloadClientException("Download paths must be absolute. Please specify variable \"directory\" in rTorrent.");
+                    _logger.Warn("Torrent '{0}' has a download path starting with '.' and will not be processed. Adjust this to an absolute path in rTorrent", torrent.Name);
+                    continue;
                 }
 
                 var item = new DownloadClientItem();
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.TvImportedCategory.IsNotNullOrWhiteSpace());
                 item.Title = torrent.Name;
                 item.DownloadId = torrent.Hash;
                 item.OutputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.Path));
@@ -166,13 +185,28 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
                 // Grab cached seedConfig
                 var seedConfig = _downloadSeedConfigProvider.GetSeedConfiguration(torrent.Hash);
 
-                // Check if torrent is finished and if it exceeds cached seedConfig
-                item.CanMoveFiles = item.CanBeRemoved =
-                    torrent.IsFinished && seedConfig != null &&
-                    (
-                        (torrent.Ratio / 1000.0) >= seedConfig.Ratio ||
-                        (DateTimeOffset.Now - DateTimeOffset.FromUnixTimeSeconds(torrent.FinishedTime)) >= seedConfig.SeedTime
-                    );
+                if (item.DownloadClientInfo.RemoveCompletedDownloads && torrent.IsFinished && seedConfig != null)
+                {
+                    var canRemove = false;
+
+                    if (torrent.Ratio / 1000.0 >= seedConfig.Ratio)
+                    {
+                        _logger.Trace($"{item} has met seed ratio goal of {seedConfig.Ratio}");
+                        canRemove = true;
+                    }
+                    else if (DateTimeOffset.Now - DateTimeOffset.FromUnixTimeSeconds(torrent.FinishedTime) >= seedConfig.SeedTime)
+                    {
+                        _logger.Trace($"{item} has met seed time goal of {seedConfig.SeedTime} minutes");
+                        canRemove = true;
+                    }
+                    else
+                    {
+                        _logger.Trace($"{item} seeding goals have not yet been reached");
+                    }
+
+                    // Check if torrent is finished and if it exceeds cached seedConfig
+                    item.CanMoveFiles = item.CanBeRemoved = canRemove;
+                }
 
                 items.Add(item);
             }
@@ -205,7 +239,11 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
         protected override void Test(List<ValidationFailure> failures)
         {
             failures.AddIfNotNull(TestConnection());
-            if (failures.HasErrors()) return;
+            if (failures.HasErrors())
+            {
+                return;
+            }
+
             failures.AddIfNotNull(TestGetTorrents());
             failures.AddIfNotNull(TestDirectory());
         }
@@ -218,14 +256,19 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
 
                 if (new Version(version) < new Version("0.9.0"))
                 {
-                    return new ValidationFailure(string.Empty, "rTorrent version should be at least 0.9.0. Version reported is {0}", version);
+                    return new ValidationFailure(string.Empty,
+                        _localizationService.GetLocalizedString("DownloadClientValidationErrorVersion",
+                            new Dictionary<string, object>
+                            {
+                                { "clientName", Name }, { "requiredVersion", "0.9.0" }, { "reportedVersion", version }
+                            }));
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to test rTorrent");
-                
-                return new NzbDroneValidationFailure("Host", "Unable to connect to rTorrent")
+
+                return new NzbDroneValidationFailure("Host", _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect", new Dictionary<string, object> { { "clientName", Name } }))
                        {
                            DetailedDescription = ex.Message
                        };
@@ -243,7 +286,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to get torrents");
-                return new NzbDroneValidationFailure(string.Empty, "Failed to get the list of torrents: " + ex.Message);
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationTestTorrents", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;

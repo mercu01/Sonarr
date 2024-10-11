@@ -1,8 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net462</TargetFramework>
-    <Platforms>x86</Platforms>
+    <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="GitHubActionsTestLogger" Version="2.3.3" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NzbDrone.Common.Test\Sonarr.Common.Test.csproj" />
     <ProjectReference Include="..\NzbDrone.Test.Common\Sonarr.Test.Common.csproj" />

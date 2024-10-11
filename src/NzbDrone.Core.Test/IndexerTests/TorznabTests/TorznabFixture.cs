@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
@@ -43,15 +45,15 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_torznab_hdaccess_net()
+        public async Task should_parse_recent_feed_from_torznab_hdaccess_net()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_hdaccess_net.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(5);
 
@@ -74,15 +76,15 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_torznab_tpb()
+        public async Task should_parse_recent_feed_from_torznab_tpb()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_tpb.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(5);
 
@@ -104,15 +106,15 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_torznab_animetosho()
+        public async Task should_parse_recent_feed_from_torznab_animetosho()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_animetosho.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(2);
 
@@ -135,12 +137,21 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         }
 
         [Test]
-        public void should_use_pagesize_reported_by_caps()
+        public void should_use_best_pagesize_reported_by_caps()
         {
             _caps.MaxPageSize = 30;
             _caps.DefaultPageSize = 25;
 
-            Subject.PageSize.Should().Be(25);
+            Subject.PageSize.Should().Be(30);
+        }
+
+        [Test]
+        public void should_not_use_pagesize_over_100_even_if_reported_in_caps()
+        {
+            _caps.MaxPageSize = 250;
+            _caps.DefaultPageSize = 25;
+
+            Subject.PageSize.Should().Be(100);
         }
 
         [TestCase("http://localhost:9117/", "/api")]
@@ -163,8 +174,8 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
             (Subject.Definition.Settings as TorznabSettings).BaseUrl = baseUrl;
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
             var result = new NzbDroneValidationResult(Subject.Test());
             result.IsValid.Should().BeTrue();
@@ -178,8 +189,8 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_tpb.xml");
 
             Mocker.GetMock<IHttpClient>()
-                  .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.GET)))
-                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                  .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                  .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
             (Subject.Definition.Settings as TorznabSettings).ApiPath = apiPath;
 

@@ -1,13 +1,14 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Deluge;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.DelugeTests
@@ -89,7 +90,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DelugeTests
 
             Mocker.GetMock<IHttpClient>()
                   .Setup(s => s.Get(It.IsAny<HttpRequest>()))
-                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), new byte[0]));
+                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), Array.Empty<byte>()));
         }
 
         protected void GivenFailedDownload()
@@ -200,26 +201,26 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DelugeTests
         }
 
         [Test]
-        public void Download_should_return_unique_id()
+        public async Task Download_should_return_unique_id()
         {
             GivenSuccessfulDownload();
 
             var remoteEpisode = CreateRemoteEpisode();
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().NotBeNullOrEmpty();
         }
 
         [TestCase("magnet:?xt=urn:btih:ZPBPA2P6ROZPKRHK44D5OW6NHXU5Z6KR&tr=udp", "CBC2F069FE8BB2F544EAE707D75BCD3DE9DCF951")]
-        public void Download_should_get_hash_from_magnet_url(string magnetUrl, string expectedHash)
+        public async Task Download_should_get_hash_from_magnet_url(string magnetUrl, string expectedHash)
         {
             GivenSuccessfulDownload();
 
             var remoteEpisode = CreateRemoteEpisode();
             remoteEpisode.Release.DownloadUrl = magnetUrl;
 
-            var id = Subject.Download(remoteEpisode);
+            var id = await Subject.Download(remoteEpisode, CreateIndexer());
 
             id.Should().Be(expectedHash);
         }

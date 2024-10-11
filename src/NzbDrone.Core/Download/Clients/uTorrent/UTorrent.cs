@@ -1,18 +1,20 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using FluentValidation.Results;
+using NLog;
+using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NLog;
-using NzbDrone.Core.Validation;
-using FluentValidation.Results;
-using System.Net;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
-using NzbDrone.Common.Cache;
+using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.UTorrent
 {
@@ -28,8 +30,10 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                         IConfigService configService,
                         IDiskProvider diskProvider,
                         IRemotePathMappingService remotePathMappingService,
+                        ILocalizationService localizationService,
+                        IBlocklistService blocklistService,
                         Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _proxy = proxy;
 
@@ -64,8 +68,8 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
             var isRecentEpisode = remoteEpisode.IsRecentEpisode();
 
-            if (isRecentEpisode && Settings.RecentTvPriority == (int)UTorrentPriority.First ||
-                !isRecentEpisode && Settings.OlderTvPriority == (int)UTorrentPriority.First)
+            if ((isRecentEpisode && Settings.RecentTvPriority == (int)UTorrentPriority.First) ||
+                (!isRecentEpisode && Settings.OlderTvPriority == (int)UTorrentPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -87,8 +91,8 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
             var isRecentEpisode = remoteEpisode.IsRecentEpisode();
 
-            if (isRecentEpisode && Settings.RecentTvPriority == (int)UTorrentPriority.First ||
-                !isRecentEpisode && Settings.OlderTvPriority == (int)UTorrentPriority.First)
+            if ((isRecentEpisode && Settings.RecentTvPriority == (int)UTorrentPriority.First) ||
+                (!isRecentEpisode && Settings.OlderTvPriority == (int)UTorrentPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -118,7 +122,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                 item.Title = torrent.Name;
                 item.TotalSize = torrent.Size;
                 item.Category = torrent.Label;
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.TvImportedCategory.IsNotNullOrWhiteSpace());
                 item.RemainingSize = torrent.Remaining;
                 item.SeedRatio = torrent.Ratio;
 
@@ -141,7 +145,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                 if (torrent.Status.HasFlag(UTorrentTorrentStatus.Error))
                 {
                     item.Status = DownloadItemStatus.Warning;
-                    item.Message = "uTorrent is reporting an error";
+                    item.Message = _localizationService.GetLocalizedString("DownloadClientUTorrentTorrentStateError");
                 }
                 else if (torrent.Status.HasFlag(UTorrentTorrentStatus.Loaded) &&
                          torrent.Status.HasFlag(UTorrentTorrentStatus.Checked) && torrent.Remaining == 0 && torrent.Progress == 1.0)
@@ -163,6 +167,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
                 // 'Started' without 'Queued' is when the torrent is 'forced seeding'
                 item.CanMoveFiles = item.CanBeRemoved =
+                    item.DownloadClientInfo.RemoveCompletedDownloads &&
                     !torrent.Status.HasFlag(UTorrentTorrentStatus.Queued) &&
                     !torrent.Status.HasFlag(UTorrentTorrentStatus.Started);
 
@@ -215,7 +220,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
         {
             var config = _proxy.GetConfig(Settings);
 
-            OsPath destDir = new OsPath(null);
+            var destDir = new OsPath(null);
 
             if (config.GetValueOrDefault("dir_active_download_flag") == "true")
             {
@@ -248,7 +253,11 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
         protected override void Test(List<ValidationFailure> failures)
         {
             failures.AddIfNotNull(TestConnection());
-            if (failures.HasErrors()) return;
+            if (failures.HasErrors())
+            {
+                return;
+            }
+
             failures.AddIfNotNull(TestGetTorrents());
         }
 
@@ -260,15 +269,20 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
                 if (version < 25406)
                 {
-                    return new ValidationFailure(string.Empty, "Old uTorrent client with unsupported API, need 3.0 or higher");
+                    return new ValidationFailure(string.Empty,
+                        _localizationService.GetLocalizedString("DownloadClientValidationErrorVersion",
+                            new Dictionary<string, object>
+                            {
+                                { "clientName", Name }, { "requiredVersion", "3.0" }, { "reportedVersion", version }
+                            }));
                 }
             }
             catch (DownloadClientAuthenticationException ex)
             {
                 _logger.Error(ex, ex.Message);
-                return new NzbDroneValidationFailure("Username", "Authentication failure")
+                return new NzbDroneValidationFailure("Username", _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailure"))
                 {
-                    DetailedDescription = "Please verify your username and password."
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
                 };
             }
             catch (WebException ex)
@@ -276,18 +290,19 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                 _logger.Error(ex, "Unable to connect to uTorrent");
                 if (ex.Status == WebExceptionStatus.ConnectFailure)
                 {
-                    return new NzbDroneValidationFailure("Host", "Unable to connect")
+                    return new NzbDroneValidationFailure("Host", _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect", new Dictionary<string, object> { { "clientName", Name } }))
                     {
-                        DetailedDescription = "Please verify the hostname and port."
+                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnectDetail")
                     };
                 }
-                return new NzbDroneValidationFailure(string.Empty, "Unknown exception: " + ex.Message);
+
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationUnknownException", new Dictionary<string, object> { { "exception", ex.Message } }));
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to test uTorrent");
 
-                return new NzbDroneValidationFailure("Host", "Unable to connect to uTorrent")
+                return new NzbDroneValidationFailure("Host", _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect", new Dictionary<string, object> { { "clientName", Name } }))
                        {
                            DetailedDescription = ex.Message
                        };
@@ -305,7 +320,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to get torrents");
-                return new NzbDroneValidationFailure(string.Empty, "Failed to get the list of torrents: " + ex.Message);
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationTestTorrents", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;

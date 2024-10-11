@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NLog;
+using NzbDrone.Common;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Tv.Events;
-using NzbDrone.Common;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.MediaFiles
 
         public void Delete(EpisodeFile episodeFile, DeleteMediaFileReason reason)
         {
-            //Little hack so we have the episodes and series attached for the event consumers
+            // Little hack so we have the episodes and series attached for the event consumers
             episodeFile.Episodes.LazyLoad();
             episodeFile.Path = Path.Combine(episodeFile.Series.Value.Path, episodeFile.RelativePath);
 
@@ -110,18 +110,19 @@ namespace NzbDrone.Core.MediaFiles
 
         public void HandleAsync(SeriesDeletedEvent message)
         {
-            var files = GetFilesBySeries(message.Series.Id);
-            _mediaFileRepository.DeleteMany(files);
+            _mediaFileRepository.DeleteForSeries(message.Series.Select(s => s.Id).ToList());
         }
 
         public static List<string> FilterExistingFiles(List<string> files, List<EpisodeFile> seriesFiles, Series series)
         {
             var seriesFilePaths = seriesFiles.Select(f => Path.Combine(series.Path, f.RelativePath)).ToList();
 
-            if (!seriesFilePaths.Any()) return files;
+            if (!seriesFilePaths.Any())
+            {
+                return files;
+            }
 
             return files.Except(seriesFilePaths, PathEqualityComparer.Instance).ToList();
         }
-
     }
 }

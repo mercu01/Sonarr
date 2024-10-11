@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
-using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.Email
@@ -26,9 +25,9 @@ namespace NzbDrone.Core.Notifications.Email
         }
     }
 
-    public class EmailSettings : IProviderConfig
+    public class EmailSettings : NotificationSettingsBase<EmailSettings>
     {
-        private static readonly EmailSettingsValidator Validator = new EmailSettingsValidator();
+        private static readonly EmailSettingsValidator Validator = new ();
 
         public EmailSettings()
         {
@@ -39,14 +38,14 @@ namespace NzbDrone.Core.Notifications.Email
             Bcc = Array.Empty<string>();
         }
 
-        [FieldDefinition(0, Label = "Server", HelpText = "Hostname or IP of Email server")]
+        [FieldDefinition(0, Label = "NotificationsEmailSettingsServer", HelpText = "NotificationsEmailSettingsServerHelpText")]
         public string Server { get; set; }
 
         [FieldDefinition(1, Label = "Port")]
         public int Port { get; set; }
 
-        [FieldDefinition(2, Label = "Require Encryption", HelpText = "Require SSL (Port 465 only) or StartTLS (any other port)", Type = FieldType.Checkbox)]
-        public bool RequireEncryption { get; set; }
+        [FieldDefinition(2, Label = "NotificationsEmailSettingsUseEncryption", HelpText = "NotificationsEmailSettingsUseEncryptionHelpText", Type = FieldType.Select, SelectOptions = typeof(EmailEncryptionType))]
+        public int UseEncryption { get; set; }
 
         [FieldDefinition(3, Label = "Username", Privacy = PrivacyLevel.UserName)]
         public string Username { get; set; }
@@ -54,21 +53,28 @@ namespace NzbDrone.Core.Notifications.Email
         [FieldDefinition(4, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
-        [FieldDefinition(5, Label = "From Address")]
+        [FieldDefinition(5, Label = "NotificationsEmailSettingsFromAddress")]
         public string From { get; set; }
 
-        [FieldDefinition(6, Label = "Recipient Address(es)", HelpText = "Comma separated list of email recipients")]
+        [FieldDefinition(6, Label = "NotificationsEmailSettingsRecipientAddress", HelpText = "NotificationsEmailSettingsRecipientAddressHelpText")]
         public IEnumerable<string> To { get; set; }
 
-        [FieldDefinition(7, Label = "CC Address(es)", HelpText = "Comma separated list of email cc recipients", Advanced = true)]
+        [FieldDefinition(7, Label = "NotificationsEmailSettingsCcAddress", HelpText = "NotificationsEmailSettingsCcAddressHelpText", Advanced = true)]
         public IEnumerable<string> Cc { get; set; }
 
-        [FieldDefinition(8, Label = "BCC Address(es)", HelpText = "Comma separated list of email bcc recipients", Advanced = true)]
+        [FieldDefinition(8, Label = "NotificationsEmailSettingsBccAddress", HelpText = "NotificationsEmailSettingsBccAddressHelpText", Advanced = true)]
         public IEnumerable<string> Bcc { get; set; }
 
-        public NzbDroneValidationResult Validate()
+        public override NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
         }
+    }
+
+    public enum EmailEncryptionType
+    {
+        Preferred = 0,
+        Always = 1,
+        Never = 2
     }
 }

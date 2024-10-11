@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.AccessControl;
-using System.Security.Principal;
 
 namespace NzbDrone.Common.Disk
 {
@@ -24,8 +22,8 @@ namespace NzbDrone.Common.Disk
         bool FileExists(string path, StringComparison stringComparison);
         bool FolderWritable(string path);
         bool FolderEmpty(string path);
-        string[] GetDirectories(string path);
-        string[] GetFiles(string path, SearchOption searchOption);
+        IEnumerable<string> GetDirectories(string path);
+        IEnumerable<string> GetFiles(string path, bool recursive);
         long GetFolderSize(string path);
         long GetFileSize(string path);
         void CreateFolder(string path);
