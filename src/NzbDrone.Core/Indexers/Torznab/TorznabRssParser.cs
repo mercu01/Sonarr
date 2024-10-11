@@ -59,16 +59,17 @@ namespace NzbDrone.Core.Indexers.Torznab
         protected override bool PostProcess(IndexerResponse indexerResponse, List<XElement> items, List<ReleaseInfo> releases)
         {
             var enclosureTypes = items.SelectMany(GetEnclosures).Select(v => v.Type).Distinct().ToArray();
+
             if (enclosureTypes.Any() && enclosureTypes.Intersect(PreferredEnclosureMimeTypes).Empty())
             {
                 if (enclosureTypes.Intersect(UsenetEnclosureMimeTypes).Any())
                 {
                     _logger.Warn("{0} does not contain {1}, found {2}, did you intend to add a Newznab indexer?", indexerResponse.Request.Url, TorrentEnclosureMimeType, enclosureTypes[0]);
+
+                    return false;
                 }
-                else
-                {
-                    _logger.Warn("{1} does not contain {1}, found {2}.", indexerResponse.Request.Url, TorrentEnclosureMimeType, enclosureTypes[0]);
-                }
+
+                _logger.Warn("{0} does not contain {1}, found {2}.", indexerResponse.Request.Url, TorrentEnclosureMimeType, enclosureTypes[0]);
             }
 
             return true;
@@ -82,6 +83,7 @@ namespace NzbDrone.Core.Indexers.Torznab
             {
                 torrentInfo.TvdbId = GetTvdbId(item);
                 torrentInfo.TvRageId = GetTvRageId(item);
+                releaseInfo.ImdbId = GetImdbId(item);
                 torrentInfo.IndexerFlags = GetFlags(item);
             }
 
@@ -174,6 +176,18 @@ namespace NzbDrone.Core.Indexers.Torznab
             }
 
             return 0;
+        }
+
+        protected virtual string GetImdbId(XElement item)
+        {
+            var imdbIdString = TryGetTorznabAttribute(item, "imdb");
+
+            if (!imdbIdString.IsNullOrWhiteSpace() && int.TryParse(imdbIdString, out var imdbId) && imdbId > 0)
+            {
+                return $"tt{imdbId:D7}";
+            }
+
+            return null;
         }
 
         protected override string GetInfoHash(XElement item)

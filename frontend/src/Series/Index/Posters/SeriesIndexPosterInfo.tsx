@@ -1,4 +1,5 @@
 import React from 'react';
+import TagListConnector from 'Components/TagListConnector';
 import Language from 'Language/Language';
 import QualityProfile from 'typings/QualityProfile';
 import formatDateTime from 'Utilities/Date/formatDateTime';
@@ -17,11 +18,13 @@ interface SeriesIndexPosterInfoProps {
   seasonCount: number;
   path: string;
   sizeOnDisk?: number;
+  tags: number[];
   sortKey: string;
   showRelativeDates: boolean;
   shortDateFormat: string;
   longDateFormat: string;
   timeFormat: string;
+  showTags: boolean;
 }
 
 function SeriesIndexPosterInfo(props: SeriesIndexPosterInfoProps) {
@@ -34,12 +37,14 @@ function SeriesIndexPosterInfo(props: SeriesIndexPosterInfoProps) {
     added,
     seasonCount,
     path,
-    sizeOnDisk,
+    sizeOnDisk = 0,
+    tags,
     sortKey,
     showRelativeDates,
     shortDateFormat,
     longDateFormat,
     timeFormat,
+    showTags,
   } = props;
 
   if (sortKey === 'network' && network) {
@@ -80,7 +85,10 @@ function SeriesIndexPosterInfo(props: SeriesIndexPosterInfoProps) {
           timeFormat
         )}`}
       >
-        {getRelativeDate(previousAiring, shortDateFormat, showRelativeDates, {
+        {getRelativeDate({
+          date: previousAiring,
+          shortDateFormat,
+          showRelativeDates,
           timeFormat,
           timeForToday: true,
         })}
@@ -89,15 +97,13 @@ function SeriesIndexPosterInfo(props: SeriesIndexPosterInfoProps) {
   }
 
   if (sortKey === 'added' && added) {
-    const addedDate = getRelativeDate(
-      added,
+    const addedDate = getRelativeDate({
+      date: added,
       shortDateFormat,
       showRelativeDates,
-      {
-        timeFormat,
-        timeForToday: false,
-      }
-    );
+      timeFormat,
+      timeForToday: false,
+    });
 
     return (
       <div
@@ -119,6 +125,16 @@ function SeriesIndexPosterInfo(props: SeriesIndexPosterInfoProps) {
     }
 
     return <div className={styles.info}>{seasons}</div>;
+  }
+
+  if (!showTags && sortKey === 'tags' && tags.length) {
+    return (
+      <div className={styles.tags}>
+        <div className={styles.tagsList}>
+          <TagListConnector tags={tags} />
+        </div>
+      </div>
+    );
   }
 
   if (sortKey === 'path') {

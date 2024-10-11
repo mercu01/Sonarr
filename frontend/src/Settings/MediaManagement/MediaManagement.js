@@ -13,7 +13,7 @@ import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import RootFolders from 'RootFolder/RootFolders';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import translate from 'Utilities/String/translate';
-import NamingConnector from './Naming/NamingConnector';
+import Naming from './Naming/Naming';
 import AddRootFolder from './RootFolder/AddRootFolder';
 
 const episodeTitleRequiredOptions = [
@@ -127,7 +127,7 @@ class MediaManagement extends Component {
         />
 
         <PageContentBody>
-          <NamingConnector />
+          <Naming />
 
           {
             isFetching ?
@@ -210,25 +210,21 @@ class MediaManagement extends Component {
                         />
                       </FormGroup>
 
-                      {
-                        isWindows ?
-                          null :
-                          <FormGroup
-                            advancedSettings={advancedSettings}
-                            isAdvanced={true}
-                            size={sizes.MEDIUM}
-                          >
-                            <FormLabel>{translate('SkipFreeSpaceCheck')}</FormLabel>
+                      <FormGroup
+                        advancedSettings={advancedSettings}
+                        isAdvanced={true}
+                        size={sizes.MEDIUM}
+                      >
+                        <FormLabel>{translate('SkipFreeSpaceCheck')}</FormLabel>
 
-                            <FormInputGroup
-                              type={inputTypes.CHECK}
-                              name="skipFreeSpaceCheckWhenImporting"
-                              helpText={translate('SkipFreeSpaceCheckWhenImportingHelpText')}
-                              onChange={onInputChange}
-                              {...settings.skipFreeSpaceCheckWhenImporting}
-                            />
-                          </FormGroup>
-                      }
+                        <FormInputGroup
+                          type={inputTypes.CHECK}
+                          name="skipFreeSpaceCheckWhenImporting"
+                          helpText={translate('SkipFreeSpaceCheckHelpText')}
+                          onChange={onInputChange}
+                          {...settings.skipFreeSpaceCheckWhenImporting}
+                        />
+                      </FormGroup>
 
                       <FormGroup
                         advancedSettings={advancedSettings}

@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Test.ParserTests
             new object[] { Quality.DVD },
             new object[] { Quality.WEBDL480p },
             new object[] { Quality.Bluray480p },
+            new object[] { Quality.Bluray576p },
             new object[] { Quality.HDTV720p },
             new object[] { Quality.HDTV1080p },
             new object[] { Quality.HDTV2160p },
@@ -105,10 +106,11 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("SERIES.S03E01-06.DUAL.BDRip.AC3.-HELLYWOOD", false)]
         [TestCase("SERIES.S03E01-06.DUAL.BDRip.XviD.AC3.-HELLYWOOD.avi", false)]
         [TestCase("SERIES.S03E01-06.DUAL.XviD.Bluray.AC3.-HELLYWOOD.avi", false)]
-        [TestCase("The.Series.S01E05.576p.BluRay.DD5.1.x264-HiSD", false)]
         [TestCase("The.Series.S01E05.480p.BluRay.DD5.1.x264-HiSD", false)]
         [TestCase("The Series (BD)(640x480(RAW) (BATCH 1) (1-13)", false)]
         [TestCase("[Doki] Series - 02 (848x480 XviD BD MP3) [95360783]", false)]
+        [TestCase("Adventures.of.Sonic.the.Hedgehog.S01.BluRay.480i.DD.2.0.AVC.REMUX-FraMeSToR", false)]
+        [TestCase("Adventures.of.Sonic.the.Hedgehog.S01E01.Best.Hedgehog.480i.DD.2.0.AVC.REMUX-FraMeSToR", false)]
         public void should_parse_bluray480p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray480p, proper);
@@ -120,6 +122,12 @@ namespace NzbDrone.Core.Test.ParserTests
         public void should_parse_webrip480p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBRip480p, proper);
+        }
+
+        [TestCase("The.Series.S01E05.576p.BluRay.DD5.1.x264-HiSD", false)]
+        public void should_parse_bluray576p_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.Bluray576p, proper);
         }
 
         [TestCase("Series - S01E01 - Title [HDTV]", false)]
@@ -252,6 +260,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title Season 2 (WEB 1080p HEVC Opus) [Netaro]", false)]
         [TestCase("Series.Title.S01E01.Erste.Begegnungen.German.DD51.Synced.DL.1080p.HBOMaxHD.AVC-TVS", false)]
         [TestCase("Series.Title.S01E05.Tavora.greift.an.German.DL.1080p.DisneyHD.h264-4SF", false)]
+        [TestCase("Series.Title.S02E04.German.Dubbed.DL.AAC.1080p.WEB.AVC-GROUP", false)]
         public void should_parse_webdl1080p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBDL1080p, proper);
@@ -277,6 +286,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[HorribleSubs] Series Title! S01 [Web][MKV][h264][2160p][AAC 2.0][Softsubs (HorribleSubs)]", false)]
         [TestCase("Series Title S02 2013 WEB-DL 4k H265 AAC 2Audio-HDSWEB", false)]
         [TestCase("Series.Title.S02E02.This.Year.Will.Be.Different.2160p.WEB.H.265", false)]
+        [TestCase("Series.Title.S02E04.German.Dubbed.DL.AAC.2160p.DV.HDR.WEB.HEVC-GROUP", false)]
         public void should_parse_webdl2160p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBDL2160p, proper);
@@ -309,6 +319,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Sans.Series.De.Traces.FRENCH.720p.BluRay.x264-FHD", false)]
         [TestCase("Series.Black.1x01.Selezione.Naturale.ITA.720p.BDMux.x264-NovaRip", false)]
         [TestCase("Series.Hunter.S02.720p.Blu-ray.Remux.AVC.FLAC.2.0-SiCFoI", false)]
+        [TestCase("Adventures.of.Sonic.the.Hedgehog.S01E01.Best.Hedgehog.720p.DD.2.0.AVC.REMUX-FraMeSToR", false)]
         public void should_parse_bluray720p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray720p, proper);
@@ -340,6 +351,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.S03E01.The.Calm.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR", false)]
         [TestCase("Series Title Season 2 (BDRemux 1080p HEVC FLAC) [Netaro]", false)]
         [TestCase("[Vodes] Series Title - Other Title (2020) [BDRemux 1080p HEVC Dual-Audio]", false)]
+        [TestCase("Adventures.of.Sonic.the.Hedgehog.S01E01.Best.Hedgehog.1080p.DD.2.0.AVC.REMUX-FraMeSToR", false)]
+        [TestCase("Series Title S01 2018 1080p BluRay Hybrid-REMUX AVC TRUEHD 5.1 Dual Audio-ZR-", false)]
+        [TestCase("Series.Title.S01.2018.1080p.BluRay.Hybrid-REMUX.AVC.TRUEHD.5.1.Dual.Audio-ZR-", false)]
         public void should_parse_bluray1080p_remux_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray1080pRemux, proper);
@@ -360,6 +374,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.S01E08.The.Sonarr.BluRay.2160p.AVC.DTS-HD.MA.5.1.REMUX-FraMeSToR", false)]
         [TestCase("Series.Title.2x11.Nato.Per.The.Sonarr.Bluray.Remux.AVC.2160p.AC3.ITA", false)]
         [TestCase("[Dolby Vision] Sonarr.of.Series.S07.MULTi.UHD.BLURAY.REMUX.DV-NoTag", false)]
+        [TestCase("Adventures.of.Sonic.the.Hedgehog.S01E01.Best.Hedgehog.2160p.DD.2.0.AVC.REMUX-FraMeSToR", false)]
+        [TestCase("Series Title S01 2018 2160p BluRay Hybrid-REMUX AVC TRUEHD 5.1 Dual Audio-ZR-", false)]
+        [TestCase("Series.Title.S01.2018.2160p.BluRay.Hybrid-REMUX.AVC.TRUEHD.5.1.Dual.Audio-ZR-", false)]
         public void should_parse_bluray2160p_remux_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray2160pRemux, proper);

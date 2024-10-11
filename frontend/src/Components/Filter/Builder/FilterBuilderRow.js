@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import SelectInput from 'Components/Form/SelectInput';
 import IconButton from 'Components/Link/IconButton';
 import { filterBuilderTypes, filterBuilderValueTypes, icons } from 'Helpers/Props';
+import sortByProp from 'Utilities/Array/sortByProp';
 import BoolFilterBuilderRowValue from './BoolFilterBuilderRowValue';
 import DateFilterBuilderRowValue from './DateFilterBuilderRowValue';
 import FilterBuilderRowValueConnector from './FilterBuilderRowValueConnector';
@@ -11,7 +12,8 @@ import IndexerFilterBuilderRowValueConnector from './IndexerFilterBuilderRowValu
 import LanguageFilterBuilderRowValue from './LanguageFilterBuilderRowValue';
 import ProtocolFilterBuilderRowValue from './ProtocolFilterBuilderRowValue';
 import QualityFilterBuilderRowValueConnector from './QualityFilterBuilderRowValueConnector';
-import QualityProfileFilterBuilderRowValueConnector from './QualityProfileFilterBuilderRowValueConnector';
+import QualityProfileFilterBuilderRowValue from './QualityProfileFilterBuilderRowValue';
+import SeasonsMonitoredStatusFilterBuilderRowValue from './SeasonsMonitoredStatusFilterBuilderRowValue';
 import SeriesFilterBuilderRowValue from './SeriesFilterBuilderRowValue';
 import SeriesStatusFilterBuilderRowValue from './SeriesStatusFilterBuilderRowValue';
 import SeriesTypeFilterBuilderRowValue from './SeriesTypeFilterBuilderRowValue';
@@ -76,7 +78,10 @@ function getRowValueConnector(selectedFilterBuilderProp) {
       return QualityFilterBuilderRowValueConnector;
 
     case filterBuilderValueTypes.QUALITY_PROFILE:
-      return QualityProfileFilterBuilderRowValueConnector;
+      return QualityProfileFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.SEASONS_MONITORED_STATUS:
+      return SeasonsMonitoredStatusFilterBuilderRowValue;
 
     case filterBuilderValueTypes.SERIES:
       return SeriesFilterBuilderRowValue;
@@ -224,7 +229,7 @@ class FilterBuilderRow extends Component {
         key: name,
         value: typeof label === 'function' ? label() : label
       };
-    }).sort((a, b) => a.value.localeCompare(b.value));
+    }).sort(sortByProp('value'));
 
     const ValueComponent = getRowValueConnector(selectedFilterBuilderProp);
 

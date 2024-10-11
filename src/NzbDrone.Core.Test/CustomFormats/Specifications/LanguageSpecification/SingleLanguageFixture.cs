@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
@@ -62,6 +63,16 @@ namespace NzbDrone.Core.Test.CustomFormats.Specifications.LanguageSpecification
         public void should_match_negated_different_language()
         {
             Subject.Value = Language.Spanish.Id;
+            Subject.Negate = true;
+
+            Subject.IsSatisfiedBy(_input).Should().BeTrue();
+        }
+
+        [Test]
+        public void should_match_negated_except_language_if_language_is_only_present_language()
+        {
+            Subject.Value = Language.French.Id;
+            Subject.ExceptLanguage = true;
             Subject.Negate = true;
 
             Subject.IsSatisfiedBy(_input).Should().BeTrue();

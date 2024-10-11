@@ -15,6 +15,7 @@ interface CssExports {
   'links': string;
   'monitorToggleButton': string;
   'network': string;
+  'originalLanguageName': string;
   'overview': string;
   'path': string;
   'poster': string;
@@ -23,6 +24,7 @@ interface CssExports {
   'seriesNavigationButton': string;
   'seriesNavigationButtons': string;
   'sizeOnDisk': string;
+  'statusName': string;
   'tags': string;
   'title': string;
   'titleContainer': string;

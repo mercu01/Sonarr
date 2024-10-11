@@ -119,12 +119,23 @@ namespace NzbDrone.Core.Indexers.Newznab
             }
         }
 
+        private bool SupportsTmdbSearch
+        {
+            get
+            {
+                var capabilities = _capabilitiesProvider.GetCapabilities(Settings);
+
+                return capabilities.SupportedTvSearchParameters != null &&
+                       capabilities.SupportedTvSearchParameters.Contains("tmdbid");
+            }
+        }
+
         // Combines all ID based searches
         private bool SupportsTvIdSearches
         {
             get
             {
-                return SupportsTvdbSearch || SupportsImdbSearch || SupportsTvRageSearch || SupportsTvMazeSearch;
+                return SupportsTvdbSearch || SupportsImdbSearch || SupportsTvRageSearch || SupportsTvMazeSearch || SupportsTmdbSearch;
             }
         }
 
@@ -393,22 +404,38 @@ namespace NzbDrone.Core.Indexers.Newznab
 
             if (SupportsSearch)
             {
-                var queryTitles = TextSearchEngine == "raw" ? searchCriteria.SceneTitles : searchCriteria.CleanSceneTitles;
-                foreach (var mode in searchCriteria.ModesSearchSpanish)
+                AddTvIdPageableRequests(pageableRequests,
+                    Settings.AnimeCategories,
+                    searchCriteria,
+                    $"&q={searchCriteria.AbsoluteEpisodeNumber:00}");
+
+                var includeAnimeStandardFormatSearch = Settings.AnimeStandardFormatSearch &&
+                                                       searchCriteria.SeasonNumber > 0 &&
+                                                       searchCriteria.EpisodeNumber > 0;
+
+                if (includeAnimeStandardFormatSearch && SupportsEpisodeSearch)
                 {
-                    foreach (var queryTitle in queryTitles)
+                    AddTvIdPageableRequests(pageableRequests,
+                        Settings.AnimeCategories,
+                        searchCriteria,
+                        $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&ep={searchCriteria.EpisodeNumber}");
+                }
+
+                var queryTitles = TextSearchEngine == "raw" ? searchCriteria.AllSceneTitles : searchCriteria.CleanSceneTitles;
+
+                foreach (var queryTitle in queryTitles)
+                {
+                    pageableRequests.Add(GetPagedRequests(MaxPages,
+                        Settings.AnimeCategories,
+                        "search",
+                        $"&q={NewsnabifyTitle(queryTitle)}+{searchCriteria.AbsoluteEpisodeNumber:00}"));
+
+                    if (includeAnimeStandardFormatSearch && SupportsEpisodeSearch)
                     {
                         pageableRequests.Add(GetPagedRequests(MaxPages,
                             Settings.AnimeCategories,
-                            "search",
-                            string.Format("&q={0}+" + mode,
-                            NewsnabifyTitle(queryTitle),
-                            searchCriteria.SeasonNumber,
-                            searchCriteria.EpisodeNumber)));
-                        if (Settings.AnimeStandardFormatSearch && searchCriteria.SeasonNumber > 0 && searchCriteria.EpisodeNumber > 0)
-                        {
-                            pageableRequests.Add(GetPagedRequests(MaxPages, Settings.AnimeCategories, "tvsearch", string.Format("&q={0}&season={1}&ep={2}", NewsnabifyTitle(queryTitle), searchCriteria.SeasonNumber, searchCriteria.EpisodeNumber)));
-                        }
+                            "tvsearch",
+                            $"&q={NewsnabifyTitle(queryTitle)}&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&ep={searchCriteria.EpisodeNumber}"));
                     }
                 }
             }
@@ -468,8 +495,9 @@ namespace NzbDrone.Core.Indexers.Newznab
             var includeImdbSearch = SupportsImdbSearch && searchCriteria.Series.ImdbId.IsNotNullOrWhiteSpace();
             var includeTvRageSearch = SupportsTvRageSearch && searchCriteria.Series.TvRageId > 0;
             var includeTvMazeSearch = SupportsTvMazeSearch && searchCriteria.Series.TvMazeId > 0;
+            var includeTmdbSearch = SupportsTmdbSearch && searchCriteria.Series.TmdbId > 0;
 
-            if (SupportsAggregatedIdSearch && (includeTvdbSearch || includeTvRageSearch || includeTvMazeSearch))
+            if (SupportsAggregatedIdSearch && (includeTvdbSearch || includeTvRageSearch || includeTvMazeSearch || includeTmdbSearch))
             {
                 var ids = "";
 
@@ -491,6 +519,11 @@ namespace NzbDrone.Core.Indexers.Newznab
                 if (includeTvMazeSearch)
                 {
                     ids += "&tvmazeid=" + searchCriteria.Series.TvMazeId;
+                }
+
+                if (includeTmdbSearch)
+                {
+                    ids += "&tmdbid=" + searchCriteria.Series.TmdbId;
                 }
 
                 chain.Add(GetPagedRequests(MaxPages, categories, "tvsearch", ids + parameters));
@@ -524,6 +557,13 @@ namespace NzbDrone.Core.Indexers.Newznab
                         categories,
                         "tvsearch",
                         $"&tvmazeid={searchCriteria.Series.TvMazeId}{parameters}"));
+                }
+                else if (includeTmdbSearch)
+                {
+                    chain.Add(GetPagedRequests(MaxPages,
+                        categories,
+                        "tvsearch",
+                        $"&tmdbid={searchCriteria.Series.TmdbId}{parameters}"));
                 }
             }
         }
