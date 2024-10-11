@@ -423,19 +423,23 @@ namespace NzbDrone.Core.Indexers.Newznab
 
                 var queryTitles = TextSearchEngine == "raw" ? searchCriteria.AllSceneTitles : searchCriteria.CleanSceneTitles;
 
-                foreach (var queryTitle in queryTitles)
-                {
-                    pageableRequests.Add(GetPagedRequests(MaxPages,
-                        Settings.AnimeCategories,
-                        "search",
-                        $"&q={NewsnabifyTitle(queryTitle)}+{searchCriteria.AbsoluteEpisodeNumber:00}"));
+                // Cap.{1:0}{2:00}
 
-                    if (includeAnimeStandardFormatSearch && SupportsEpisodeSearch)
+                foreach (var mode in searchCriteria.ModesSearchSpanish)
+                {
+                    foreach (var queryTitle in queryTitles)
                     {
                         pageableRequests.Add(GetPagedRequests(MaxPages,
-                            Settings.AnimeCategories,
-                            "tvsearch",
-                            $"&q={NewsnabifyTitle(queryTitle)}&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&ep={searchCriteria.EpisodeNumber}"));
+                           Settings.AnimeCategories,
+                           "search",
+                           string.Format("&q={0}+" + mode,
+                           NewsnabifyTitle(queryTitle),
+                           searchCriteria.SeasonNumber,
+                           searchCriteria.EpisodeNumber)));
+                        if (includeAnimeStandardFormatSearch && SupportsEpisodeSearch)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages, Settings.AnimeCategories, "tvsearch", string.Format("&q={0}&season={1}&ep={2}", NewsnabifyTitle(queryTitle), searchCriteria.SeasonNumber, searchCriteria.EpisodeNumber)));
+                        }
                     }
                 }
             }
