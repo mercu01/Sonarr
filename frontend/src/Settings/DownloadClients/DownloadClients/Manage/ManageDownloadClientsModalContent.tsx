@@ -14,7 +14,7 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import useSelectState from 'Helpers/Hooks/useSelectState';
 import { kinds } from 'Helpers/Props';
-import SortDirection from 'Helpers/Props/SortDirection';
+import { SortDirection } from 'Helpers/Props/sortDirections';
 import {
   bulkDeleteDownloadClients,
   bulkEditDownloadClients,
@@ -220,9 +220,9 @@ function ManageDownloadClientsModalContent(
 
         {error ? <div>{errorMessage}</div> : null}
 
-        {isPopulated && !error && !items.length && (
+        {isPopulated && !error && !items.length ? (
           <Alert kind={kinds.INFO}>{translate('NoDownloadClientsFound')}</Alert>
-        )}
+        ) : null}
 
         {isPopulated && !!items.length && !isFetching && !isFetching ? (
           <Table
@@ -231,9 +231,9 @@ function ManageDownloadClientsModalContent(
             selectAll={true}
             allSelected={allSelected}
             allUnselected={allUnselected}
-            onSelectAllChange={onSelectAllChange}
             sortKey={sortKey}
             sortDirection={sortDirection}
+            onSelectAllChange={onSelectAllChange}
             onSortPress={onSortPress}
           >
             <TableBody>
@@ -286,9 +286,9 @@ function ManageDownloadClientsModalContent(
 
       <ManageDownloadClientsEditModal
         isOpen={isEditModalOpen}
+        downloadClientIds={selectedIds}
         onModalClose={onEditModalClose}
         onSavePress={onSavePress}
-        downloadClientIds={selectedIds}
       />
 
       <TagsModal

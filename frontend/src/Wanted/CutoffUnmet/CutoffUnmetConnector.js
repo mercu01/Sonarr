@@ -49,7 +49,7 @@ class CutoffUnmetConnector extends Component {
       gotoCutoffUnmetFirstPage
     } = this.props;
 
-    registerPagePopulator(this.repopulate, ['episodeFileUpdated', 'episodeFileDeleted']);
+    registerPagePopulator(this.repopulate, ['seriesUpdated', 'episodeFileUpdated', 'episodeFileDeleted']);
 
     if (useCurrentPage) {
       fetchCutoffUnmet();
@@ -126,14 +126,16 @@ class CutoffUnmetConnector extends Component {
   onSearchSelectedPress = (selected) => {
     this.props.executeCommand({
       name: commandNames.EPISODE_SEARCH,
-      episodeIds: selected
+      episodeIds: selected,
+      commandFinished: this.repopulate
     });
   };
 
   onSearchAllCutoffUnmetPress = (monitored) => {
     this.props.executeCommand({
       name: commandNames.CUTOFF_UNMET_EPISODE_SEARCH,
-      monitored
+      monitored,
+      commandFinished: this.repopulate
     });
   };
 

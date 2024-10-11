@@ -2,9 +2,27 @@ import ModelBase from 'App/ModelBase';
 import Language from 'Language/Language';
 
 export type SeriesType = 'anime' | 'daily' | 'standard';
+export type SeriesMonitor =
+  | 'all'
+  | 'future'
+  | 'missing'
+  | 'existing'
+  | 'recent'
+  | 'pilot'
+  | 'firstSeason'
+  | 'lastSeason'
+  | 'monitorSpecials'
+  | 'unmonitorSpecials'
+  | 'none';
+
+export type SeriesStatus = 'continuing' | 'ended' | 'upcoming' | 'deleted';
+
+export type MonitorNewItems = 'all' | 'none';
+
+export type CoverType = 'poster' | 'banner' | 'fanart' | 'season';
 
 export interface Image {
-  coverType: string;
+  coverType: CoverType;
   url: string;
   remoteUrl: string;
 }
@@ -34,7 +52,16 @@ export interface Ratings {
 
 export interface AlternateTitle {
   seasonNumber: number;
+  sceneSeasonNumber?: number;
   title: string;
+  sceneOrigin: 'unknown' | 'unknown:tvdb' | 'mixed' | 'tvdb';
+  comment?: string;
+}
+
+export interface SeriesAddOptions {
+  monitor: SeriesMonitor;
+  searchForMissingEpisodes: boolean;
+  searchForCutoffUnmetEpisodes: boolean;
 }
 
 interface Series extends ModelBase {
@@ -46,8 +73,9 @@ interface Series extends ModelBase {
   firstAired: string;
   genres: string[];
   images: Image[];
-  imdbId: string;
+  imdbId?: string;
   monitored: boolean;
+  monitorNewItems: MonitorNewItems;
   network: string;
   originalLanguage: Language;
   overview: string;
@@ -63,16 +91,18 @@ interface Series extends ModelBase {
   seriesType: SeriesType;
   sortTitle: string;
   statistics: Statistics;
-  status: string;
+  status: SeriesStatus;
   tags: number[];
   title: string;
   titleSlug: string;
   tvdbId: number;
   tvMazeId: number;
   tvRageId: number;
+  tmdbId: number;
   useSceneNumbering: boolean;
   year: number;
   isSaving?: boolean;
+  addOptions: SeriesAddOptions;
 }
 
 export default Series;

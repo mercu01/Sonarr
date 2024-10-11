@@ -48,11 +48,6 @@ namespace NzbDrone.Core.Parser
 
             var languages = new List<Language>();
 
-            if (lowerTitle.Contains("french"))
-            {
-                languages.Add(Language.French);
-            }
-
             if (lowerTitle.Contains("spanish"))
             {
                 languages.Add(Language.Spanish);

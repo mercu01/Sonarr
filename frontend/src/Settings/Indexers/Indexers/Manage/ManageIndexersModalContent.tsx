@@ -14,7 +14,7 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import useSelectState from 'Helpers/Hooks/useSelectState';
 import { kinds } from 'Helpers/Props';
-import SortDirection from 'Helpers/Props/SortDirection';
+import { SortDirection } from 'Helpers/Props/sortDirections';
 import {
   bulkDeleteIndexers,
   bulkEditIndexers,
@@ -215,9 +215,9 @@ function ManageIndexersModalContent(props: ManageIndexersModalContentProps) {
 
         {error ? <div>{errorMessage}</div> : null}
 
-        {isPopulated && !error && !items.length && (
+        {isPopulated && !error && !items.length ? (
           <Alert kind={kinds.INFO}>{translate('NoIndexersFound')}</Alert>
-        )}
+        ) : null}
 
         {isPopulated && !!items.length && !isFetching && !isFetching ? (
           <Table
@@ -226,9 +226,9 @@ function ManageIndexersModalContent(props: ManageIndexersModalContentProps) {
             selectAll={true}
             allSelected={allSelected}
             allUnselected={allUnselected}
-            onSelectAllChange={onSelectAllChange}
             sortKey={sortKey}
             sortDirection={sortDirection}
+            onSelectAllChange={onSelectAllChange}
             onSortPress={onSortPress}
           >
             <TableBody>
@@ -281,9 +281,9 @@ function ManageIndexersModalContent(props: ManageIndexersModalContentProps) {
 
       <ManageIndexersEditModal
         isOpen={isEditModalOpen}
+        indexerIds={selectedIds}
         onModalClose={onEditModalClose}
         onSavePress={onSavePress}
-        indexerIds={selectedIds}
       />
 
       <TagsModal
