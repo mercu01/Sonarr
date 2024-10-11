@@ -1021,7 +1021,7 @@ namespace NzbDrone.Core.Parser
                         var count = last - first + 1;
                         result.EpisodeNumbers = Enumerable.Range(first, count).ToArray();
 
-                        lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, episodeCaptures.Last().EndIndex());
+                        // lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, episodeCaptures.Last().EndIndex());
 
                         if (matchGroup.Groups["special"].Success)
                         {
