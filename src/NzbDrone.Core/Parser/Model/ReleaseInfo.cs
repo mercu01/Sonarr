@@ -103,23 +103,12 @@ namespace NzbDrone.Core.Parser.Model
                     stringBuilder.AppendLine("DownloadProtocol: " + DownloadProtocol ?? "Empty");
                     stringBuilder.AppendLine("TvdbId: " + TvdbId ?? "Empty");
                     stringBuilder.AppendLine("TvRageId: " + TvRageId ?? "Empty");
+                    stringBuilder.AppendLine("ImdbId: " + ImdbId ?? "Empty");
                     stringBuilder.AppendLine("PublishDate: " + PublishDate ?? "Empty");
                     return stringBuilder.ToString();
                 default:
                     return ToString();
             }
         }
-    }
-
-    [Flags]
-    public enum IndexerFlags
-    {
-        Freeleech = 1, // General
-        Halfleech = 2, // General, only 1/2 of download counted
-        DoubleUpload = 4, // General
-        Internal = 8, // General, uploader is an internal release group
-        Scene = 16, // General, the torrent comes from a "scene" group
-        Freeleech75 = 32, // Signifies a torrent counts towards 75 percent of your download quota.
-        Freeleech25 = 64, // Signifies a torrent counts towards 25 percent of your download quota.
     }
 }

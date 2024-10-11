@@ -15,20 +15,19 @@ namespace Sonarr.Api.V3.Profiles.Quality
     public class QualityProfileController : RestController<QualityProfileResource>
     {
         private readonly IQualityProfileService _profileService;
-        private readonly ICustomFormatService _formatService;
 
         public QualityProfileController(IQualityProfileService profileService, ICustomFormatService formatService)
         {
             _profileService = profileService;
-            _formatService = formatService;
             SharedValidator.RuleFor(c => c.Name).NotEmpty();
 
+            SharedValidator.RuleFor(c => c.MinUpgradeFormatScore).GreaterThanOrEqualTo(1);
             SharedValidator.RuleFor(c => c.Cutoff).ValidCutoff();
             SharedValidator.RuleFor(c => c.Items).ValidItems();
 
             SharedValidator.RuleFor(c => c.FormatItems).Must(items =>
             {
-                var all = _formatService.All().Select(f => f.Id).ToList();
+                var all = formatService.All().Select(f => f.Id).ToList();
                 var ids = items.Select(i => i.Format);
 
                 return all.Except(ids).Empty();
@@ -46,7 +45,7 @@ namespace Sonarr.Api.V3.Profiles.Quality
 
         [RestPostById]
         [Consumes("application/json")]
-        public ActionResult<QualityProfileResource> Create(QualityProfileResource resource)
+        public ActionResult<QualityProfileResource> Create([FromBody] QualityProfileResource resource)
         {
             var model = resource.ToModel();
             model = _profileService.Add(model);
@@ -61,7 +60,7 @@ namespace Sonarr.Api.V3.Profiles.Quality
 
         [RestPutById]
         [Consumes("application/json")]
-        public ActionResult<QualityProfileResource> Update(QualityProfileResource resource)
+        public ActionResult<QualityProfileResource> Update([FromBody] QualityProfileResource resource)
         {
             var model = resource.ToModel();
 

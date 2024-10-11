@@ -3,7 +3,7 @@ import AppSectionState, {
   AppSectionSaveState,
 } from 'App/State/AppSectionState';
 import Column from 'Components/Table/Column';
-import SortDirection from 'Helpers/Props/SortDirection';
+import { SortDirection } from 'Helpers/Props/sortDirections';
 import Series from 'Series/Series';
 import { Filter, FilterBuilderProp } from './AppState';
 
@@ -20,6 +20,7 @@ export interface SeriesIndexAppState {
     showTitle: boolean;
     showMonitored: boolean;
     showQualityProfile: boolean;
+    showTags: boolean;
     showSearchAction: boolean;
   };
 
@@ -34,6 +35,7 @@ export interface SeriesIndexAppState {
     showSeasonCount: boolean;
     showPath: boolean;
     showSizeOnDisk: boolean;
+    showTags: boolean;
     showSearchAction: boolean;
   };
 

@@ -55,6 +55,7 @@ class AddNewSeriesSearchResult extends Component {
       titleSlug,
       year,
       network,
+      originalLanguage,
       status,
       overview,
       statistics,
@@ -145,14 +146,37 @@ class AddNewSeriesSearchResult extends Component {
               <Label size={sizes.LARGE}>
                 <HeartRating
                   rating={ratings.value}
+                  votes={ratings.votes}
                   iconSize={13}
                 />
               </Label>
 
               {
+                originalLanguage?.name ?
+                  <Label size={sizes.LARGE}>
+                    <Icon
+                      name={icons.LANGUAGE}
+                      size={13}
+                    />
+
+                    <span className={styles.originalLanguageName}>
+                      {originalLanguage.name}
+                    </span>
+                  </Label> :
+                  null
+              }
+
+              {
                 network ?
                   <Label size={sizes.LARGE}>
-                    {network}
+                    <Icon
+                      name={icons.NETWORK}
+                      size={13}
+                    />
+
+                    <span className={styles.network}>
+                      {network}
+                    </span>
                   </Label> :
                   null
               }
@@ -218,6 +242,7 @@ AddNewSeriesSearchResult.propTypes = {
   titleSlug: PropTypes.string.isRequired,
   year: PropTypes.number.isRequired,
   network: PropTypes.string,
+  originalLanguage: PropTypes.object,
   status: PropTypes.string.isRequired,
   overview: PropTypes.string,
   statistics: PropTypes.object.isRequired,

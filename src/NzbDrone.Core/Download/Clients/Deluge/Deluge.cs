@@ -124,11 +124,20 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             }
 
             var items = new List<DownloadClientItem>();
+            var ignoredCount = 0;
 
             foreach (var torrent in torrents)
             {
-                if (torrent.Hash == null)
+                // Silently ignore torrents with no hash
+                if (torrent.Hash.IsNullOrWhiteSpace())
                 {
+                    continue;
+                }
+
+                // Ignore torrents without a name, but track to log a single warning for all invalid torrents.
+                if (torrent.Name.IsNullOrWhiteSpace())
+                {
+                    ignoredCount++;
                     continue;
                 }
 
@@ -181,12 +190,18 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 // Here we detect if Deluge is managing the torrent and whether the seed criteria has been met.
                 // This allows Sonarr to delete the torrent as appropriate.
                 item.CanMoveFiles = item.CanBeRemoved =
+                    item.DownloadClientInfo.RemoveCompletedDownloads &&
                     torrent.IsAutoManaged &&
                     torrent.StopAtRatio &&
                     torrent.Ratio >= torrent.StopRatio &&
                     torrent.State == DelugeTorrentStatus.Paused;
 
                 items.Add(item);
+            }
+
+            if (ignoredCount > 0)
+            {
+                _logger.Warn("{0} torrent(s) were ignored because they did not have a title. Check Deluge and remove any invalid torrents");
             }
 
             return items;

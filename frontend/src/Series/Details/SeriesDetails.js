@@ -175,6 +175,7 @@ class SeriesDetails extends Component {
       tvdbId,
       tvMazeId,
       imdbId,
+      tmdbId,
       title,
       runtime,
       ratings,
@@ -184,6 +185,7 @@ class SeriesDetails extends Component {
       monitored,
       status,
       network,
+      originalLanguage,
       overview,
       images,
       seasons,
@@ -210,8 +212,8 @@ class SeriesDetails extends Component {
     } = this.props;
 
     const {
-      episodeFileCount,
-      sizeOnDisk
+      episodeFileCount = 0,
+      sizeOnDisk = 0
     } = statistics;
 
     const {
@@ -228,7 +230,7 @@ class SeriesDetails extends Component {
     } = this.state;
 
     const statusDetails = getSeriesStatusDetails(status);
-    const runningYears = statusDetails.title === translate('Ended') ? `${year}-${getDateYear(lastAired)}` : `${year}-`;
+    const runningYears = status === 'ended' ? `${year}-${getDateYear(lastAired)}` : `${year}-`;
 
     let episodeFilesCountMessage = translate('SeriesDetailsNoEpisodeFiles');
 
@@ -411,10 +413,12 @@ class SeriesDetails extends Component {
                       ratings.value ?
                         <HeartRating
                           rating={ratings.value}
+                          votes={ratings.votes}
                           iconSize={20}
                         /> :
                         null
                     }
+
                     <SeriesGenres genres={genres} />
 
                     <span>
@@ -428,7 +432,6 @@ class SeriesDetails extends Component {
                     className={styles.detailsLabel}
                     size={sizes.LARGE}
                   >
-
                     <div>
                       <Icon
                         name={icons.FOLDER}
@@ -446,16 +449,14 @@ class SeriesDetails extends Component {
                         className={styles.detailsLabel}
                         size={sizes.LARGE}
                       >
-
                         <div>
                           <Icon
                             name={icons.DRIVE}
                             size={17}
                           />
+
                           <span className={styles.sizeOnDisk}>
-                            {
-                              formatBytes(sizeOnDisk || 0)
-                            }
+                            {formatBytes(sizeOnDisk)}
                           </span>
                         </div>
                       </Label>
@@ -474,7 +475,6 @@ class SeriesDetails extends Component {
                     title={translate('QualityProfile')}
                     size={sizes.LARGE}
                   >
-
                     <div>
                       <Icon
                         name={icons.PROFILE}
@@ -494,7 +494,6 @@ class SeriesDetails extends Component {
                     className={styles.detailsLabel}
                     size={sizes.LARGE}
                   >
-
                     <div>
                       <Icon
                         name={monitored ? icons.MONITORED : icons.UNMONITORED}
@@ -510,37 +509,57 @@ class SeriesDetails extends Component {
                     className={styles.detailsLabel}
                     title={statusDetails.message}
                     size={sizes.LARGE}
+                    kind={status === 'deleted' ? kinds.INVERSE : undefined}
                   >
-
                     <div>
                       <Icon
                         name={statusDetails.icon}
                         size={17}
                       />
-                      <span className={styles.qualityProfileName}>
+                      <span className={styles.statusName}>
                         {statusDetails.title}
                       </span>
                     </div>
                   </Label>
 
                   {
-                    !!network &&
+                    originalLanguage?.name ?
+                      <Label
+                        className={styles.detailsLabel}
+                        title={translate('OriginalLanguage')}
+                        size={sizes.LARGE}
+                      >
+                        <div>
+                          <Icon
+                            name={icons.LANGUAGE}
+                            size={17}
+                          />
+                          <span className={styles.originalLanguageName}>
+                            {originalLanguage.name}
+                          </span>
+                        </div>
+                      </Label> :
+                      null
+                  }
+
+                  {
+                    network ?
                       <Label
                         className={styles.detailsLabel}
                         title={translate('Network')}
                         size={sizes.LARGE}
                       >
-
                         <div>
                           <Icon
                             name={icons.NETWORK}
                             size={17}
                           />
-                          <span className={styles.qualityProfileName}>
+                          <span className={styles.network}>
                             {network}
                           </span>
                         </div>
-                      </Label>
+                      </Label> :
+                      null
                   }
 
                   <Tooltip
@@ -549,7 +568,6 @@ class SeriesDetails extends Component {
                         className={styles.detailsLabel}
                         size={sizes.LARGE}
                       >
-
                         <div>
                           <Icon
                             name={icons.EXTERNAL_LINK}
@@ -566,6 +584,7 @@ class SeriesDetails extends Component {
                         tvdbId={tvdbId}
                         tvMazeId={tvMazeId}
                         imdbId={imdbId}
+                        tmdbId={tmdbId}
                       />
                     }
                     kind={kinds.INVERSE}
@@ -719,6 +738,7 @@ SeriesDetails.propTypes = {
   tvdbId: PropTypes.number.isRequired,
   tvMazeId: PropTypes.number,
   imdbId: PropTypes.string,
+  tmdbId: PropTypes.number,
   title: PropTypes.string.isRequired,
   runtime: PropTypes.number.isRequired,
   ratings: PropTypes.object.isRequired,
@@ -729,6 +749,7 @@ SeriesDetails.propTypes = {
   monitor: PropTypes.string,
   status: PropTypes.string.isRequired,
   network: PropTypes.string,
+  originalLanguage: PropTypes.object,
   overview: PropTypes.string.isRequired,
   images: PropTypes.arrayOf(PropTypes.object).isRequired,
   seasons: PropTypes.arrayOf(PropTypes.object).isRequired,

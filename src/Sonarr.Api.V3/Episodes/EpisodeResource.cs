@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Tv;
 using Sonarr.Api.V3.EpisodeFiles;
 using Sonarr.Api.V3.Series;
 using Sonarr.Http.REST;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Sonarr.Api.V3.Episodes
 {
@@ -20,6 +21,7 @@ namespace Sonarr.Api.V3.Episodes
         public string Title { get; set; }
         public string AirDate { get; set; }
         public DateTime? AirDateUtc { get; set; }
+        public DateTime? LastSearchTime { get; set; }
         public int Runtime { get; set; }
         public string FinaleType { get; set; }
         public string Overview { get; set; }
@@ -33,13 +35,12 @@ namespace Sonarr.Api.V3.Episodes
         public bool UnverifiedSceneNumbering { get; set; }
         public DateTime? EndTime { get; set; }
         public DateTime? GrabDate { get; set; }
-        public string SeriesTitle { get; set; }
         public SeriesResource Series { get; set; }
-
         public List<MediaCover> Images { get; set; }
 
         // Hiding this so people don't think its usable (only used to set the initial state)
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [SwaggerIgnore]
         public bool Grabbed { get; set; }
     }
 
@@ -67,6 +68,7 @@ namespace Sonarr.Api.V3.Episodes
                 Runtime = model.Runtime,
                 FinaleType = model.FinaleType,
                 Overview = model.Overview,
+                LastSearchTime = model.LastSearchTime,
 
                 // EpisodeFile
 
@@ -77,7 +79,6 @@ namespace Sonarr.Api.V3.Episodes
                 SceneEpisodeNumber = model.SceneEpisodeNumber,
                 SceneSeasonNumber = model.SceneSeasonNumber,
                 UnverifiedSceneNumbering = model.UnverifiedSceneNumbering,
-                SeriesTitle = model.SeriesTitle,
 
                 // Series = model.Series.MapToResource(),
             };
