@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useSelect } from 'App/Select/SelectContext';
 import Icon from 'Components/Icon';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
@@ -18,6 +18,7 @@ import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import SelectEpisodeModal from 'InteractiveImport/Episode/SelectEpisodeModal';
 import { SelectedEpisode } from 'InteractiveImport/Episode/SelectEpisodeModalContent';
 import SelectIndexerFlagsModal from 'InteractiveImport/IndexerFlags/SelectIndexerFlagsModal';
+import InteractiveImport from 'InteractiveImport/InteractiveImport';
 import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
 import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
 import SelectReleaseGroupModal from 'InteractiveImport/ReleaseGroup/SelectReleaseGroupModal';
@@ -25,14 +26,11 @@ import ReleaseType from 'InteractiveImport/ReleaseType';
 import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
 import SelectSeasonModal from 'InteractiveImport/Season/SelectSeasonModal';
 import SelectSeriesModal from 'InteractiveImport/Series/SelectSeriesModal';
+import { useUpdateInteractiveImportItem } from 'InteractiveImport/useInteractiveImport';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
 import Series from 'Series/Series';
-import {
-  reprocessInteractiveImportItems,
-  updateInteractiveImportItem,
-} from 'Store/Actions/interactiveImportActions';
-import CustomFormat from 'typings/CustomFormat';
+import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import { SelectStateInputProps } from 'typings/props';
 import Rejection from 'typings/Rejection';
 import formatBytes from 'Utilities/Number/formatBytes';
@@ -74,8 +72,8 @@ interface InteractiveImportRowProps {
   columns: Column[];
   episodeFileId?: number;
   isReprocessing?: boolean;
-  isSelected?: boolean;
   modalTitle: string;
+  onReprocessItems: (ids: number[]) => void;
   onSelectedChange(result: SelectedChangeProps): void;
   onValidRowChange(id: number, isValid: boolean): void;
 }
@@ -98,15 +96,17 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     indexerFlags,
     rejections,
     isReprocessing,
-    isSelected,
     modalTitle,
     episodeFileId,
     columns,
+    onReprocessItems,
     onSelectedChange,
     onValidRowChange,
   } = props;
 
-  const dispatch = useDispatch();
+  const { useIsSelected } = useSelect<InteractiveImport>();
+  const isSelected = useIsSelected(id);
+  const { updateInteractiveImportItem } = useUpdateInteractiveImportItem();
 
   const isSeriesColumnVisible = useMemo(
     () => columns.find((c) => c.name === 'series')?.isVisible ?? false,
@@ -169,8 +169,8 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     onValidRowChange,
   ]);
 
-  const onSelectedChangeWrapper = useCallback(
-    (result: SelectedChangeProps) => {
+  const handleSelectedChange = useCallback(
+    (result: SelectStateInputProps) => {
       onSelectedChange({
         ...result,
         hasEpisodeFileId: !!episodeFileId,
@@ -200,21 +200,23 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onSeriesSelect = useCallback(
     (series: Series) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          series,
-          seasonNumber: undefined,
-          episodes: [],
-        })
-      );
+      updateInteractiveImportItem(id, {
+        series,
+        seasonNumber: undefined,
+        episodes: [],
+      });
 
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
-
+      onReprocessItems([id]);
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const onSelectSeasonPress = useCallback(() => {
@@ -223,20 +225,22 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onSeasonSelect = useCallback(
     (seasonNumber: number) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          seasonNumber,
-          episodes: [],
-        })
-      );
+      updateInteractiveImportItem(id, {
+        seasonNumber,
+        episodes: [],
+      });
 
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
-
+      onReprocessItems([id]);
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const onSelectEpisodePress = useCallback(() => {
@@ -245,19 +249,20 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onEpisodesSelect = useCallback(
     (selectedEpisodes: SelectedEpisode[]) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          episodes: selectedEpisodes[0].episodes,
-        })
-      );
-
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
+      const episodes = selectedEpisodes[0].episodes;
+      updateInteractiveImportItem(id, { episodes });
+      onReprocessItems([id]);
 
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const onSelectReleaseGroupPress = useCallback(() => {
@@ -266,19 +271,19 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onReleaseGroupSelect = useCallback(
     (releaseGroup: string) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          releaseGroup,
-        })
-      );
-
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
+      updateInteractiveImportItem(id, { releaseGroup });
+      onReprocessItems([id]);
 
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const onSelectQualityPress = useCallback(() => {
@@ -287,19 +292,19 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onQualitySelect = useCallback(
     (quality: QualityModel) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          quality,
-        })
-      );
-
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
+      updateInteractiveImportItem(id, { quality });
+      onReprocessItems([id]);
 
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const onSelectLanguagePress = useCallback(() => {
@@ -308,19 +313,19 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onLanguagesSelect = useCallback(
     (languages: Language[]) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          languages,
-        })
-      );
-
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
+      updateInteractiveImportItem(id, { languages });
+      onReprocessItems([id]);
 
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const onSelectReleaseTypePress = useCallback(() => {
@@ -329,19 +334,19 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onReleaseTypeSelect = useCallback(
     (releaseType: ReleaseType) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          releaseType,
-        })
-      );
-
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
+      updateInteractiveImportItem(id, { releaseType });
+      onReprocessItems([id]);
 
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const onSelectIndexerFlagsPress = useCallback(() => {
@@ -350,19 +355,19 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
   const onIndexerFlagsSelect = useCallback(
     (indexerFlags: number) => {
-      dispatch(
-        updateInteractiveImportItem({
-          id,
-          indexerFlags,
-        })
-      );
-
-      dispatch(reprocessInteractiveImportItems({ ids: [id] }));
+      updateInteractiveImportItem(id, { indexerFlags });
+      onReprocessItems([id]);
 
       setSelectModalOpen(null);
       selectRowAfterChange();
     },
-    [id, dispatch, setSelectModalOpen, selectRowAfterChange]
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
   );
 
   const seriesTitle = series ? series.title : '';
@@ -398,7 +403,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
       <TableSelectCell
         id={id}
         isSelected={isSelected}
-        onSelectedChange={onSelectedChangeWrapper}
+        onSelectedChange={handleSelectedChange}
       />
 
       <TableRowCell className={styles.relativePath} title={relativePath}>
@@ -545,7 +550,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
             body={
               <ul>
                 {rejections.map((rejection, index) => {
-                  return <li key={index}>{rejection.reason}</li>;
+                  return <li key={index}>{rejection.message}</li>;
                 })}
               </ul>
             }

@@ -140,7 +140,7 @@ namespace NzbDrone.Core.Download
                 request.AllowAutoRedirect = false;
 
                 var response = await RetryStrategy
-                    .ExecuteAsync(static async (state, _) => await state._httpClient.GetAsync(state.request), (_httpClient, request))
+                    .ExecuteAsync(static async (state, token) => await state._httpClient.GetAsync(state.request, token), (_httpClient, request))
                     .ConfigureAwait(false);
 
                 if (response.StatusCode == HttpStatusCode.MovedPermanently ||
@@ -172,7 +172,7 @@ namespace NzbDrone.Core.Download
             }
             catch (HttpException ex)
             {
-                if (ex.Response.StatusCode == HttpStatusCode.NotFound)
+                if (ex.Response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone)
                 {
                     _logger.Error(ex, "Downloading torrent file for episode '{0}' failed since it no longer exists ({1})", remoteEpisode.Release.Title, torrentUrl);
                     throw new ReleaseUnavailableException(remoteEpisode.Release, "Downloading torrent failed", ex);
@@ -221,7 +221,7 @@ namespace NzbDrone.Core.Download
 
             try
             {
-                hash = MagnetLink.Parse(magnetUrl).InfoHash.ToHex();
+                hash = MagnetLink.Parse(magnetUrl).InfoHashes.V1OrV2.ToHex();
             }
             catch (FormatException ex)
             {

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useSelect } from 'App/Select/SelectContext';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
@@ -7,28 +7,51 @@ import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import TableRow from 'Components/Table/TableRow';
 import useModalOpenState from 'Helpers/Hooks/useModalOpenState';
 import { icons, kinds } from 'Helpers/Props';
-import { deleteImportListExclusion } from 'Store/Actions/Settings/importListExclusions';
-import ImportListExclusion from 'typings/ImportListExclusion';
 import { SelectStateInputProps } from 'typings/props';
 import translate from 'Utilities/String/translate';
 import EditImportListExclusionModal from './EditImportListExclusionModal';
+import {
+  ImportListExclusion,
+  useDeleteImportListExclusion,
+} from './useImportListExclusions';
 import styles from './ImportListExclusionRow.css';
 
 interface ImportListExclusionRowProps extends ImportListExclusion {
-  isSelected: boolean;
-  onSelectedChange: (options: SelectStateInputProps) => void;
+  onModalClose: () => void;
 }
 
-function ImportListExclusionRow(props: ImportListExclusionRowProps) {
-  const { id, tvdbId, title, isSelected, onSelectedChange } = props;
+function ImportListExclusionRow({
+  id,
+  tvdbId,
+  title,
+  onModalClose,
+}: ImportListExclusionRowProps) {
+  const { toggleSelected, useIsSelected } = useSelect<ImportListExclusion>();
+  const isSelected = useIsSelected(id);
 
-  const dispatch = useDispatch();
+  const { deleteImportListExclusion } = useDeleteImportListExclusion(id);
+
+  const handleSelectedChange = useCallback(
+    ({ id, value, shiftKey = false }: SelectStateInputProps) => {
+      toggleSelected({
+        id,
+        isSelected: value,
+        shiftKey,
+      });
+    },
+    [toggleSelected]
+  );
 
   const [
     isEditImportListExclusionModalOpen,
     setEditImportListExclusionModalOpen,
     setEditImportListExclusionModalClosed,
   ] = useModalOpenState(false);
+
+  const handleEditModalClose = useCallback(() => {
+    setEditImportListExclusionModalClosed();
+    onModalClose();
+  }, [setEditImportListExclusionModalClosed, onModalClose]);
 
   const [
     isDeleteImportListExclusionModalOpen,
@@ -37,15 +60,15 @@ function ImportListExclusionRow(props: ImportListExclusionRowProps) {
   ] = useModalOpenState(false);
 
   const handleDeletePress = useCallback(() => {
-    dispatch(deleteImportListExclusion({ id }));
-  }, [id, dispatch]);
+    deleteImportListExclusion();
+  }, [deleteImportListExclusion]);
 
   return (
     <TableRow>
       <TableSelectCell
         id={id}
         isSelected={isSelected}
-        onSelectedChange={onSelectedChange}
+        onSelectedChange={handleSelectedChange}
       />
 
       <TableRowCell>{title}</TableRowCell>
@@ -54,14 +77,17 @@ function ImportListExclusionRow(props: ImportListExclusionRowProps) {
       <TableRowCell className={styles.actions}>
         <IconButton
           name={icons.EDIT}
+          aria-label={translate('Edit')}
           onPress={setEditImportListExclusionModalOpen}
         />
       </TableRowCell>
 
       <EditImportListExclusionModal
         id={id}
+        title={title}
+        tvdbId={tvdbId}
         isOpen={isEditImportListExclusionModalOpen}
-        onModalClose={setEditImportListExclusionModalClosed}
+        onModalClose={handleEditModalClose}
         onDeleteImportListExclusionPress={setDeleteImportListExclusionModalOpen}
       />
 

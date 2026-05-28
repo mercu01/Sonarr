@@ -1,111 +1,104 @@
 import React, { useCallback, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import AppState from 'App/State/AppState';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
+import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import { inputTypes, kinds } from 'Helpers/Props';
-import { clearPendingChanges } from 'Store/Actions/baseActions';
+import { useShowAdvancedSettings } from 'Settings/advancedSettingsStore';
+import { InputChanged } from 'typings/inputs';
 import {
-  fetchImportListOptions,
-  saveImportListOptions,
-  setImportListOptionsValue,
-} from 'Store/Actions/settingsActions';
-import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
+  OnChildStateChange,
+  SetChildSave,
+} from 'typings/Settings/SettingsState';
 import translate from 'Utilities/String/translate';
+import { useManageImportListSettings } from './useImportListSettings';
 
-const SECTION = 'importListOptions';
-const cleanLibraryLevelOptions = [
-  { key: 'disabled', value: () => translate('Disabled') },
-  { key: 'logOnly', value: () => translate('LogOnly') },
-  { key: 'keepAndUnmonitor', value: () => translate('KeepAndUnmonitorSeries') },
-  { key: 'keepAndTag', value: () => translate('KeepAndTagSeries') },
+const cleanLibraryLevelOptions: EnhancedSelectInputValue<string>[] = [
+  {
+    key: 'disabled',
+    get value() {
+      return translate('Disabled');
+    },
+  },
+  {
+    key: 'logOnly',
+    get value() {
+      return translate('LogOnly');
+    },
+  },
+  {
+    key: 'keepAndUnmonitor',
+    get value() {
+      return translate('KeepAndUnmonitorSeries');
+    },
+  },
+  {
+    key: 'keepAndTag',
+    get value() {
+      return translate('KeepAndTagSeries');
+    },
+  },
 ];
 
-function createImportListOptionsSelector() {
-  return createSelector(
-    (state: AppState) => state.settings.advancedSettings,
-    createSettingsSectionSelector(SECTION),
-    (advancedSettings, sectionSettings) => {
-      return {
-        advancedSettings,
-        save: sectionSettings.isSaving,
-        ...sectionSettings,
-      };
-    }
-  );
+interface ImportListOptionsProps {
+  setChildSave: SetChildSave;
+  onChildStateChange: OnChildStateChange;
 }
 
-interface ImportListOptionsPageProps {
-  setChildSave(saveCallback: () => void): void;
-  onChildStateChange(payload: unknown): void;
-}
-
-function ImportListOptions(props: ImportListOptionsPageProps) {
-  const { setChildSave, onChildStateChange } = props;
+function ImportListOptions({
+  setChildSave,
+  onChildStateChange,
+}: ImportListOptionsProps) {
+  const showAdvancedSettings = useShowAdvancedSettings();
 
   const {
-    isSaving,
-    hasPendingChanges,
-    advancedSettings,
     isFetching,
+    isFetched,
+    isSaving,
     error,
     settings,
     hasSettings,
-  } = useSelector(createImportListOptionsSelector());
+    hasPendingChanges,
+    saveSettings,
+    updateSetting,
+  } = useManageImportListSettings();
 
-  const { listSyncLevel, listSyncTag } = settings;
-
-  const dispatch = useDispatch();
-
-  const onInputChange = useCallback(
-    ({ name, value }: { name: string; value: unknown }) => {
-      // @ts-expect-error 'setImportListOptionsValue' isn't typed yet
-      dispatch(setImportListOptionsValue({ name, value }));
+  const handleInputChange = useCallback(
+    ({ name, value }: InputChanged) => {
+      // @ts-expect-error - InputChanged name/value are not typed as keyof ImportListSettingsModel
+      updateSetting(name, value);
     },
-    [dispatch]
+    [updateSetting]
   );
 
-  const onTagChange = useCallback(
-    ({ name, value }: { name: string; value: number[] }) => {
-      const id = value.length === 0 ? 0 : value.pop();
-      // @ts-expect-error 'setImportListOptionsValue' isn't typed yet
-      dispatch(setImportListOptionsValue({ name, value: id }));
+  const handleTagChange = useCallback(
+    ({ value }: { name: string; value: number[] }) => {
+      const id = value.length === 0 ? 0 : value[value.length - 1];
+      updateSetting('listSyncTag', id);
     },
-    [dispatch]
+    [updateSetting]
   );
 
   useEffect(() => {
-    dispatch(fetchImportListOptions());
-    setChildSave(() => dispatch(saveImportListOptions()));
-
-    return () => {
-      dispatch(clearPendingChanges({ section: SECTION }));
-    };
-  }, [dispatch, setChildSave]);
+    setChildSave(saveSettings);
+  }, [saveSettings, setChildSave]);
 
   useEffect(() => {
     onChildStateChange({
       isSaving,
       hasPendingChanges,
     });
-  }, [onChildStateChange, isSaving, hasPendingChanges]);
+  }, [hasPendingChanges, isSaving, onChildStateChange]);
 
-  const translatedLevelOptions = cleanLibraryLevelOptions.map(
-    ({ key, value }) => {
-      return {
-        key,
-        value: value(),
-      };
-    }
-  );
+  if (!showAdvancedSettings) {
+    return null;
+  }
 
-  return advancedSettings ? (
+  return (
     <FieldSet legend={translate('Options')}>
       {isFetching ? <LoadingIndicator /> : null}
 
@@ -113,36 +106,44 @@ function ImportListOptions(props: ImportListOptionsPageProps) {
         <Alert kind={kinds.DANGER}>{translate('ListOptionsLoadError')}</Alert>
       ) : null}
 
-      {hasSettings && !isFetching && !error ? (
+      {hasSettings && isFetched && !error ? (
         <Form>
-          <FormGroup advancedSettings={advancedSettings} isAdvanced={true}>
+          <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
             <FormLabel>{translate('CleanLibraryLevel')}</FormLabel>
             <FormInputGroup
               type={inputTypes.SELECT}
               name="listSyncLevel"
-              values={translatedLevelOptions}
+              values={cleanLibraryLevelOptions}
               helpText={translate('ListSyncLevelHelpText')}
-              onChange={onInputChange}
-              {...listSyncLevel}
+              onChange={handleInputChange}
+              {...settings.listSyncLevel}
             />
           </FormGroup>
-          {listSyncLevel.value === 'keepAndTag' ? (
-            <FormGroup advancedSettings={advancedSettings} isAdvanced={true}>
+
+          {settings.listSyncLevel.value === 'keepAndTag' ? (
+            <FormGroup
+              advancedSettings={showAdvancedSettings}
+              isAdvanced={true}
+            >
               <FormLabel>{translate('ListSyncTag')}</FormLabel>
               <FormInputGroup
-                {...listSyncTag}
-                type={inputTypes.TAG}
+                {...settings.listSyncTag}
+                type={inputTypes.SERIES_TAG}
                 name="listSyncTag"
-                value={listSyncTag.value === 0 ? [] : [listSyncTag.value]}
+                value={
+                  settings.listSyncTag.value === 0
+                    ? []
+                    : [settings.listSyncTag.value]
+                }
                 helpText={translate('ListSyncTagHelpText')}
-                onChange={onTagChange}
+                onChange={handleTagChange}
               />
             </FormGroup>
           ) : null}
         </Form>
       ) : null}
     </FieldSet>
-  ) : null;
+  );
 }
 
 export default ImportListOptions;

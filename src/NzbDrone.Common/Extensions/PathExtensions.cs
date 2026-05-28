@@ -54,6 +54,10 @@ namespace NzbDrone.Common.Extensions
 
         public static bool PathEquals(this string firstPath, string secondPath, StringComparison? comparison = null)
         {
+            // Normalize paths to ensure unicode characters are represented the same way
+            firstPath = firstPath.Normalize();
+            secondPath = secondPath?.Normalize();
+
             if (!comparison.HasValue)
             {
                 comparison = DiskProviderBase.PathStringComparison;
@@ -85,7 +89,7 @@ namespace NzbDrone.Common.Extensions
                 throw new NotParentException("{0} is not a child of {1}", childPath, parentPath);
             }
 
-            return childPath.Substring(parentPath.Length).Trim(Path.DirectorySeparatorChar);
+            return childPath.Substring(parentPath.Length).Trim('\\', '/');
         }
 
         public static string GetParentPath(this string childPath)

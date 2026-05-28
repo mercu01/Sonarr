@@ -74,13 +74,31 @@ namespace NzbDrone.Core.Parser
 
         private Series GetSeriesByAllTitles(ParsedEpisodeInfo parsedEpisodeInfo)
         {
+            var year = parsedEpisodeInfo.SeriesTitleInfo.Year;
             Series foundSeries = null;
             int? foundTvdbId = null;
 
             // Match each title individually, they must all resolve to the same tvdbid
             foreach (var title in parsedEpisodeInfo.SeriesTitleInfo.AllTitles)
             {
-                var series = _seriesService.FindByTitle(title);
+                Series series = null;
+
+                if (year > 0)
+                {
+                    series = _seriesService.FindByTitle(title, year);
+
+                    // Fall back to title + year being part of the title, this will allow
+                    // matching series with the same name that include the year in the title.
+                    if (series == null)
+                    {
+                        series = _seriesService.FindByTitle($"{title} {year}");
+                    }
+                }
+                else
+                {
+                    series = _seriesService.FindByTitle(title);
+                }
+
                 var tvdbId = series?.TvdbId;
 
                 if (series == null)
@@ -114,6 +132,25 @@ namespace NzbDrone.Core.Parser
             }
 
             return foundSeries;
+        }
+
+        private Series GetSeriesAliasTitleAndYear(ParsedEpisodeInfo parsedEpisodeInfo)
+        {
+            var year = parsedEpisodeInfo.SeriesTitleInfo.Year;
+            var titleWithoutyear = parsedEpisodeInfo.SeriesTitleInfo.TitleWithoutYear;
+            var tvdbId = _sceneMappingService.FindTvdbId(titleWithoutyear, parsedEpisodeInfo.ReleaseTitle, parsedEpisodeInfo.SeasonNumber);
+
+            if (tvdbId.HasValue)
+            {
+                var series = _seriesService.FindByTvdbId(tvdbId.Value);
+
+                if (series != null && series.Year == year)
+                {
+                    return series;
+                }
+            }
+
+            return null;
         }
 
         public RemoteEpisode Map(ParsedEpisodeInfo parsedEpisodeInfo, int tvdbId, int tvRageId, string imdbId, SearchCriteriaBase searchCriteria = null)
@@ -353,7 +390,7 @@ namespace NzbDrone.Core.Parser
                     EpisodeNumbers = new int[1] { episode.EpisodeNumber },
                     FullSeason = false,
                     Quality = QualityParser.ParseQuality(releaseTitle),
-                    ReleaseGroup = Parser.ParseReleaseGroup(releaseTitle),
+                    ReleaseGroup = ReleaseGroupParser.ParseReleaseGroup(releaseTitle),
                     Languages = LanguageParser.ParseLanguages(releaseTitle),
                     Special = true
                 };
@@ -449,6 +486,12 @@ namespace NzbDrone.Core.Parser
             {
                 series = _seriesService.FindByTitle(parsedEpisodeInfo.SeriesTitleInfo.TitleWithoutYear, parsedEpisodeInfo.SeriesTitleInfo.Year);
                 matchType = SeriesMatchType.Title;
+
+                if (series == null)
+                {
+                    series = GetSeriesAliasTitleAndYear(parsedEpisodeInfo);
+                    matchType = SeriesMatchType.Alias;
+                }
             }
 
             if (series == null && tvdbId > 0)

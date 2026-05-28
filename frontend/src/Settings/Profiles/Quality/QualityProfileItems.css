@@ -1,11 +1,25 @@
-.editGroupsButton {
-  composes: button from '~Components/Link/Button.css';
-
+.modeActions {
+  display: flex;
+  align-items: center;
   margin-top: 10px;
 }
 
-.editGroupsButtonIcon {
+.editGroupsButton {
+  composes: button from '~Components/Link/Button.css';
+}
+
+.editSizesButton {
+  composes: button from '~Components/Link/Button.css';
+
+  margin-left: 10px;
+}
+
+.editButtonIcon {
   margin-right: 8px;
+}
+
+.editSizesBadge {
+  margin-left: 10px;
 }
 
 .qualities {

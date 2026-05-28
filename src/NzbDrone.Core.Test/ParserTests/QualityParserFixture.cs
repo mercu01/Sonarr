@@ -261,6 +261,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.S01E01.Erste.Begegnungen.German.DD51.Synced.DL.1080p.HBOMaxHD.AVC-TVS", false)]
         [TestCase("Series.Title.S01E05.Tavora.greift.an.German.DL.1080p.DisneyHD.h264-4SF", false)]
         [TestCase("Series.Title.S02E04.German.Dubbed.DL.AAC.1080p.WEB.AVC-GROUP", false)]
+        [TestCase("Tiny.Series.2020.DOC.S01.MULTi.1080p.ATVP.WEB.Atmos.H.265-TFA", false)]
         public void should_parse_webdl1080p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBDL1080p, proper);
@@ -287,6 +288,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title S02 2013 WEB-DL 4k H265 AAC 2Audio-HDSWEB", false)]
         [TestCase("Series.Title.S02E02.This.Year.Will.Be.Different.2160p.WEB.H.265", false)]
         [TestCase("Series.Title.S02E04.German.Dubbed.DL.AAC.2160p.DV.HDR.WEB.HEVC-GROUP", false)]
+        [TestCase("Series.S01.MULTi.2160p.NF.SDR.WEB.DDP.5.1.Atmos.h265-FRESH", false)]
         public void should_parse_webdl2160p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBDL2160p, proper);
@@ -500,6 +502,13 @@ namespace NzbDrone.Core.Test.ParserTests
             var result = QualityParser.ParseQuality(title);
             result.Revision.Version.Should().Be(version);
             result.Revision.IsRepack.Should().Be(isRepack);
+        }
+
+        [TestCase("[MTBB] Series Title - S02E02 - 027 - Episode Title [WEBDL-1080p v2][x264][AAC]", 2)]
+        public void should_be_able_to_parse_anime_version(string title, int version)
+        {
+            var result = QualityParser.ParseQuality(title);
+            result.Revision.Version.Should().Be(version);
         }
 
         private void ParseAndVerifyQuality(string title, Quality quality, bool proper)

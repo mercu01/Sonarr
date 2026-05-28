@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
-using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Parser.Model;
@@ -38,9 +36,6 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                     Title = "Series.Title.S01-05.720p.BluRay.X264-RlsGrp"
                 }
             };
-
-            Mocker.GetMock<IEpisodeService>().Setup(s => s.EpisodesBetweenDates(It.IsAny<DateTime>(), It.IsAny<DateTime>(), false))
-                                             .Returns(new List<Episode>());
         }
 
         [Test]
@@ -48,13 +43,13 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             _remoteEpisode.ParsedEpisodeInfo.IsMultiSeason = false;
             _remoteEpisode.Episodes.Last().AirDateUtc = DateTime.UtcNow.AddDays(+2);
-            Subject.IsSatisfiedBy(_remoteEpisode, null).Accepted.Should().BeTrue();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
         public void should_return_false_if_is_a_multi_season_release()
         {
-            Subject.IsSatisfiedBy(_remoteEpisode, null).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
         }
     }
 }

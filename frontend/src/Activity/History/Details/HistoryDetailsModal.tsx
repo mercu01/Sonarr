@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import Button from 'Components/Link/Button';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import Modal from 'Components/Modal/Modal';
@@ -9,6 +9,7 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
 import { HistoryData, HistoryEventType } from 'typings/History';
 import translate from 'Utilities/String/translate';
+import { useMarkAsFailed } from '../useHistory';
 import HistoryDetails from './HistoryDetails';
 import styles from './HistoryDetailsModal.css';
 
@@ -33,26 +34,32 @@ function getHeaderTitle(eventType: HistoryEventType) {
 
 interface HistoryDetailsModalProps {
   isOpen: boolean;
+  id: number;
   eventType: HistoryEventType;
   sourceTitle: string;
   data: HistoryData;
   downloadId?: string;
-  isMarkingAsFailed: boolean;
-  onMarkAsFailedPress: () => void;
   onModalClose: () => void;
 }
 
 function HistoryDetailsModal(props: HistoryDetailsModalProps) {
-  const {
-    isOpen,
-    eventType,
-    sourceTitle,
-    data,
-    downloadId,
-    isMarkingAsFailed = false,
-    onMarkAsFailedPress,
-    onModalClose,
-  } = props;
+  const { isOpen, id, eventType, sourceTitle, data, downloadId, onModalClose } =
+    props;
+
+  const { markAsFailed, isMarkingAsFailed, markAsFailedError } =
+    useMarkAsFailed(id);
+
+  const wasMarkingAsFailed = useRef(isMarkingAsFailed);
+
+  const handleMarkAsFailedPress = useCallback(() => {
+    markAsFailed();
+  }, [markAsFailed]);
+
+  useEffect(() => {
+    if (wasMarkingAsFailed && !isMarkingAsFailed && !markAsFailedError) {
+      onModalClose();
+    }
+  }, [wasMarkingAsFailed, isMarkingAsFailed, markAsFailedError, onModalClose]);
 
   return (
     <Modal isOpen={isOpen} onModalClose={onModalClose}>
@@ -74,7 +81,7 @@ function HistoryDetailsModal(props: HistoryDetailsModalProps) {
               className={styles.markAsFailedButton}
               kind={kinds.DANGER}
               isSpinning={isMarkingAsFailed}
-              onPress={onMarkAsFailedPress}
+              onPress={handleMarkAsFailedPress}
             >
               {translate('MarkAsFailed')}
             </SpinnerButton>

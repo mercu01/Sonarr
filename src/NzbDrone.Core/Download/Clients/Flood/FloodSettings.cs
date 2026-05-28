@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Download.Clients.Flood.Models;
 using NzbDrone.Core.Validation;
@@ -13,12 +14,15 @@ namespace NzbDrone.Core.Download.Clients.Flood
         {
             RuleFor(c => c.Host).ValidHost();
             RuleFor(c => c.Port).InclusiveBetween(1, 65535);
+            RuleFor(c => c.PostImportTags)
+                .Must((settings, postImportTags) => postImportTags.Intersect(settings.Tags).Empty())
+                .WithMessage("Post-Import Tags must not include any tags in the Tags list.");
         }
     }
 
     public class FloodSettings : DownloadClientSettingsBase<FloodSettings>
     {
-        private static readonly FloodSettingsValidator Validator = new ();
+        private static readonly FloodSettingsValidator Validator = new();
 
         public FloodSettings()
         {

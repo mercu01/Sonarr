@@ -42,7 +42,12 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Title.the.Italy.Series.S02E01.720p.HDTV.x264-TLA")]
         [TestCase("Series Title - S01E01 - Pilot.en.sub")]
         [TestCase("Series.Title.S01E01.SUBFRENCH.1080p.WEB.x264-GROUP")]
-
+        [TestCase("[Judas] Series Japanese Name (Series English Name) - S02E10 [1080P][HEVC x256 10bit][Eng-Subs] (Weekly)")]
+        [TestCase("Detektiv.Conan.1996.S33E39.Ger.Eng.Sub.AAC.1080p.WEB.H264-WeebPinn")]
+        [TestCase("Detektiv.Conan.1996.S33E39.Ger.Eng.Fre.Sub.AAC.1080p.WEB.H264-WeebPinn")]
+        [TestCase("Detektiv.Conan.1996.S33E39.Ger.Fre.Eng.Sub.AAC.1080p.WEB.H264-WeebPinn")]
+        [TestCase("Detektiv.Conan.1996.S33E39.Ger.Eng.Spa.Sub.AAC.1080p.WEB.H264-WeebPinn")]
+        [TestCase("Detektiv.Conan.1996.S33E39.Ger.Spa.Eng.Sub.AAC.1080p.WEB.H264-WeebPinn")]
         public void should_parse_language_unknown(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
@@ -67,10 +72,33 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Title.S01.720p.VFQ.WEB-DL.AAC2.0.H.264-BTN")]
         [TestCase("Title.S01.720p.TRUEFRENCH.WEB-DL.AAC2.0.H.264-BTN")]
         [TestCase("Series In The Middle S01 Multi VFI VO 1080p WEB x265 HEVC AAC 5.1-Papaya")]
+        [TestCase("Series Title S01 AVC.1080p.Blu-ray HD.VOSTFR.VFF")]
+        [TestCase("Series Title S01 Bluray 4k HDR HEVC AC3 VFF")]
+        [TestCase("Series Title S01 AVC.1080p.Blu-ray Remux HD.VOSTFR.VFF")]
+        [TestCase("Series Title S01 x264.720p.Blu-ray Rip HD.VOSTFR.VFF. ONLY")]
+        [TestCase("Series Title S01 HEVC.2160p.Blu-ray 4K.VOSTFR.VFF. JATO")]
+        [TestCase("Series_Title_S01_ENG_ITA_FRA_AAC_1080p_WebDL_x264")]
+        [TestCase("Series.Title.S01.ENG-ITA-FRA.AAC.1080p.WebDL.x264")]
+        [TestCase("Series Title S01 (BDrip 1080p ENG-ITA-FRA) Multisub x264")]
+        [TestCase("Series.Title.S01.ENG-ITA-FRE.AAC.1080p.WebDL.x264")]
+        [TestCase("Series Title S01 (BDrip 1080p ENG-ITA-FRE) Multisub x264")]
         public void should_parse_language_french(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
             result.Should().Contain(Language.French);
+        }
+
+        [TestCase("Series Title S01 1080p Eng Fra [mkvonly]")]
+        [TestCase("Series Title S01 Eng Fre Multi Subs 720p [H264 mp4]")]
+        [TestCase("Series-Title-S01-[DVDRip]-H264-Fra-Ac3-2-0-Eng-5-1")]
+        [TestCase("Series Title S01 1080p FR ENG [mkvonly]")]
+        [TestCase("Series Title S01 1080p ENG FR [mkvonly]")]
+        public void should_parse_language_french_english(string postTitle)
+        {
+            var result = LanguageParser.ParseLanguages(postTitle);
+
+            result.Should().Contain(Language.French);
+            result.Should().Contain(Language.English);
         }
 
         [TestCase("Title.the.Series.2009.S01E14.Spanish.HDTV.XviD-LOL")]
@@ -92,6 +120,13 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Title.the.Series.S04E15.Brotherly.Love.GERMAN.DUBBED.WS.WEBRiP.XviD.REPACK-TVP")]
         [TestCase("The Series Title - S02E16 - Kampfhaehne - mkv - by Videomann")]
         [TestCase("Series.Title.S01E03.Ger.Dub.AAC.1080p.WebDL.x264-TKP21")]
+        [TestCase("Series Title S01 Eng Fre Ger Ita Spa Cze Jpn 2160p BluRay Remux DV HDR HEVC Atmos SGF")]
+        [TestCase("Series Title.S01.Eng.Fre.Ger.Ita.Por.Spa.2160p.WEBMux.DV.HDR.HEVC.Atmos-SGF")]
+        [TestCase("Series.Title.S02E10.Episode.Title.German.DL.BD.x264-TVS")]
+        [TestCase("Series Title S01 Eng Fre Ger Ita Por Spa 2160p WEBMux HDR HEVC DDP SGF")]
+        [TestCase("Series Title S01 KOREAN ENG FRA GER ITA SPA MULTI 2160p NF WEB DL DDP5 1 DV HDR x265 Atmos MassModz")]
+        [TestCase("Series.Title.S02E09.EpisodeName.German.DL.BD.x264-TVS")]
+        [TestCase("Series.Title.S01E10.EpisodeName.SwissGerman.WEB-DL.h264-RlsGrp")]
         public void should_parse_language_german(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
@@ -100,6 +135,8 @@ namespace NzbDrone.Core.Test.ParserTests
 
         [TestCase("Title.the.Series.2009.S01E14.Italian.HDTV.XviD-LOL")]
         [TestCase("Title.the.Series.1x19.ita.720p.bdmux.x264-novarip")]
+        [TestCase("Title.the.Series.ENG-FRE-ITA.AAC.1080p.WebDL.x264")]
+        [TestCase("Title the Series (BDrip 1080p ENG-FRE-ITA) Multisub x264")]
         public void should_parse_language_italian(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
@@ -121,6 +158,12 @@ namespace NzbDrone.Core.Test.ParserTests
         }
 
         [TestCase("Title.the.Series.2009.S01E14.Japanese.HDTV.XviD-LOL")]
+        [TestCase("[Erai-raws] To Be Series - 14 (JA) [1080p CR WEB-DL AVC AAC][MultiSub]")]
+        [TestCase("Spicchi di Series [Stagione 1] [COMPLETA] [1080p H265 ITA AAC JAP AC3 SUB ITA ENG] [by oldbelle]")]
+        [TestCase("Detective Series - Stagione 1 e01-29 (1996) [COMPLETA] 1080p H265 Ita Ac3 Jap Aac Sub Ita Eng [BDmux by thegatto][T7ST]")]
+        [TestCase("7th Series (2024) [Stagione 1] [COMPLETA] [1080p H265 JAP AAC 2.0 SUB ITA-ENG] [By Seregorn]\nand")]
+        [TestCase("Solo Series (2025) Stagione 1 [01/24] [IN CORSO] [1080p H265 JPN AAC SUB ITA ENG] [WebRip]")]
+        [TestCase("Le Series - Stagione 5 [COMPLETA] 1080p H264 ITA JPN EAC3 AAC SUB ITA JPN - UBI CreW")]
         public void should_parse_language_japanese(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
@@ -148,6 +191,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[abc] My Series - 01 [简繁内封字幕]")]
         [TestCase("[ABC字幕组] My Series - 01 [HDTV]")]
         [TestCase("[喵萌奶茶屋&LoliHouse] 拳愿阿修罗 / Kengan Ashura - 17 [WebRip 1080p HEVC-10bit AAC][中日双语字幕]")]
+        [TestCase("Series.Towards.You.S01.国语音轨.2023.1080p.NF.WEB-DL.H264.DDP2.0-SeeWEB")]
         public void should_parse_language_chinese(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
@@ -438,6 +482,16 @@ namespace NzbDrone.Core.Test.ParserTests
             result.Languages.Should().Contain(Language.English);
         }
 
+        [TestCase("Series.Title.S01E01.Original.1080P.WEB.H264-RlsGrp")]
+        [TestCase("Series.Title.S01E01.Orig.1080P.WEB.H264-RlsGrp")]
+        [TestCase("Series / S1E1-10 of 10 [2023, HEVC, HDR10, Dolby Vision, WEB-DL 2160p] [Hybrid] 3 XX + Original")]
+        public void should_parse_original_title_from_release_name(string postTitle)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Languages.Count.Should().Be(1);
+            result.Languages.Should().Contain(Language.Original);
+        }
+
         [TestCase("Остання серія (Сезон 1) / The Last Series (Season 1) (2024) WEB-DLRip-AVC 2xUkr/Eng | Sub Ukr/Eng")]
         [TestCase("Справжня серія (Сезон 1-3) / True Series (Season 1-3) (2014-2019) BDRip-AVC 3xUkr/Eng | Ukr/Eng")]
         [TestCase("Серія (Сезон 1-3) / The Series (Seasons 1-3) (2019-2022) BDRip-AVC 4xUkr/Eng | Sub 2xUkr/Eng")]
@@ -456,6 +510,71 @@ namespace NzbDrone.Core.Test.ParserTests
             result.Languages.Count.Should().Be(2);
             result.Languages.Should().Contain(Language.Ukrainian);
             result.Languages.Should().Contain(Language.Turkish);
+        }
+
+        [TestCase("series.title.s01e01.2023.[Azerbaijan.Dubbed].1080p.WEB-DLRip.TeeWee")]
+        [TestCase("Series s02e04 (2023) [Azerbaijani Dubbed] 1080p WEB-DLRip TeeWee")]
+        public void should_parse_azerbaijani(string postTitle)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Languages.Count.Should().Be(1);
+            result.Languages.Should().Contain(Language.Azerbaijani);
+        }
+
+        [TestCase("series.title.s01e01.2023.[Uzbekistan.Dubbed].1080p.WEB-DLRip.TeeWee")]
+        [TestCase("Sweet.Series.S02E08.2023.[Uzbek.Dubbed].1080p.WEB-DLRip.TeeWee")]
+        public void should_parse_uzbek(string postTitle)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Languages.Count.Should().Be(1);
+            result.Languages.Should().Contain(Language.Uzbek);
+        }
+
+        [TestCase("Title.the.Series.2009.S01E14.Urdu.HDTV.XviD-LOL")]
+        public void should_parse_language_urdu(string postTitle)
+        {
+            var result = LanguageParser.ParseLanguages(postTitle);
+            result.Should().Contain(Language.Urdu);
+        }
+
+        [TestCase("Title.the.Series.2025.S01.Romansh.1080p.WEB-DL.h264-RlsGrp")]
+        [TestCase("Title.the.Series.2025.S01.Rumantsch.1080p.WEB.DL.h264-RlsGrp")]
+        [TestCase("Title the Series 2025 S01 Romansch 1080p WEB DL h264-RlsGrp")]
+        public void should_parse_language_romansh(string postTitle)
+        {
+            var result = LanguageParser.ParseLanguages(postTitle);
+            result.Should().Contain(Language.Romansh);
+        }
+
+        [TestCase("Title.the.Series.2025.S01.Georgian.1080p.WEB-DL.h264-RlsGrp")]
+        [TestCase("Title.the.Series.2025.S01.Geo.1080p.WEB-DL.h264-RlsGrp")]
+        [TestCase("Title.the.Series.2025.S01.KA.1080p.WEB-DL.h264-RlsGrp")]
+        public void should_parse_language_georgian(string postTitle)
+        {
+            var result = LanguageParser.ParseLanguages(postTitle);
+            result.Should().Contain(Language.Georgian);
+        }
+
+        [TestCase("Title.the.Series.2025.S01.RU-KA.1080p.WEB-DL.h264-RlsGrp")]
+        public void should_parse_language_russian_and_georgian(string postTitle)
+        {
+            var result = LanguageParser.ParseLanguages(postTitle);
+            result.Should().BeEquivalentTo(new[] { Language.Russian, Language.Georgian });
+        }
+
+        [TestCase("The Boys S02 Eng Fre Ger Ita Por Spa 2160p WEBMux HDR10Plus HDR HEVC DDP SGF")]
+        public void should_parse_language_english_french_german_italian_portuguese_spanish(string postTitle)
+        {
+            var result = LanguageParser.ParseLanguages(postTitle);
+            result.Should().BeEquivalentTo(new[]
+            {
+                Language.English,
+                Language.French,
+                Language.German,
+                Language.Italian,
+                Language.Portuguese,
+                Language.Spanish
+            });
         }
 
         [TestCase("Name (2020) - S01E20 - [AAC 2.0].testtitle.default.eng.forced.ass", new[] { "default", "forced" }, "testtitle", "English")]

@@ -1,11 +1,15 @@
 import React, { useCallback } from 'react';
+import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
+import { useSelect } from 'App/Select/SelectContext';
 import Label from 'Components/Label';
+import SeriesTagList from 'Components/SeriesTagList';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import TagListConnector from 'Components/TagListConnector';
+import DownloadProtocol from 'DownloadClient/DownloadProtocol';
 import { kinds } from 'Helpers/Props';
+import DownloadClient from 'typings/DownloadClient';
 import { SelectStateInputProps } from 'typings/props';
 import translate from 'Utilities/String/translate';
 import styles from './ManageDownloadClientsModalRow.css';
@@ -13,6 +17,7 @@ import styles from './ManageDownloadClientsModalRow.css';
 interface ManageDownloadClientsModalRowProps {
   id: number;
   name: string;
+  protocol: DownloadProtocol;
   enable: boolean;
   priority: number;
   removeCompletedDownloads: boolean;
@@ -20,8 +25,6 @@ interface ManageDownloadClientsModalRowProps {
   implementation: string;
   tags: number[];
   columns: Column[];
-  isSelected?: boolean;
-  onSelectedChange(result: SelectStateInputProps): void;
 }
 
 function ManageDownloadClientsModalRow(
@@ -29,24 +32,28 @@ function ManageDownloadClientsModalRow(
 ) {
   const {
     id,
-    isSelected,
     name,
+    protocol,
     enable,
     priority,
     removeCompletedDownloads,
     removeFailedDownloads,
     implementation,
     tags,
-    onSelectedChange,
   } = props;
 
-  const onSelectedChangeWrapper = useCallback(
-    (result: SelectStateInputProps) => {
-      onSelectedChange({
-        ...result,
+  const { toggleSelected, useIsSelected } = useSelect<DownloadClient>();
+  const isSelected = useIsSelected(id);
+
+  const handleSelectedChange = useCallback(
+    ({ id, value, shiftKey }: SelectStateInputProps) => {
+      toggleSelected({
+        id,
+        isSelected: value,
+        shiftKey,
       });
     },
-    [onSelectedChange]
+    [toggleSelected]
   );
 
   return (
@@ -54,10 +61,14 @@ function ManageDownloadClientsModalRow(
       <TableSelectCell
         id={id}
         isSelected={isSelected}
-        onSelectedChange={onSelectedChangeWrapper}
+        onSelectedChange={handleSelectedChange}
       />
 
       <TableRowCell className={styles.name}>{name}</TableRowCell>
+
+      <TableRowCell className={styles.protocol}>
+        <ProtocolLabel protocol={protocol} />
+      </TableRowCell>
 
       <TableRowCell className={styles.implementation}>
         {implementation}
@@ -80,7 +91,7 @@ function ManageDownloadClientsModalRow(
       </TableRowCell>
 
       <TableRowCell className={styles.tags}>
-        <TagListConnector tags={tags} />
+        <SeriesTagList tags={tags} />
       </TableRowCell>
     </TableRow>
   );

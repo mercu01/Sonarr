@@ -5,8 +5,10 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -22,13 +24,49 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         private RemoteEpisode _parseResultSingle;
         private Series _series;
         private List<Episode> _episodes;
-        private QualityDefinition _qualityType;
 
         [SetUp]
         public void Setup()
         {
             _series = Builder<Series>.CreateNew()
                                     .With(s => s.Seasons = Builder<Season>.CreateListOfSize(2).Build().ToList())
+                                    .With(c => c.QualityProfile = (LazyLoaded<QualityProfile>)new QualityProfile
+                                    {
+                                        Cutoff = Quality.SDTV.Id, Items = new List<QualityProfileQualityItem>
+                                        {
+                                            new QualityProfileQualityItem
+                                            {
+                                                Quality = Quality.SDTV,
+                                                MinSize = 2,
+                                                MaxSize = 10
+                                            },
+                                            new QualityProfileQualityItem
+                                            {
+                                                Quality = Quality.RAWHD,
+                                                MinSize = 2,
+                                                MaxSize = null
+                                            },
+                                            new QualityProfileQualityItem
+                                            {
+                                                Name = "WEB 720p",
+                                                Items = new List<QualityProfileQualityItem>
+                                                {
+                                                    new QualityProfileQualityItem
+                                                    {
+                                                        Quality = Quality.WEBDL720p,
+                                                        MinSize = 2,
+                                                        MaxSize = 20,
+                                                    },
+                                                    new QualityProfileQualityItem
+                                                    {
+                                                        Quality = Quality.WEBRip720p,
+                                                        MinSize = 2,
+                                                        MaxSize = 20,
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    })
                                     .Build();
 
             _episodes = Builder<Episode>.CreateListOfSize(10)
@@ -80,17 +118,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 .Setup(v => v.Get(It.IsAny<Quality>()))
                 .Returns<Quality>(v => Quality.DefaultQualityDefinitions.First(c => c.Quality == v));
 
-            _qualityType = Builder<QualityDefinition>.CreateNew()
-                .With(q => q.MinSize = 2)
-                .With(q => q.MaxSize = 10)
-                .With(q => q.Quality = Quality.SDTV)
-                .Build();
-
-            Mocker.GetMock<IQualityDefinitionService>().Setup(s => s.Get(Quality.SDTV)).Returns(_qualityType);
-
             Mocker.GetMock<IEpisodeService>().Setup(
                 s => s.GetEpisodesBySeason(It.IsAny<int>(), It.IsAny<int>()))
                 .Returns(_episodes);
+        }
+
+        private void WithSize(int? minSize, int? maxSize)
+        {
+            _series.QualityProfile.Value.Items[0].MinSize = minSize;
+            _series.QualityProfile.Value.Items[0].MaxSize = maxSize;
         }
 
         [TestCase(30, 50, false)]
@@ -107,7 +143,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Episodes.First().Id = 5;
             _parseResultSingle.Episodes.First().Runtime = runtime;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(expectedResult);
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().Be(expectedResult);
         }
 
         [TestCase(30, 250, true)]
@@ -122,7 +158,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Episodes.First().Id = _episodes.First().Id;
             _parseResultSingle.Episodes.First().Runtime = _episodes.First().Runtime;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(expectedResult);
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().Be(expectedResult);
         }
 
         [TestCase(30, 250, true)]
@@ -137,7 +173,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Episodes.First().Id = _episodes.Last().Id;
             _parseResultSingle.Episodes.First().Runtime = _episodes.First().Runtime;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(expectedResult);
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().Be(expectedResult);
         }
 
         [TestCase(30, 50 * 2, false)]
@@ -153,7 +189,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultMulti.Release.Size = sizeInMegaBytes.Megabytes();
             _parseResultMulti.Episodes.ForEach(e => e.Runtime = runtime);
 
-            Subject.IsSatisfiedBy(_parseResultMulti, null).Accepted.Should().Be(expectedResult);
+            Subject.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().Be(expectedResult);
         }
 
         [TestCase(30, 50 * 6, false)]
@@ -169,44 +205,46 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultMultiSet.Release.Size = sizeInMegaBytes.Megabytes();
             _parseResultMultiSet.Episodes.ForEach(e => e.Runtime = runtime);
 
-            Subject.IsSatisfiedBy(_parseResultMultiSet, null).Accepted.Should().Be(expectedResult);
+            Subject.IsSatisfiedBy(_parseResultMultiSet, new()).Accepted.Should().Be(expectedResult);
         }
 
         [Test]
         public void should_return_true_if_size_is_zero()
         {
+            WithSize(10, 20);
+
             _series.Runtime = 30;
             _parseResultSingle.Series = _series;
             _parseResultSingle.Release.Size = 0;
             _parseResultSingle.Episodes.First().Runtime = 30;
-            _qualityType.MinSize = 10;
-            _qualityType.MaxSize = 20;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_if_unlimited_30_minute()
         {
+            WithSize(2, null);
+
             _series.Runtime = 30;
             _parseResultSingle.Series = _series;
             _parseResultSingle.Release.Size = 18457280000;
             _parseResultSingle.Episodes.First().Runtime = 30;
-            _qualityType.MaxSize = null;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
         public void should_return_true_if_unlimited_60_minute()
         {
+            WithSize(2, null);
+
             _series.Runtime = 60;
             _parseResultSingle.Series = _series;
             _parseResultSingle.Release.Size = 36857280000;
             _parseResultSingle.Episodes.First().Runtime = 60;
-            _qualityType.MaxSize = null;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -218,9 +256,21 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Release.Size = 300.Megabytes();
             _parseResultSingle.Episodes.First().Runtime = 60;
 
-            _qualityType.MaxSize = 10;
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
+        }
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+        [Test]
+        public void should_use_grouped_quality_limits()
+        {
+            _parseResultSingle.ParsedEpisodeInfo.Quality = new QualityModel(Quality.WEBDL720p);
+
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Series.SeriesType = SeriesTypes.Daily;
+            _parseResultSingle.Release.Size = 500.Megabytes();
+            _parseResultSingle.Episodes.First().Runtime = 30;
+
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -234,7 +284,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Release.Size = 8000.Megabytes();
             _parseResultSingle.Episodes.First().Runtime = 30;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -242,7 +292,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             _parseResultSingle.ParsedEpisodeInfo.Special = true;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -255,7 +305,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Episodes.First().SeasonNumber = 2;
             _parseResultSingle.Episodes.First().Runtime = 0;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(false);
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().Be(false);
         }
 
         [Test]
@@ -271,7 +321,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Episodes.First().AirDateUtc = _episodes.First().AirDateUtc.Value.AddDays(7);
             _parseResultSingle.Episodes.First().Runtime = 0;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(false);
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().Be(false);
         }
 
         [Test]
@@ -287,7 +337,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Episodes.First().AirDateUtc = _episodes.First().AirDateUtc.Value.AddHours(1);
             _parseResultSingle.Episodes.First().Runtime = 0;
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(true);
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().Be(true);
         }
 
         [Test]
@@ -302,7 +352,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 e.Runtime = 0;
             });
 
-            Subject.IsSatisfiedBy(_parseResultMulti, null).Accepted.Should().Be(false);
+            Subject.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().Be(false);
         }
 
         [Test]
@@ -321,7 +371,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 e.Runtime = 0;
             });
 
-            Subject.IsSatisfiedBy(_parseResultMulti, null).Accepted.Should().Be(false);
+            Subject.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().Be(false);
         }
 
         [Test]
@@ -340,7 +390,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 e.Runtime = 0;
             });
 
-            Subject.IsSatisfiedBy(_parseResultMulti, null).Accepted.Should().Be(true);
+            Subject.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().Be(true);
         }
 
         [Test]
@@ -359,7 +409,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 e.Runtime = 0;
             });
 
-            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(true);
+            Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().Be(true);
         }
     }
 }

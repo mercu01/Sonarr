@@ -35,8 +35,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title (1955) - 1954-01-23 05 00 00 - Cottage for Sale.ts", "Series Title (1955)", 1954, 1, 23)]
         [TestCase("Series Title - 30-04-2024 HDTV 1080p H264 AAC", "Series Title", 2024, 4, 30)]
         [TestCase("Series On TitleClub E76 2024 08 08 1080p WEB H264-RnB96 [TJET]", "Series On TitleClub", 2024, 8, 8)]
-
-        // [TestCase("", "", 0, 0, 0)]
+        [TestCase("Series.Title.13.02.2025.1080i.HDTV.MPA2.0.H.264", "Series Title", 2025, 2, 13)]
+        [TestCase("Series.2025.09.01.The.170.Million.Pound.Diamond.Scam.1080p.HDTV.H264-DEADPOOL'", "Series", 2025, 9, 1)]
+        [TestCase("Series.2025.09.01.The.Million.Pound.Diamond.Scam.1080p.HDTV.H264-DEADPOOL'", "Series", 2025, 9, 1)]
         public void should_parse_daily_episode(string postTitle, string title, int year, int month, int day)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -104,11 +105,25 @@ namespace NzbDrone.Core.Test.ParserTests
         }
 
         [TestCase("Tmc - Quotidien - 05-06-2024 HDTV 1080p H264 AAC")]
-
-        // [TestCase("", "", 0, 0, 0)]
+        [TestCase("Series.Title.12.02.2025.1080i.HDTV.MPA2.0.H.264")]
         public void should_not_parse_ambiguous_daily_episode(string postTitle)
         {
             Parser.Parser.ParseTitle(postTitle).Should().BeNull();
+        }
+
+        [TestCase("Series 5th Mar 2025 1080 (Deep61)", "Series", 2025, 3, 5)]
+        [TestCase("Series 31st Jan 2025 1080 (Deep61)", "Series", 2025, 1, 31)]
+        [TestCase("Series 23rd Feb 2024 (Deep61)", "Series", 2024, 2, 23)]
+        public void should_parse_daily_episode_using_short_month_format(string postTitle, string title, int year, int month, int day)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            var airDate = new DateTime(year, month, day);
+            result.Should().NotBeNull();
+            result.SeriesTitle.Should().Be(title);
+            result.AirDate.Should().Be(airDate.ToString(Episode.AIR_DATE_FORMAT));
+            result.EpisodeNumbers.Should().BeEmpty();
+            result.AbsoluteEpisodeNumbers.Should().BeEmpty();
+            result.FullSeason.Should().BeFalse();
         }
     }
 }

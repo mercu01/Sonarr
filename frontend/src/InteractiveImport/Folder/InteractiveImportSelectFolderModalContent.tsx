@@ -1,39 +1,55 @@
-import React, { useCallback, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import AppState from 'App/State/AppState';
-import * as commandNames from 'Commands/commandNames';
-import PathInputConnector from 'Components/Form/PathInputConnector';
+import React, { useCallback, useMemo, useState } from 'react';
+import CommandNames from 'Commands/CommandNames';
+import { useExecuteCommand } from 'Commands/useCommands';
+import PathInput from 'Components/Form/PathInput';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
 import ModalBody from 'Components/Modal/ModalBody';
 import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
+import Column from 'Components/Table/Column';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import { icons, kinds, sizes } from 'Helpers/Props';
-import { executeCommand } from 'Store/Actions/commandActions';
 import {
   addRecentFolder,
-  removeRecentFolder,
-} from 'Store/Actions/interactiveImportActions';
+  useFavoriteFolders,
+  useRecentFolders,
+} from 'InteractiveImport/interactiveImportFoldersStore';
 import translate from 'Utilities/String/translate';
+import FavoriteFolderRow from './FavoriteFolderRow';
 import RecentFolderRow from './RecentFolderRow';
 import styles from './InteractiveImportSelectFolderModalContent.css';
 
-const recentFoldersColumns = [
+const favoriteFoldersColumns: Column[] = [
   {
     name: 'folder',
     label: () => translate('Folder'),
-  },
-  {
-    name: 'lastUsed',
-    label: () => translate('LastUsed'),
+    isVisible: true,
   },
   {
     name: 'actions',
     label: '',
+    isVisible: true,
+  },
+];
+
+const recentFoldersColumns: Column[] = [
+  {
+    name: 'folder',
+    label: () => translate('Folder'),
+    isVisible: true,
+  },
+  {
+    name: 'lastUsed',
+    label: () => translate('LastUsed'),
+    isVisible: true,
+  },
+  {
+    name: 'actions',
+    label: '',
+    isVisible: true,
   },
 ];
 
@@ -48,15 +64,14 @@ function InteractiveImportSelectFolderModalContent(
 ) {
   const { modalTitle, onFolderSelect, onModalClose } = props;
   const [folder, setFolder] = useState('');
-  const dispatch = useDispatch();
-  const recentFolders = useSelector(
-    createSelector(
-      (state: AppState) => state.interactiveImport.recentFolders,
-      (recentFolders) => {
-        return recentFolders;
-      }
-    )
-  );
+  const executeCommand = useExecuteCommand();
+
+  const favoriteFolders = useFavoriteFolders();
+  const recentFolders = useRecentFolders();
+
+  const favoriteFolderMap = useMemo(() => {
+    return new Map(favoriteFolders.map((f) => [f.folder, f]));
+  }, [favoriteFolders]);
 
   const onPathChange = useCallback(
     ({ value }: { value: string }) => {
@@ -73,29 +88,20 @@ function InteractiveImportSelectFolderModalContent(
   );
 
   const onQuickImportPress = useCallback(() => {
-    dispatch(addRecentFolder({ folder }));
+    addRecentFolder(folder);
 
-    dispatch(
-      executeCommand({
-        name: commandNames.DOWNLOADED_EPISODES_SCAN,
-        path: folder,
-      })
-    );
+    executeCommand({
+      name: CommandNames.DownloadedEpisodesScan,
+      path: folder,
+    });
 
     onModalClose();
-  }, [folder, onModalClose, dispatch]);
+  }, [folder, onModalClose, executeCommand]);
 
   const onInteractiveImportPress = useCallback(() => {
-    dispatch(addRecentFolder({ folder }));
+    addRecentFolder(folder);
     onFolderSelect(folder);
-  }, [folder, onFolderSelect, dispatch]);
-
-  const onRemoveRecentFolderPress = useCallback(
-    (folderToRemove: string) => {
-      dispatch(removeRecentFolder({ folder: folderToRemove }));
-    },
-    [dispatch]
-  );
+  }, [folder, onFolderSelect]);
 
   return (
     <ModalContent onModalClose={onModalClose}>
@@ -104,14 +110,41 @@ function InteractiveImportSelectFolderModalContent(
       </ModalHeader>
 
       <ModalBody>
-        <PathInputConnector
+        <PathInput
           name="folder"
           value={folder}
+          includeFiles={false}
           onChange={onPathChange}
         />
 
+        {favoriteFolders.length ? (
+          <div className={styles.foldersContainer}>
+            <div className={styles.foldersTitle}>
+              {translate('FavoriteFolders')}
+            </div>
+
+            <Table columns={favoriteFoldersColumns}>
+              <TableBody>
+                {favoriteFolders.map((favoriteFolder) => {
+                  return (
+                    <FavoriteFolderRow
+                      key={favoriteFolder.folder}
+                      folder={favoriteFolder.folder}
+                      onPress={onRecentPathPress}
+                    />
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        ) : null}
+
         {recentFolders.length ? (
-          <div className={styles.recentFoldersContainer}>
+          <div className={styles.foldersContainer}>
+            <div className={styles.foldersTitle}>
+              {translate('RecentFolders')}
+            </div>
+
             <Table columns={recentFoldersColumns}>
               <TableBody>
                 {recentFolders
@@ -123,8 +156,8 @@ function InteractiveImportSelectFolderModalContent(
                         key={recentFolder.folder}
                         folder={recentFolder.folder}
                         lastUsed={recentFolder.lastUsed}
+                        isFavorite={favoriteFolderMap.has(recentFolder.folder)}
                         onPress={onRecentPathPress}
-                        onRemoveRecentFolderPress={onRemoveRecentFolderPress}
                       />
                     );
                   })}

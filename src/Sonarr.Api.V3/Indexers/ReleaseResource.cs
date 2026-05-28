@@ -104,7 +104,6 @@ namespace Sonarr.Api.V3.Indexers
             var torrentInfo = (model.RemoteEpisode.Release as TorrentInfo) ?? new TorrentInfo();
             var indexerFlags = torrentInfo.IndexerFlags;
 
-            // TODO: Clean this mess up. don't mix data from multiple classes, use sub-resources instead? (Got a huge Deja Vu, didn't we talk about this already once?)
             return new ReleaseResource
             {
                 Guid = releaseInfo.Guid,
@@ -138,7 +137,7 @@ namespace Sonarr.Api.V3.Indexers
                 TvdbId = releaseInfo.TvdbId,
                 TvRageId = releaseInfo.TvRageId,
                 ImdbId = releaseInfo.ImdbId,
-                Rejections = model.Rejections.Select(r => r.Reason).ToList(),
+                Rejections = model.Rejections.Select(r => r.Message).ToList(),
                 PublishDate = releaseInfo.PublishDate,
                 CommentUrl = releaseInfo.CommentUrl,
                 DownloadUrl = releaseInfo.DownloadUrl,

@@ -5931,8 +5931,21 @@
             "name": "quality",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/QueueStatus"
+              }
             }
           }
         ],
@@ -6957,6 +6970,29 @@
         }
       }
     },
+    "/api/v3/series/{id}/folder": {
+      "get": {
+        "tags": [
+          "SeriesFolder"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v3/series/import": {
       "post": {
         "tags": [
@@ -7013,7 +7049,33 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesResource"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -9048,6 +9110,9 @@
           "backupRetention": {
             "type": "integer",
             "format": "int32"
+          },
+          "trustCgnatIpAddresses": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -9317,6 +9382,19 @@
           "advanced"
         ],
         "type": "string"
+      },
+      "ImportRejectionResource": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/RejectionType"
+          }
+        },
+        "additionalProperties": false
       },
       "IndexerBulkResource": {
         "type": "object",
@@ -9774,7 +9852,7 @@
           "rejections": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Rejection"
+              "$ref": "#/components/schemas/ImportRejectionResource"
             },
             "nullable": true
           }
@@ -9871,7 +9949,7 @@
           "rejections": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Rejection"
+              "$ref": "#/components/schemas/ImportRejectionResource"
             },
             "nullable": true
           }
@@ -10700,6 +10778,21 @@
           },
           "allowed": {
             "type": "boolean"
+          },
+          "minSize": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "maxSize": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "preferredSize": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -10835,15 +10928,6 @@
             "type": "string",
             "nullable": true
           },
-          "sizeleft": {
-            "type": "number",
-            "format": "double"
-          },
-          "timeleft": {
-            "type": "string",
-            "format": "date-span",
-            "nullable": true
-          },
           "estimatedCompletionTime": {
             "type": "string",
             "format": "date-time",
@@ -10855,8 +10939,7 @@
             "nullable": true
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "$ref": "#/components/schemas/QueueStatus"
           },
           "trackedDownloadStatus": {
             "$ref": "#/components/schemas/TrackedDownloadStatus"
@@ -10899,6 +10982,17 @@
           },
           "episodeHasFile": {
             "type": "boolean"
+          },
+          "sizeleft": {
+            "type": "number",
+            "format": "double",
+            "deprecated": true
+          },
+          "timeleft": {
+            "type": "string",
+            "format": "date-span",
+            "nullable": true,
+            "deprecated": true
           }
         },
         "additionalProperties": false
@@ -10934,6 +11028,21 @@
           }
         },
         "additionalProperties": false
+      },
+      "QueueStatus": {
+        "enum": [
+          "unknown",
+          "queued",
+          "paused",
+          "downloading",
+          "completed",
+          "failed",
+          "warning",
+          "delay",
+          "downloadClientUnavailable",
+          "fallback"
+        ],
+        "type": "string"
       },
       "QueueStatusResource": {
         "type": "object",
@@ -10979,19 +11088,6 @@
           "value": {
             "type": "number",
             "format": "double"
-          }
-        },
-        "additionalProperties": false
-      },
-      "Rejection": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "nullable": true
-          },
-          "type": {
-            "$ref": "#/components/schemas/RejectionType"
           }
         },
         "additionalProperties": false

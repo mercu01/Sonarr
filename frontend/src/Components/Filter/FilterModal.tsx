@@ -1,0 +1,74 @@
+import React, { useCallback, useState } from 'react';
+import Modal from 'Components/Modal/Modal';
+import { CustomFilter, FilterBuilderProp } from 'Filters/Filter';
+import FilterBuilderModalContent from './Builder/FilterBuilderModalContent';
+import CustomFiltersModalContent from './CustomFilters/CustomFiltersModalContent';
+import { SetFilter } from './Filter';
+
+export interface FilterModalProps<T> {
+  isOpen: boolean;
+  customFilters: CustomFilter[];
+  customFilterType: string;
+  filterBuilderProps: FilterBuilderProp<T>[];
+  sectionItems: ReadonlyArray<T>;
+  dispatchSetFilter: (payload: SetFilter) => void;
+  onModalClose: () => void;
+}
+
+function FilterModal<T>({
+  isOpen,
+  customFilters,
+  onModalClose,
+  ...otherProps
+}: FilterModalProps<T>) {
+  const [id, setId] = useState<null | number>(null);
+  const [filterBuilder, setFilterBuilder] = useState(!customFilters.length);
+
+  const handleAddCustomFilter = useCallback(() => {
+    setFilterBuilder(true);
+  }, []);
+
+  const handleEditCustomFilter = useCallback((id: number) => {
+    setId(id);
+    setFilterBuilder(true);
+  }, []);
+
+  const handleCancelPress = useCallback(() => {
+    if (filterBuilder) {
+      setId(null);
+      setFilterBuilder(false);
+    } else {
+      onModalClose();
+    }
+  }, [filterBuilder, onModalClose]);
+
+  const handleModalClose = useCallback(() => {
+    setId(null);
+    setFilterBuilder(false);
+    onModalClose();
+  }, [onModalClose]);
+
+  return (
+    <Modal isOpen={isOpen} onModalClose={handleModalClose}>
+      {filterBuilder ? (
+        <FilterBuilderModalContent
+          {...otherProps}
+          id={id}
+          customFilters={customFilters}
+          onCancelPress={handleCancelPress}
+          onModalClose={handleModalClose}
+        />
+      ) : (
+        <CustomFiltersModalContent
+          {...otherProps}
+          customFilters={customFilters}
+          onAddCustomFilter={handleAddCustomFilter}
+          onEditCustomFilter={handleEditCustomFilter}
+          onModalClose={handleModalClose}
+        />
+      )}
+    </Modal>
+  );
+}
+
+export default FilterModal;

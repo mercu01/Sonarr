@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import AppState from 'App/State/AppState';
-import * as commandNames from 'Commands/commandNames';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useAppValue } from 'App/appStore';
+import CommandNames from 'Commands/CommandNames';
+import { useCommandExecuting, useExecuteCommand } from 'Commands/useCommands';
 import Alert from 'Components/Alert';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
@@ -13,71 +12,54 @@ import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import { icons, kinds } from 'Helpers/Props';
-import { executeCommand } from 'Store/Actions/commandActions';
-import { fetchGeneralSettings } from 'Store/Actions/settingsActions';
-import { fetchUpdates } from 'Store/Actions/systemActions';
-import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
-import createSystemStatusSelector from 'Store/Selectors/createSystemStatusSelector';
-import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
-import { UpdateMechanism } from 'typings/Settings/General';
+import {
+  UpdateMechanism,
+  useGeneralSettings,
+} from 'Settings/General/useGeneralSettings';
+import useUpdateSettings from 'Settings/General/useUpdateSettings';
+import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
+import { useSystemStatusData } from 'System/Status/useSystemStatus';
 import formatDate from 'Utilities/Date/formatDate';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import translate from 'Utilities/String/translate';
 import UpdateChanges from './UpdateChanges';
+import useUpdates from './useUpdates';
 import styles from './Updates.css';
 
 const VERSION_REGEX = /\d+\.\d+\.\d+\.\d+/i;
 
-function createUpdatesSelector() {
-  return createSelector(
-    (state: AppState) => state.system.updates,
-    (state: AppState) => state.settings.general,
-    (updates, generalSettings) => {
-      const { error: updatesError, items } = updates;
-
-      const isFetching = updates.isFetching || generalSettings.isFetching;
-      const isPopulated = updates.isPopulated && generalSettings.isPopulated;
-
-      return {
-        isFetching,
-        isPopulated,
-        updatesError,
-        generalSettingsError: generalSettings.error,
-        items,
-        updateMechanism: generalSettings.item.updateMechanism,
-      };
-    }
-  );
-}
-
 function Updates() {
-  const currentVersion = useSelector((state: AppState) => state.app.version);
-  const { packageUpdateMechanismMessage } = useSelector(
-    createSystemStatusSelector()
-  );
-  const { shortDateFormat, longDateFormat, timeFormat } = useSelector(
-    createUISettingsSelector()
-  );
-  const isInstallingUpdate = useSelector(
-    createCommandExecutingSelector(commandNames.APPLICATION_UPDATE)
+  const currentVersion = useAppValue('version');
+  const { packageUpdateMechanismMessage } = useSystemStatusData();
+
+  const { shortDateFormat, longDateFormat, timeFormat } = useUiSettingsValues();
+  const isInstallingUpdate = useCommandExecuting(
+    CommandNames.ApplicationUpdate
   );
 
   const {
-    isFetching,
-    isPopulated,
-    updatesError,
-    generalSettingsError,
-    items,
-    updateMechanism,
-  } = useSelector(createUpdatesSelector());
+    data: updates,
+    isFetched: isUpdatesFetched,
+    isLoading: isLoadingUpdates,
+    error: updatesError,
+  } = useUpdates();
+  const {
+    data: updateSettings,
+    isFetched: isSettingsFetched,
+    isLoading: isLoadingSettings,
+    error: settingsError,
+  } = useUpdateSettings();
 
-  const dispatch = useDispatch();
+  const executeCommand = useExecuteCommand();
   const [isMajorUpdateModalOpen, setIsMajorUpdateModalOpen] = useState(false);
-  const hasError = !!(updatesError || generalSettingsError);
-  const hasUpdates = isPopulated && !hasError && items.length > 0;
-  const noUpdates = isPopulated && !hasError && !items.length;
+  const isFetching = isLoadingUpdates || isLoadingSettings;
+  const isPopulated = isUpdatesFetched && isSettingsFetched;
+  const updateMechanism = updateSettings?.updateMechanism ?? 'builtIn';
+  const hasError = !!(updatesError || settingsError);
+  const hasUpdates = isPopulated && !hasError && updates.length > 0;
+  const noUpdates = isPopulated && !hasError && !updates.length;
 
-  const externalUpdaterPrefix = translate('UpdateSonarrDirectlyLoadError');
+  const externalUpdaterPrefix = translate('UpdateAppDirectlyLoadError');
   const externalUpdaterMessages: Partial<Record<UpdateMechanism, string>> = {
     external: translate('ExternalUpdater'),
     apt: translate('AptUpdater'),
@@ -89,18 +71,18 @@ function Updates() {
       currentVersion.match(VERSION_REGEX)?.[0] ?? '0'
     );
 
-    const latestVersion = items[0]?.version;
+    const latestVersion = updates[0]?.version;
     const latestMajorVersion = parseInt(
       latestVersion?.match(VERSION_REGEX)?.[0] ?? '0'
     );
 
     return {
       isMajorUpdate: latestMajorVersion > majorVersion,
-      hasUpdateToInstall: items.some(
+      hasUpdateToInstall: updates.some(
         (update) => update.installable && update.latest
       ),
     };
-  }, [currentVersion, items]);
+  }, [currentVersion, updates]);
 
   const noUpdateToInstall = hasUpdates && !hasUpdateToInstall;
 
@@ -108,29 +90,24 @@ function Updates() {
     if (isMajorUpdate) {
       setIsMajorUpdateModalOpen(true);
     } else {
-      dispatch(executeCommand({ name: commandNames.APPLICATION_UPDATE }));
+      executeCommand({ name: CommandNames.ApplicationUpdate });
     }
-  }, [isMajorUpdate, setIsMajorUpdateModalOpen, dispatch]);
+  }, [isMajorUpdate, setIsMajorUpdateModalOpen, executeCommand]);
 
   const handleInstallLatestMajorVersionPress = useCallback(() => {
     setIsMajorUpdateModalOpen(false);
 
-    dispatch(
-      executeCommand({
-        name: commandNames.APPLICATION_UPDATE,
-        installMajorUpdate: true,
-      })
-    );
-  }, [setIsMajorUpdateModalOpen, dispatch]);
+    executeCommand({
+      name: CommandNames.ApplicationUpdate,
+      installMajorUpdate: true,
+    });
+  }, [setIsMajorUpdateModalOpen, executeCommand]);
 
   const handleCancelMajorVersionPress = useCallback(() => {
     setIsMajorUpdateModalOpen(false);
   }, [setIsMajorUpdateModalOpen]);
 
-  useEffect(() => {
-    dispatch(fetchUpdates());
-    dispatch(fetchGeneralSettings());
-  }, [dispatch]);
+  useGeneralSettings();
 
   return (
     <PageContent title={translate('Updates')}>
@@ -191,7 +168,7 @@ function Updates() {
 
         {hasUpdates && (
           <div>
-            {items.map((update) => {
+            {updates.map((update) => {
               return (
                 <div key={update.version} className={styles.update}>
                   <div className={styles.info}>
@@ -262,10 +239,16 @@ function Updates() {
           </div>
         )}
 
-        {updatesError ? <div>{translate('FailedToFetchUpdates')}</div> : null}
+        {updatesError ? (
+          <Alert kind={kinds.WARNING}>
+            {translate('FailedToFetchUpdates')}
+          </Alert>
+        ) : null}
 
-        {generalSettingsError ? (
-          <div>{translate('FailedToUpdateSettings')}</div>
+        {settingsError ? (
+          <Alert kind={kinds.DANGER}>
+            {translate('FailedToFetchSettings')}
+          </Alert>
         ) : null}
 
         <ConfirmModal

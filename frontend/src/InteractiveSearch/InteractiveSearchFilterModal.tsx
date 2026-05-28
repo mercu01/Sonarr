@@ -1,65 +1,47 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import AppState from 'App/State/AppState';
-import FilterModal from 'Components/Filter/FilterModal';
+import { SetFilter } from 'Components/Filter/Filter';
+import FilterModal, { FilterModalProps } from 'Components/Filter/FilterModal';
 import InteractiveSearchType from 'InteractiveSearch/InteractiveSearchType';
-import {
-  setEpisodeReleasesFilter,
-  setSeasonReleasesFilter,
-} from 'Store/Actions/releaseActions';
+import InteractiveSearchPayload from './InteractiveSearchPayload';
+import { setReleaseOption } from './releaseOptionsStore';
+import useReleases, { FILTER_BUILDER, Release } from './useReleases';
 
-function createReleasesSelector() {
-  return createSelector(
-    (state: AppState) => state.releases.items,
-    (releases) => {
-      return releases;
-    }
-  );
-}
-
-function createFilterBuilderPropsSelector() {
-  return createSelector(
-    (state: AppState) => state.releases.filterBuilderProps,
-    (filterBuilderProps) => {
-      return filterBuilderProps;
-    }
-  );
-}
-
-interface InteractiveSearchFilterModalProps {
-  isOpen: boolean;
+interface InteractiveSearchFilterModalProps extends FilterModalProps<Release> {
   type: InteractiveSearchType;
+  searchPayload: InteractiveSearchPayload;
 }
 
 export default function InteractiveSearchFilterModal({
   type,
+  searchPayload,
   ...otherProps
 }: InteractiveSearchFilterModalProps) {
-  const sectionItems = useSelector(createReleasesSelector());
-  const filterBuilderProps = useSelector(createFilterBuilderPropsSelector());
-  const customFilterType = 'releases';
+  const { data } = useReleases(searchPayload);
 
-  const dispatch = useDispatch();
-
-  const dispatchSetFilter = useCallback(
-    (payload: unknown) => {
-      const action =
-        type === 'episode' ? setEpisodeReleasesFilter : setSeasonReleasesFilter;
-
-      dispatch(action(payload));
+  const handleFilterSelect = useCallback(
+    (selectedFilter: SetFilter) => {
+      if (type === 'episode') {
+        setReleaseOption(
+          'episodeSelectedFilterKey',
+          selectedFilter.selectedFilterKey
+        );
+      } else {
+        setReleaseOption(
+          'seasonSelectedFilterKey',
+          selectedFilter.selectedFilterKey
+        );
+      }
     },
-    [type, dispatch]
+    [type]
   );
 
   return (
     <FilterModal
-      // TODO: Don't spread all the props
       {...otherProps}
-      sectionItems={sectionItems}
-      filterBuilderProps={filterBuilderProps}
-      customFilterType={customFilterType}
-      dispatchSetFilter={dispatchSetFilter}
+      sectionItems={data}
+      filterBuilderProps={FILTER_BUILDER}
+      customFilterType="releases"
+      dispatchSetFilter={handleFilterSelect}
     />
   );
 }

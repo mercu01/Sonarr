@@ -104,7 +104,7 @@ namespace NzbDrone.Core.ImportLists
 
         private void SyncList(ImportListDefinition definition)
         {
-            _logger.ProgressInfo(string.Format("Starting Import List Refresh for List {0}", definition.Name));
+            _logger.ProgressInfo("Starting Import List Refresh for List {0}", definition.Name);
 
             var result = _listFetcherAndParser.FetchSingleList(definition);
 
@@ -214,7 +214,7 @@ namespace NzbDrone.Core.ImportLists
                 }
 
                 // Check to see if series excluded
-                var excludedSeries = listExclusions.Where(s => s.TvdbId == item.TvdbId).SingleOrDefault();
+                var excludedSeries = listExclusions.SingleOrDefault(s => s.TvdbId == item.TvdbId);
 
                 if (excludedSeries != null)
                 {
@@ -260,9 +260,7 @@ namespace NzbDrone.Core.ImportLists
 
             _addSeriesService.AddSeries(seriesToAdd, true);
 
-            var message = string.Format("Import List Sync Completed. Items found: {0}, Series added: {1}", items.Count, seriesToAdd.Count);
-
-            _logger.ProgressInfo(message);
+            _logger.ProgressInfo("Import List Sync Completed. Items found: {0}, Series added: {1}", items.Count, seriesToAdd.Count);
         }
 
         public void Execute(ImportListSyncCommand message)
@@ -299,12 +297,18 @@ namespace NzbDrone.Core.ImportLists
 
             var seriesToUpdate = new List<Series>();
             var seriesInLibrary = _seriesService.GetAllSeries();
+            var allListItems = _importListItemService.All();
 
             foreach (var series in seriesInLibrary)
             {
-                var seriesExists = _importListItemService.Exists(series.TvdbId, series.ImdbId);
+                var seriesExists = allListItems.Where(l =>
+                    l.TvdbId == series.TvdbId ||
+                    (l.ImdbId.IsNotNullOrWhiteSpace() && series.ImdbId.IsNotNullOrWhiteSpace() && l.ImdbId == series.ImdbId) ||
+                    l.TmdbId == series.TmdbId ||
+                    series.MalIds.Contains(l.MalId) ||
+                    series.AniListIds.Contains(l.AniListId)).ToList();
 
-                if (!seriesExists)
+                if (!seriesExists.Any())
                 {
                     switch (_configService.ListSyncLevel)
                     {

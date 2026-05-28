@@ -1,9 +1,9 @@
-import ModelBase from 'App/ModelBase';
+import { Id, SelectStoreModel } from 'App/Select/useSelectStore';
 
-function getToggledRange<T extends ModelBase>(
+function getToggledRange<T extends SelectStoreModel<Id>>(
   items: T[],
-  id: number,
-  lastToggled: number
+  id: number | string,
+  lastToggled: number | string
 ) {
   const lastToggledIndex = items.findIndex((item) => item.id === lastToggled);
   const changedIndex = items.findIndex((item) => item.id === id);

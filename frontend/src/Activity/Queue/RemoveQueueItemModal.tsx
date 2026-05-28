@@ -1,23 +1,23 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
+import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import Button from 'Components/Link/Button';
 import Modal from 'Components/Modal/Modal';
 import ModalBody from 'Components/Modal/ModalBody';
 import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
+import { OptionChanged } from 'Helpers/Hooks/useOptionsStore';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
+import {
+  QueueOptions,
+  setQueueOption,
+  useQueueOption,
+} from './queueOptionsStore';
 import styles from './RemoveQueueItemModal.css';
-
-export interface RemovePressProps {
-  remove: boolean;
-  changeCategory: boolean;
-  blocklist: boolean;
-  skipRedownload: boolean;
-}
 
 interface RemoveQueueItemModalProps {
   isOpen: boolean;
@@ -26,15 +26,10 @@ interface RemoveQueueItemModalProps {
   canIgnore: boolean;
   isPending: boolean;
   selectedCount?: number;
-  onRemovePress(props: RemovePressProps): void;
+  downloadClient?: string;
+  onRemovePress(): void;
   onModalClose: () => void;
 }
-
-type RemovalMethod = 'removeFromClient' | 'changeCategory' | 'ignore';
-type BlocklistMethod =
-  | 'doNotBlocklist'
-  | 'blocklistAndSearch'
-  | 'blocklistOnly';
 
 function RemoveQueueItemModal(props: RemoveQueueItemModalProps) {
   const {
@@ -44,16 +39,13 @@ function RemoveQueueItemModal(props: RemoveQueueItemModalProps) {
     canChangeCategory,
     isPending,
     selectedCount,
+    downloadClient,
     onRemovePress,
     onModalClose,
   } = props;
 
   const multipleSelected = selectedCount && selectedCount > 1;
-
-  const [removalMethod, setRemovalMethod] =
-    useState<RemovalMethod>('removeFromClient');
-  const [blocklistMethod, setBlocklistMethod] =
-    useState<BlocklistMethod>('doNotBlocklist');
+  const { removalMethod, blocklistMethod } = useQueueOption('removalOptions');
 
   const { title, message } = useMemo(() => {
     if (!selectedCount) {
@@ -79,7 +71,7 @@ function RemoveQueueItemModal(props: RemoveQueueItemModalProps) {
   }, [sourceTitle, selectedCount]);
 
   const removalMethodOptions = useMemo(() => {
-    return [
+    const options: EnhancedSelectInputValue<string>[] = [
       {
         key: 'removeFromClient',
         value: translate('RemoveFromDownloadClient'),
@@ -106,10 +98,12 @@ function RemoveQueueItemModal(props: RemoveQueueItemModalProps) {
           : translate('IgnoreDownloadHint'),
       },
     ];
+
+    return options;
   }, [canChangeCategory, canIgnore, multipleSelected]);
 
   const blocklistMethodOptions = useMemo(() => {
-    return [
+    const options: EnhancedSelectInputValue<string>[] = [
       {
         key: 'doNotBlocklist',
         value: translate('DoNotBlocklist'),
@@ -131,46 +125,28 @@ function RemoveQueueItemModal(props: RemoveQueueItemModalProps) {
           : translate('BlocklistOnlyHint'),
       },
     ];
+
+    return options;
   }, [isPending, multipleSelected]);
 
-  const handleRemovalMethodChange = useCallback(
-    ({ value }: { value: RemovalMethod }) => {
-      setRemovalMethod(value);
+  const handleRemovalOptionInputChange = useCallback(
+    ({ name, value }: OptionChanged<QueueOptions['removalOptions']>) => {
+      setQueueOption('removalOptions', {
+        removalMethod,
+        blocklistMethod,
+        [name]: value,
+      });
     },
-    [setRemovalMethod]
-  );
-
-  const handleBlocklistMethodChange = useCallback(
-    ({ value }: { value: BlocklistMethod }) => {
-      setBlocklistMethod(value);
-    },
-    [setBlocklistMethod]
+    [removalMethod, blocklistMethod]
   );
 
   const handleConfirmRemove = useCallback(() => {
-    onRemovePress({
-      remove: removalMethod === 'removeFromClient',
-      changeCategory: removalMethod === 'changeCategory',
-      blocklist: blocklistMethod !== 'doNotBlocklist',
-      skipRedownload: blocklistMethod === 'blocklistOnly',
-    });
-
-    setRemovalMethod('removeFromClient');
-    setBlocklistMethod('doNotBlocklist');
-  }, [
-    removalMethod,
-    blocklistMethod,
-    setRemovalMethod,
-    setBlocklistMethod,
-    onRemovePress,
-  ]);
+    onRemovePress();
+  }, [onRemovePress]);
 
   const handleModalClose = useCallback(() => {
-    setRemovalMethod('removeFromClient');
-    setBlocklistMethod('doNotBlocklist');
-
     onModalClose();
-  }, [setRemovalMethod, setBlocklistMethod, onModalClose]);
+  }, [onModalClose]);
 
   return (
     <Modal isOpen={isOpen} size={sizes.MEDIUM} onModalClose={handleModalClose}>
@@ -190,10 +166,23 @@ function RemoveQueueItemModal(props: RemoveQueueItemModalProps) {
                 value={removalMethod}
                 values={removalMethodOptions}
                 isDisabled={!canChangeCategory && !canIgnore}
+                helpText={
+                  !canChangeCategory && !canIgnore
+                    ? translate(
+                        'RemoveQueueItemRemovalMethodDisabledHelpText',
+                        {
+                          downloadClient: downloadClient
+                            ? downloadClient
+                            : translate('DownloadClient'),
+                        }
+                      )
+                    : undefined
+                }
                 helpTextWarning={translate(
                   'RemoveQueueItemRemovalMethodHelpTextWarning'
                 )}
-                onChange={handleRemovalMethodChange}
+                // @ts-expect-error - The typing for inputs needs more work
+                onChange={handleRemovalOptionInputChange}
               />
             </FormGroup>
           )}
@@ -211,7 +200,8 @@ function RemoveQueueItemModal(props: RemoveQueueItemModalProps) {
               value={blocklistMethod}
               values={blocklistMethodOptions}
               helpText={translate('BlocklistReleaseHelpText')}
-              onChange={handleBlocklistMethodChange}
+              // @ts-expect-error - The typing for inputs needs more work
+              onChange={handleRemovalOptionInputChange}
             />
           </FormGroup>
         </ModalBody>

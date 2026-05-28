@@ -23,6 +23,7 @@ namespace NzbDrone.Core.History
         EpisodeHistory Get(int historyId);
         List<EpisodeHistory> GetBySeries(int seriesId, EpisodeHistoryEventType? eventType);
         List<EpisodeHistory> GetBySeason(int seriesId, int seasonNumber, EpisodeHistoryEventType? eventType);
+        List<EpisodeHistory> GetByEpisode(int episodeId, EpisodeHistoryEventType? eventType);
         List<EpisodeHistory> Find(string downloadId, EpisodeHistoryEventType eventType);
         List<EpisodeHistory> FindByDownloadId(string downloadId);
         string FindDownloadId(EpisodeImportedEvent trackedDownload);
@@ -80,6 +81,11 @@ namespace NzbDrone.Core.History
         public List<EpisodeHistory> GetBySeason(int seriesId, int seasonNumber, EpisodeHistoryEventType? eventType)
         {
             return _historyRepository.GetBySeason(seriesId, seasonNumber, eventType);
+        }
+
+        public List<EpisodeHistory> GetByEpisode(int episodeId, EpisodeHistoryEventType? eventType)
+        {
+            return _historyRepository.GetByEpisode(episodeId, eventType);
         }
 
         public List<EpisodeHistory> Find(string downloadId, EpisodeHistoryEventType eventType)
@@ -157,7 +163,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("Age", message.Episode.Release.Age.ToString());
                 history.Data.Add("AgeHours", message.Episode.Release.AgeHours.ToString());
                 history.Data.Add("AgeMinutes", message.Episode.Release.AgeMinutes.ToString());
-                history.Data.Add("PublishedDate", message.Episode.Release.PublishDate.ToString("s") + "Z");
+                history.Data.Add("PublishedDate", message.Episode.Release.PublishDate.ToUniversalTime().ToString("s") + "Z");
                 history.Data.Add("DownloadClient", message.DownloadClient);
                 history.Data.Add("DownloadClientName", message.DownloadClientName);
                 history.Data.Add("Size", message.Episode.Release.Size.ToString());
@@ -249,8 +255,10 @@ namespace NzbDrone.Core.History
                 history.Data.Add("DownloadClient", message.DownloadClient);
                 history.Data.Add("DownloadClientName", message.TrackedDownload?.DownloadItem.DownloadClientInfo.Name);
                 history.Data.Add("Message", message.Message);
-                history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup);
-                history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString());
+                history.Data.Add("Source", message.Source);
+                history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup ?? message.Data.GetValueOrDefault(EpisodeHistory.RELEASE_GROUP));
+                history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString() ?? message.Data.GetValueOrDefault(EpisodeHistory.SIZE));
+                history.Data.Add("Indexer", message.TrackedDownload?.RemoteEpisode?.Release?.Indexer ?? message.Data.GetValueOrDefault(EpisodeHistory.INDEXER));
 
                 _historyRepository.Insert(history);
             }
@@ -348,6 +356,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("Message", message.Message);
                 history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup);
                 history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString());
+                history.Data.Add("Indexer", message.TrackedDownload?.RemoteEpisode?.Release?.Indexer);
                 history.Data.Add("ReleaseType", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseType.ToString());
 
                 historyToAdd.Add(history);

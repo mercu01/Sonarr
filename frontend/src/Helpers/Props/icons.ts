@@ -13,6 +13,7 @@ import {
   faFileVideo as farFileVideo,
   faFolder as farFolder,
   faHdd as farHdd,
+  faHeart as farHeart,
   faKeyboard as farKeyboard,
   faObjectGroup as farObjectGroup,
   faObjectUngroup as farObjectUngroup,
@@ -25,6 +26,7 @@ import {
   faArrowCircleRight as fasArrowCircleRight,
   faAsterisk as fasAsterisk,
   faBackward as fasBackward,
+  faBan as fasBan,
   faBars as fasBars,
   faBolt as fasBolt,
   faBookmark as fasBookmark,
@@ -64,7 +66,9 @@ import {
   faFilter as fasFilter,
   faFlag as fasFlag,
   faFolderOpen as fasFolderOpen,
+  faFolderTree as farFolderTree,
   faForward as fasForward,
+  faGlobe as fasGlobe,
   faHeart as fasHeart,
   faHistory as fasHistory,
   faHome as fasHome,
@@ -100,6 +104,7 @@ import {
   faTable as fasTable,
   faTags as fasTags,
   faTh as fasTh,
+  faTheaterMasks as fasTheaterMasks,
   faThList as fasThList,
   faTimes as fasTimes,
   faTimesCircle as fasTimesCircle,
@@ -121,6 +126,7 @@ export const ADVANCED_SETTINGS = fasCog;
 export const ARROW_LEFT = fasArrowCircleLeft;
 export const ARROW_RIGHT = fasArrowCircleRight;
 export const BACKUP = farFileArchive;
+export const BLOCKLIST = fasBan;
 export const BUG = fasBug;
 export const CALENDAR = fasCalendarAlt;
 export const CALENDAR_O = farCalendar;
@@ -160,9 +166,12 @@ export const FLAG = fasFlag;
 export const FOOTNOTE = fasAsterisk;
 export const FOLDER = farFolder;
 export const FOLDER_OPEN = fasFolderOpen;
+export const GENRE = fasTheaterMasks;
+export const GLOBE = fasGlobe;
 export const GROUP = farObjectGroup;
 export const HEALTH = fasMedkit;
 export const HEART = fasHeart;
+export const HEART_OUTLINE = farHeart;
 export const HISTORY = fasHistory;
 export const HOUSEKEEPING = fasHome;
 export const IGNORE = fasTimesCircle;
@@ -199,6 +208,7 @@ export const REMOVE = fasTimes;
 export const RESTART = fasRedoAlt;
 export const RESTORE = fasHistory;
 export const REORDER = fasBars;
+export const ROOT_FOLDER = farFolderTree;
 export const RSS = fasRss;
 export const SAVE = fasSave;
 export const SCENE_MAPPING = fasSitemap;

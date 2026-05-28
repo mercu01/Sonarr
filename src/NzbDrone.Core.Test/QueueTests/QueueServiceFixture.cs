@@ -58,13 +58,9 @@ namespace NzbDrone.Core.Test.QueueTests
 
             var queue = Subject.GetQueue();
 
-            queue.Should().HaveCount(3);
+            queue.Should().HaveCount(1);
 
             queue.All(v => v.Id > 0).Should().BeTrue();
-
-            var distinct = queue.Select(v => v.Id).Distinct().ToArray();
-
-            distinct.Should().HaveCount(3);
         }
     }
 }

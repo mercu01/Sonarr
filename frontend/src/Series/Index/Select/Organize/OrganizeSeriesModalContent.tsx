@@ -1,7 +1,8 @@
 import { orderBy } from 'lodash';
 import React, { useCallback, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RENAME_SERIES } from 'Commands/commandNames';
+import { useSelect } from 'App/Select/SelectContext';
+import CommandNames from 'Commands/CommandNames';
+import { useExecuteCommand } from 'Commands/useCommands';
 import Alert from 'Components/Alert';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
@@ -11,21 +12,21 @@ import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { icons, kinds } from 'Helpers/Props';
 import Series from 'Series/Series';
-import { executeCommand } from 'Store/Actions/commandActions';
-import createAllSeriesSelector from 'Store/Selectors/createAllSeriesSelector';
+import useSeries from 'Series/useSeries';
 import translate from 'Utilities/String/translate';
 import styles from './OrganizeSeriesModalContent.css';
 
-interface OrganizeSeriesModalContentProps {
-  seriesIds: number[];
+export interface OrganizeSeriesModalContentProps {
   onModalClose: () => void;
 }
 
-function OrganizeSeriesModalContent(props: OrganizeSeriesModalContentProps) {
-  const { seriesIds, onModalClose } = props;
-
-  const allSeries: Series[] = useSelector(createAllSeriesSelector());
-  const dispatch = useDispatch();
+function OrganizeSeriesModalContent({
+  onModalClose,
+}: OrganizeSeriesModalContentProps) {
+  const { data: allSeries } = useSeries();
+  const executeCommand = useExecuteCommand();
+  const { useSelectedIds } = useSelect<Series>();
+  const seriesIds = useSelectedIds();
 
   const seriesTitles = useMemo(() => {
     const series = seriesIds.reduce((acc: Series[], id) => {
@@ -41,18 +42,16 @@ function OrganizeSeriesModalContent(props: OrganizeSeriesModalContentProps) {
     const sorted = orderBy(series, ['sortTitle']);
 
     return sorted.map((s) => s.title);
-  }, [seriesIds, allSeries]);
+  }, [allSeries, seriesIds]);
 
   const onOrganizePress = useCallback(() => {
-    dispatch(
-      executeCommand({
-        name: RENAME_SERIES,
-        seriesIds,
-      })
-    );
+    executeCommand({
+      name: CommandNames.RenameSeries,
+      seriesIds,
+    });
 
     onModalClose();
-  }, [seriesIds, onModalClose, dispatch]);
+  }, [seriesIds, onModalClose, executeCommand]);
 
   return (
     <ModalContent onModalClose={onModalClose}>

@@ -1,10 +1,7 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useQueueDetailsForSeries } from 'Activity/Queue/Details/QueueDetailsProvider';
 import Label from 'Components/Label';
 import { kinds, sizes } from 'Helpers/Props';
-import createSeriesQueueItemsDetailsSelector, {
-  SeriesQueueDetails,
-} from 'Series/Index/createSeriesQueueDetailsSelector';
 
 function getEpisodeCountKind(
   monitored: boolean,
@@ -28,6 +25,7 @@ function getEpisodeCountKind(
 }
 
 interface SeasonProgressLabelProps {
+  className: string;
   seriesId: number;
   seasonNumber: number;
   monitored: boolean;
@@ -36,15 +34,14 @@ interface SeasonProgressLabelProps {
 }
 
 function SeasonProgressLabel({
+  className,
   seriesId,
   seasonNumber,
   monitored,
   episodeCount,
   episodeFileCount,
 }: SeasonProgressLabelProps) {
-  const queueDetails: SeriesQueueDetails = useSelector(
-    createSeriesQueueItemsDetailsSelector(seriesId, seasonNumber)
-  );
+  const queueDetails = useQueueDetailsForSeries(seriesId, seasonNumber);
 
   const newDownloads = queueDetails.count - queueDetails.episodesWithFiles;
   const text = newDownloads
@@ -53,6 +50,7 @@ function SeasonProgressLabel({
 
   return (
     <Label
+      className={className}
       kind={getEpisodeCountKind(
         monitored,
         episodeFileCount,

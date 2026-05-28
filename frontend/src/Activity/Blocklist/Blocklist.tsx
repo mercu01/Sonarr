@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { SelectProvider } from 'App/SelectContext';
-import AppState from 'App/State/AppState';
-import * as commandNames from 'Commands/commandNames';
+import React, { useCallback, useEffect, useState } from 'react';
+import { SelectProvider, useSelect } from 'App/Select/SelectContext';
+import CommandNames from 'Commands/CommandNames';
+import { useCommandExecuting, useExecuteCommand } from 'Commands/useCommands';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FilterMenu from 'Components/Menu/FilterMenu';
@@ -16,94 +15,78 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
 import TablePager from 'Components/Table/TablePager';
-import usePaging from 'Components/Table/usePaging';
-import useCurrentPage from 'Helpers/Hooks/useCurrentPage';
-import usePrevious from 'Helpers/Hooks/usePrevious';
-import useSelectState from 'Helpers/Hooks/useSelectState';
+import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import { align, icons, kinds } from 'Helpers/Props';
-import {
-  clearBlocklist,
-  fetchBlocklist,
-  gotoBlocklistPage,
-  removeBlocklistItems,
-  setBlocklistFilter,
-  setBlocklistSort,
-  setBlocklistTableOption,
-} from 'Store/Actions/blocklistActions';
-import { executeCommand } from 'Store/Actions/commandActions';
-import { createCustomFiltersSelector } from 'Store/Selectors/createClientSideCollectionSelector';
-import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
+import { SortDirection } from 'Helpers/Props/sortDirections';
+import BlockListModel from 'typings/Blocklist';
 import { CheckInputChanged } from 'typings/inputs';
-import { SelectStateInputProps } from 'typings/props';
 import { TableOptionsChangePayload } from 'typings/Table';
 import {
   registerPagePopulator,
   unregisterPagePopulator,
 } from 'Utilities/pagePopulator';
 import translate from 'Utilities/String/translate';
-import getSelectedIds from 'Utilities/Table/getSelectedIds';
 import BlocklistFilterModal from './BlocklistFilterModal';
+import {
+  setBlocklistOption,
+  setBlocklistOptions,
+  setBlocklistSort,
+  useBlocklistOptions,
+} from './blocklistOptionsStore';
 import BlocklistRow from './BlocklistRow';
+import useBlocklist, {
+  useFilters,
+  useRemoveBlocklistItems,
+} from './useBlocklist';
 
-function Blocklist() {
-  const requestCurrentPage = useCurrentPage();
-
+function BlocklistContent() {
   const {
-    isFetching,
-    isPopulated,
-    error,
-    items,
-    columns,
-    selectedFilterKey,
-    filters,
-    sortKey,
-    sortDirection,
-    page,
-    pageSize,
+    records,
     totalPages,
     totalRecords,
-    isRemoving,
-  } = useSelector((state: AppState) => state.blocklist);
+    isFetching,
+    isFetched,
+    isLoading,
+    error,
+    page,
+    goToPage,
+    refetch,
+  } = useBlocklist();
 
-  const customFilters = useSelector(createCustomFiltersSelector('blocklist'));
-  const isClearingBlocklistExecuting = useSelector(
-    createCommandExecutingSelector(commandNames.CLEAR_BLOCKLIST)
+  const { columns, pageSize, sortKey, sortDirection, selectedFilterKey } =
+    useBlocklistOptions();
+
+  const filters = useFilters();
+  const { isRemoving, removeBlocklistItems } = useRemoveBlocklistItems();
+
+  const customFilters = useCustomFiltersList('blocklist');
+  const executeCommand = useExecuteCommand();
+  const isClearingBlocklistExecuting = useCommandExecuting(
+    CommandNames.ClearBlocklist
   );
-  const dispatch = useDispatch();
 
   const [isConfirmRemoveModalOpen, setIsConfirmRemoveModalOpen] =
     useState(false);
   const [isConfirmClearModalOpen, setIsConfirmClearModalOpen] = useState(false);
 
-  const [selectState, setSelectState] = useSelectState();
-  const { allSelected, allUnselected, selectedState } = selectState;
-
-  const selectedIds = useMemo(() => {
-    return getSelectedIds(selectedState);
-  }, [selectedState]);
-
-  const wasClearingBlocklistExecuting = usePrevious(
-    isClearingBlocklistExecuting
-  );
+  const {
+    allSelected,
+    allUnselected,
+    anySelected,
+    getSelectedIds,
+    selectAll,
+    unselectAll,
+  } = useSelect<BlockListModel>();
 
   const handleSelectAllChange = useCallback(
     ({ value }: CheckInputChanged) => {
-      setSelectState({ type: value ? 'selectAll' : 'unselectAll', items });
+      if (value) {
+        selectAll();
+      } else {
+        unselectAll();
+      }
     },
-    [items, setSelectState]
-  );
-
-  const handleSelectedChange = useCallback(
-    ({ id, value, shiftKey = false }: SelectStateInputProps) => {
-      setSelectState({
-        type: 'toggleSelected',
-        items,
-        id,
-        isSelected: value,
-        shiftKey,
-      });
-    },
-    [items, setSelectState]
+    [selectAll, unselectAll]
   );
 
   const handleRemoveSelectedPress = useCallback(() => {
@@ -111,9 +94,9 @@ function Blocklist() {
   }, [setIsConfirmRemoveModalOpen]);
 
   const handleRemoveSelectedConfirmed = useCallback(() => {
-    dispatch(removeBlocklistItems({ ids: selectedIds }));
+    removeBlocklistItems({ ids: getSelectedIds() });
     setIsConfirmRemoveModalOpen(false);
-  }, [selectedIds, setIsConfirmRemoveModalOpen, dispatch]);
+  }, [getSelectedIds, setIsConfirmRemoveModalOpen, removeBlocklistItems]);
 
   const handleConfirmRemoveModalClose = useCallback(() => {
     setIsConfirmRemoveModalOpen(false);
@@ -124,66 +107,48 @@ function Blocklist() {
   }, [setIsConfirmClearModalOpen]);
 
   const handleClearBlocklistConfirmed = useCallback(() => {
-    dispatch(executeCommand({ name: commandNames.CLEAR_BLOCKLIST }));
+    executeCommand({ name: CommandNames.ClearBlocklist }, () => {
+      goToPage(1);
+      refetch();
+    });
     setIsConfirmClearModalOpen(false);
-  }, [setIsConfirmClearModalOpen, dispatch]);
+  }, [setIsConfirmClearModalOpen, executeCommand, goToPage, refetch]);
 
   const handleConfirmClearModalClose = useCallback(() => {
     setIsConfirmClearModalOpen(false);
   }, [setIsConfirmClearModalOpen]);
 
-  const {
-    handleFirstPagePress,
-    handlePreviousPagePress,
-    handleNextPagePress,
-    handleLastPagePress,
-    handlePageSelect,
-  } = usePaging({
-    page,
-    totalPages,
-    gotoPage: gotoBlocklistPage,
-  });
-
   const handleFilterSelect = useCallback(
-    (selectedFilterKey: string) => {
-      dispatch(setBlocklistFilter({ selectedFilterKey }));
+    (selectedFilterKey: string | number) => {
+      setBlocklistOption('selectedFilterKey', selectedFilterKey);
     },
-    [dispatch]
+    []
   );
 
   const handleSortPress = useCallback(
-    (sortKey: string) => {
-      dispatch(setBlocklistSort({ sortKey }));
+    (sortKey: string, sortDirection?: SortDirection) => {
+      setBlocklistSort({
+        sortKey,
+        sortDirection,
+      });
     },
-    [dispatch]
+    []
   );
 
   const handleTableOptionChange = useCallback(
     (payload: TableOptionsChangePayload) => {
-      dispatch(setBlocklistTableOption(payload));
+      setBlocklistOptions(payload);
 
       if (payload.pageSize) {
-        dispatch(gotoBlocklistPage({ page: 1 }));
+        goToPage(1);
       }
     },
-    [dispatch]
+    [goToPage]
   );
 
   useEffect(() => {
-    if (requestCurrentPage) {
-      dispatch(fetchBlocklist());
-    } else {
-      dispatch(gotoBlocklistPage({ page: 1 }));
-    }
-
-    return () => {
-      dispatch(clearBlocklist());
-    };
-  }, [requestCurrentPage, dispatch]);
-
-  useEffect(() => {
     const repopulate = () => {
-      dispatch(fetchBlocklist());
+      refetch();
     };
 
     registerPagePopulator(repopulate);
@@ -191,137 +156,129 @@ function Blocklist() {
     return () => {
       unregisterPagePopulator(repopulate);
     };
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (wasClearingBlocklistExecuting && !isClearingBlocklistExecuting) {
-      dispatch(gotoBlocklistPage({ page: 1 }));
-    }
-  }, [isClearingBlocklistExecuting, wasClearingBlocklistExecuting, dispatch]);
+  }, [refetch]);
 
   return (
-    <SelectProvider items={items}>
-      <PageContent title={translate('Blocklist')}>
-        <PageToolbar>
-          <PageToolbarSection>
-            <PageToolbarButton
-              label={translate('RemoveSelected')}
-              iconName={icons.REMOVE}
-              isDisabled={!selectedIds.length}
-              isSpinning={isRemoving}
-              onPress={handleRemoveSelectedPress}
-            />
+    <PageContent title={translate('Blocklist')}>
+      <PageToolbar>
+        <PageToolbarSection>
+          <PageToolbarButton
+            label={translate('RemoveSelected')}
+            iconName={icons.REMOVE}
+            isDisabled={!anySelected}
+            isSpinning={isRemoving}
+            onPress={handleRemoveSelectedPress}
+          />
 
-            <PageToolbarButton
-              label={translate('Clear')}
-              iconName={icons.CLEAR}
-              isDisabled={!items.length}
-              isSpinning={isClearingBlocklistExecuting}
-              onPress={handleClearBlocklistPress}
-            />
-          </PageToolbarSection>
+          <PageToolbarButton
+            label={translate('Clear')}
+            iconName={icons.CLEAR}
+            isDisabled={!records.length}
+            isSpinning={isClearingBlocklistExecuting}
+            onPress={handleClearBlocklistPress}
+          />
+        </PageToolbarSection>
 
-          <PageToolbarSection alignContent={align.RIGHT}>
-            <TableOptionsModalWrapper
+        <PageToolbarSection alignContent={align.RIGHT}>
+          <TableOptionsModalWrapper
+            columns={columns}
+            pageSize={pageSize}
+            onTableOptionChange={handleTableOptionChange}
+          >
+            <PageToolbarButton
+              label={translate('Options')}
+              iconName={icons.TABLE}
+            />
+          </TableOptionsModalWrapper>
+
+          <FilterMenu
+            alignMenu={align.RIGHT}
+            selectedFilterKey={selectedFilterKey}
+            filters={filters}
+            customFilters={customFilters}
+            filterModalConnectorComponent={BlocklistFilterModal}
+            onFilterSelect={handleFilterSelect}
+          />
+        </PageToolbarSection>
+      </PageToolbar>
+
+      <PageContentBody>
+        {isLoading && !isFetched ? <LoadingIndicator /> : null}
+
+        {!isLoading && !!error ? (
+          <Alert kind={kinds.DANGER}>{translate('BlocklistLoadError')}</Alert>
+        ) : null}
+
+        {isFetched && !error && !records.length ? (
+          <Alert kind={kinds.INFO}>
+            {selectedFilterKey === 'all'
+              ? translate('NoBlocklistItems')
+              : translate('BlocklistFilterHasNoItems')}
+          </Alert>
+        ) : null}
+
+        {isFetched && !error && !!records.length ? (
+          <div>
+            <Table
+              selectAll={true}
+              allSelected={allSelected}
+              allUnselected={allUnselected}
               columns={columns}
               pageSize={pageSize}
+              sortKey={sortKey}
+              sortDirection={sortDirection}
               onTableOptionChange={handleTableOptionChange}
+              onSelectAllChange={handleSelectAllChange}
+              onSortPress={handleSortPress}
             >
-              <PageToolbarButton
-                label={translate('Options')}
-                iconName={icons.TABLE}
-              />
-            </TableOptionsModalWrapper>
-
-            <FilterMenu
-              alignMenu={align.RIGHT}
-              selectedFilterKey={selectedFilterKey}
-              filters={filters}
-              customFilters={customFilters}
-              filterModalConnectorComponent={BlocklistFilterModal}
-              onFilterSelect={handleFilterSelect}
+              <TableBody>
+                {records.map((item) => {
+                  return (
+                    <BlocklistRow key={item.id} columns={columns} {...item} />
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <TablePager
+              page={page}
+              totalPages={totalPages}
+              totalRecords={totalRecords}
+              isFetching={isFetching}
+              onPageSelect={goToPage}
             />
-          </PageToolbarSection>
-        </PageToolbar>
+          </div>
+        ) : null}
+      </PageContentBody>
 
-        <PageContentBody>
-          {isFetching && !isPopulated ? <LoadingIndicator /> : null}
+      <ConfirmModal
+        isOpen={isConfirmRemoveModalOpen}
+        kind={kinds.DANGER}
+        title={translate('RemoveSelected')}
+        message={translate('RemoveSelectedBlocklistMessageText')}
+        confirmLabel={translate('RemoveSelected')}
+        onConfirm={handleRemoveSelectedConfirmed}
+        onCancel={handleConfirmRemoveModalClose}
+      />
 
-          {!isFetching && !!error ? (
-            <Alert kind={kinds.DANGER}>{translate('BlocklistLoadError')}</Alert>
-          ) : null}
+      <ConfirmModal
+        isOpen={isConfirmClearModalOpen}
+        kind={kinds.DANGER}
+        title={translate('ClearBlocklist')}
+        message={translate('ClearBlocklistMessageText')}
+        confirmLabel={translate('Clear')}
+        onConfirm={handleClearBlocklistConfirmed}
+        onCancel={handleConfirmClearModalClose}
+      />
+    </PageContent>
+  );
+}
 
-          {isPopulated && !error && !items.length ? (
-            <Alert kind={kinds.INFO}>
-              {selectedFilterKey === 'all'
-                ? translate('NoBlocklistItems')
-                : translate('BlocklistFilterHasNoItems')}
-            </Alert>
-          ) : null}
+function Blocklist() {
+  const { records } = useBlocklist();
 
-          {isPopulated && !error && !!items.length ? (
-            <div>
-              <Table
-                selectAll={true}
-                allSelected={allSelected}
-                allUnselected={allUnselected}
-                columns={columns}
-                pageSize={pageSize}
-                sortKey={sortKey}
-                sortDirection={sortDirection}
-                onTableOptionChange={handleTableOptionChange}
-                onSelectAllChange={handleSelectAllChange}
-                onSortPress={handleSortPress}
-              >
-                <TableBody>
-                  {items.map((item) => {
-                    return (
-                      <BlocklistRow
-                        key={item.id}
-                        isSelected={selectedState[item.id] || false}
-                        columns={columns}
-                        {...item}
-                        onSelectedChange={handleSelectedChange}
-                      />
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              <TablePager
-                page={page}
-                totalPages={totalPages}
-                totalRecords={totalRecords}
-                isFetching={isFetching}
-                onFirstPagePress={handleFirstPagePress}
-                onPreviousPagePress={handlePreviousPagePress}
-                onNextPagePress={handleNextPagePress}
-                onLastPagePress={handleLastPagePress}
-                onPageSelect={handlePageSelect}
-              />
-            </div>
-          ) : null}
-        </PageContentBody>
-
-        <ConfirmModal
-          isOpen={isConfirmRemoveModalOpen}
-          kind={kinds.DANGER}
-          title={translate('RemoveSelected')}
-          message={translate('RemoveSelectedBlocklistMessageText')}
-          confirmLabel={translate('RemoveSelected')}
-          onConfirm={handleRemoveSelectedConfirmed}
-          onCancel={handleConfirmRemoveModalClose}
-        />
-
-        <ConfirmModal
-          isOpen={isConfirmClearModalOpen}
-          kind={kinds.DANGER}
-          title={translate('ClearBlocklist')}
-          message={translate('ClearBlocklistMessageText')}
-          confirmLabel={translate('Clear')}
-          onConfirm={handleClearBlocklistConfirmed}
-          onCancel={handleConfirmClearModalClose}
-        />
-      </PageContent>
+  return (
+    <SelectProvider<BlockListModel> items={records}>
+      <BlocklistContent />
     </SelectProvider>
   );
 }

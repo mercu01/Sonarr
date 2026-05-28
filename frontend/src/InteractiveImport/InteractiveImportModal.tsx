@@ -4,12 +4,15 @@ import usePrevious from 'Helpers/Hooks/usePrevious';
 import { sizes } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import InteractiveImportSelectFolderModalContent from './Folder/InteractiveImportSelectFolderModalContent';
-import InteractiveImportModalContent from './Interactive/InteractiveImportModalContent';
+import InteractiveImportModalContent, {
+  InteractiveImportModalContentProps,
+} from './Interactive/InteractiveImportModalContent';
 
-interface InteractiveImportModalProps {
+interface InteractiveImportModalProps
+  extends Omit<InteractiveImportModalContentProps, 'modalTitle'> {
   isOpen: boolean;
   folder?: string;
-  downloadId?: string;
+  downloadIds?: string[];
   modalTitle?: string;
   onModalClose(): void;
 }
@@ -18,7 +21,7 @@ function InteractiveImportModal(props: InteractiveImportModalProps) {
   const {
     isOpen,
     folder,
-    downloadId,
+    downloadIds,
     modalTitle = translate('ManualImport'),
     onModalClose,
     ...otherProps
@@ -51,11 +54,11 @@ function InteractiveImportModal(props: InteractiveImportModalProps) {
       closeOnBackgroundClick={false}
       onModalClose={onModalClose}
     >
-      {folderPath || downloadId ? (
+      {folderPath || downloadIds ? (
         <InteractiveImportModalContent
           {...otherProps}
           folder={folderPath}
-          downloadId={downloadId}
+          downloadIds={downloadIds}
           modalTitle={modalTitle}
           onModalClose={onModalClose}
         />

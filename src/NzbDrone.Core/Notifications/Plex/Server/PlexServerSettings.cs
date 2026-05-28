@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Notifications.Plex.Server
 
     public class PlexServerSettings : NotificationSettingsBase<PlexServerSettings>
     {
-        private static readonly PlexServerSettingsValidator Validator = new ();
+        private static readonly PlexServerSettingsValidator Validator = new();
 
         public PlexServerSettings()
         {
@@ -36,7 +36,7 @@ namespace NzbDrone.Core.Notifications.Plex.Server
         [FieldDefinition(1, Label = "Host")]
         public string Host { get; set; }
 
-        [FieldDefinition(2, Label = "Port")]
+        [FieldDefinition(2, Label = "Port", Type = FieldType.Number)]
         public int Port { get; set; }
 
         [FieldDefinition(3, Label = "UseSsl", Type = FieldType.Checkbox, HelpText = "NotificationsSettingsUseSslHelpText")]
@@ -57,11 +57,11 @@ namespace NzbDrone.Core.Notifications.Plex.Server
         [FieldDefinition(7, Label = "NotificationsSettingsUpdateLibrary", Type = FieldType.Checkbox)]
         public bool UpdateLibrary { get; set; }
 
-        [FieldDefinition(8, Label = "NotificationsSettingsUpdateMapPathsFrom", Type = FieldType.Textbox, Advanced = true, HelpText = "NotificationsSettingsUpdateMapPathsFromHelpText")]
+        [FieldDefinition(8, Label = "NotificationsSettingsUpdateMapPathsFrom", Type = FieldType.Textbox, Advanced = true, HelpText = "NotificationsSettingsUpdateMapPathsFromSeriesHelpText")]
         [FieldToken(TokenField.HelpText, "NotificationsSettingsUpdateMapPathsFrom", "serviceName", "Plex")]
         public string MapFrom { get; set; }
 
-        [FieldDefinition(9, Label = "NotificationsSettingsUpdateMapPathsTo", Type = FieldType.Textbox, Advanced = true, HelpText = "NotificationsSettingsUpdateMapPathsToHelpText")]
+        [FieldDefinition(9, Label = "NotificationsSettingsUpdateMapPathsTo", Type = FieldType.Textbox, Advanced = true, HelpText = "NotificationsSettingsUpdateMapPathsToSeriesHelpText")]
         [FieldToken(TokenField.HelpText, "NotificationsSettingsUpdateMapPathsTo", "serviceName", "Plex")]
         public string MapTo { get; set; }
 

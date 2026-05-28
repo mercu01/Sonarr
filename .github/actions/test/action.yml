@@ -4,6 +4,8 @@ description: Runs unit/integration tests
 inputs:
   use_postgres:
     description: 'Whether postgres should be used for the database'
+  postgres-version:
+    description: 'Which postgres version should be used for the database'
   os:
     description: 'OS that the tests are running on'
     required: true
@@ -27,16 +29,18 @@ runs:
   using: 'composite'
   steps:
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
 
     - name: Setup Postgres
       if: ${{ inputs.use_postgres }}
-      uses: ikalnytskyi/action-setup-postgres@v4
+      uses: ikalnytskyi/action-setup-postgres@v8
+      with:
+        postgres-version: ${{ inputs.postgres-version }}
 
     - name: Setup Test Variables
       shell: bash
       run: |
-        echo "RESULTS_NAME=${{ inputs.integration_tests && 'integation-' || 'unit-' }}${{ inputs.artifact }}${{ inputs.use_postgres && '-postgres' }}" >> "$GITHUB_ENV"
+        echo "RESULTS_NAME=${{ inputs.integration_tests && 'integation-' || 'unit-' }}${{ inputs.artifact }}${{ inputs.use_postgres && '-postgres' }}${{ inputs.use_postgres && inputs.postgres-version && inputs.postgres-version }}" >> "$GITHUB_ENV"
 
     - name: Setup Postgres Environment Variables
       if: ${{ inputs.use_postgres }}
@@ -48,14 +52,14 @@ runs:
         echo "Sonarr__Postgres__Password=postgres" >> "$GITHUB_ENV"
 
     - name: Download Artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.artifact }}
         path: _tests
 
     - name: Download Binary Artifact
       if: ${{ inputs.integration_tests }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.binary_artifact }}
         path: _output
@@ -81,7 +85,7 @@ runs:
 
     - name: Upload Test Results
       if: ${{ !cancelled() }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: results-${{ env.RESULTS_NAME }}
         path: TestResults/*.trx

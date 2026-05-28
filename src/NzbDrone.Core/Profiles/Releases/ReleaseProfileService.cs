@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using NLog;
 using NzbDrone.Common.Extensions;
 
 namespace NzbDrone.Core.Profiles.Releases
@@ -8,6 +7,7 @@ namespace NzbDrone.Core.Profiles.Releases
     public interface IReleaseProfileService
     {
         List<ReleaseProfile> All();
+        List<ReleaseProfile> AllExcludedForTag(int tagId);
         List<ReleaseProfile> AllForTag(int tagId);
         List<ReleaseProfile> AllForTags(HashSet<int> tagIds);
         List<ReleaseProfile> EnabledForTags(HashSet<int> tagIds, int indexerId);
@@ -20,12 +20,10 @@ namespace NzbDrone.Core.Profiles.Releases
     public class ReleaseProfileService : IReleaseProfileService
     {
         private readonly IRestrictionRepository _repo;
-        private readonly Logger _logger;
 
-        public ReleaseProfileService(IRestrictionRepository repo, Logger logger)
+        public ReleaseProfileService(IRestrictionRepository repo)
         {
             _repo = repo;
-            _logger = logger;
         }
 
         public List<ReleaseProfile> All()
@@ -35,6 +33,11 @@ namespace NzbDrone.Core.Profiles.Releases
             return all;
         }
 
+        public List<ReleaseProfile> AllExcludedForTag(int tagId)
+        {
+            return _repo.All().Where(r => r.ExcludedTags.Contains(tagId)).ToList();
+        }
+
         public List<ReleaseProfile> AllForTag(int tagId)
         {
             return _repo.All().Where(r => r.Tags.Contains(tagId)).ToList();
@@ -42,14 +45,15 @@ namespace NzbDrone.Core.Profiles.Releases
 
         public List<ReleaseProfile> AllForTags(HashSet<int> tagIds)
         {
-            return _repo.All().Where(r => r.Tags.Intersect(tagIds).Any() || r.Tags.Empty()).ToList();
+            return _repo.All().Where(r => (r.Tags.Intersect(tagIds).Any() || r.Tags.Empty()) && !r.ExcludedTags.Intersect(tagIds).Any()).ToList();
         }
 
         public List<ReleaseProfile> EnabledForTags(HashSet<int> tagIds, int indexerId)
         {
             return AllForTags(tagIds)
                 .Where(r => r.Enabled)
-                .Where(r => r.IndexerId == indexerId || r.IndexerId == 0).ToList();
+                .Where(r => r.IndexerIds.Contains(indexerId) || r.IndexerIds.Empty())
+                .ToList();
         }
 
         public ReleaseProfile Get(int id)

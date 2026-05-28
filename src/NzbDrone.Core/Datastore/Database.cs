@@ -1,8 +1,6 @@
 using System;
-using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
-using System.Text.RegularExpressions;
 using Dapper;
 using NLog;
 using NzbDrone.Common.Instrumentation;
@@ -11,7 +9,7 @@ namespace NzbDrone.Core.Datastore
 {
     public interface IDatabase
     {
-        IDbConnection OpenConnection();
+        DbConnection OpenConnection();
         Version Version { get; }
         int Migration { get; }
         DatabaseType DatabaseType { get; }
@@ -21,17 +19,17 @@ namespace NzbDrone.Core.Datastore
     public class Database : IDatabase
     {
         private readonly string _databaseName;
-        private readonly Func<IDbConnection> _datamapperFactory;
+        private readonly Func<DbConnection> _datamapperFactory;
 
         private readonly Logger _logger = NzbDroneLogger.GetLogger(typeof(Database));
 
-        public Database(string databaseName, Func<IDbConnection> datamapperFactory)
+        public Database(string databaseName, Func<DbConnection> datamapperFactory)
         {
             _databaseName = databaseName;
             _datamapperFactory = datamapperFactory;
         }
 
-        public IDbConnection OpenConnection()
+        public DbConnection OpenConnection()
         {
             return _datamapperFactory();
         }
@@ -51,10 +49,9 @@ namespace NzbDrone.Core.Datastore
             get
             {
                 using var db = _datamapperFactory();
-                var dbConnection = db as DbConnection;
-                var version = Regex.Replace(dbConnection.ServerVersion, @"\(.*?\)", "");
+                var dbConnection = db;
 
-                return new Version(version);
+                return DatabaseVersionParser.ParseServerVersion(dbConnection.ServerVersion);
             }
         }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Equ;
 using FluentValidation;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Validation;
@@ -16,13 +17,21 @@ namespace NzbDrone.Core.Indexers.FileList
             RuleFor(c => c.Username).NotEmpty();
             RuleFor(c => c.Passkey).NotEmpty();
 
+            RuleFor(c => c).Custom((c, context) =>
+            {
+                if (c.Categories.Empty() && c.AnimeCategories.Empty())
+                {
+                    context.AddFailure("Either 'Categories' or 'Anime Categories' must be provided");
+                }
+            });
+
             RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator());
         }
     }
 
     public class FileListSettings : PropertywiseEquatable<FileListSettings>, ITorrentIndexerSettings
     {
-        private static readonly FileListSettingsValidator Validator = new ();
+        private static readonly FileListSettingsValidator Validator = new();
 
         public FileListSettings()
         {
@@ -38,6 +47,7 @@ namespace NzbDrone.Core.Indexers.FileList
 
             AnimeCategories = Array.Empty<int>();
             MultiLanguages = Array.Empty<int>();
+            FailDownloads = Array.Empty<int>();
         }
 
         [FieldDefinition(0, Label = "Username", Privacy = PrivacyLevel.UserName)]
@@ -62,10 +72,13 @@ namespace NzbDrone.Core.Indexers.FileList
         public int MinimumSeeders { get; set; }
 
         [FieldDefinition(7)]
-        public SeedCriteriaSettings SeedCriteria { get; set; } = new ();
+        public SeedCriteriaSettings SeedCriteria { get; set; } = new();
 
         [FieldDefinition(8, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectBlocklistedTorrentHashes", HelpText = "IndexerSettingsRejectBlocklistedTorrentHashesHelpText", Advanced = true)]
         public bool RejectBlocklistedTorrentHashesWhileGrabbing { get; set; }
+
+        [FieldDefinition(9, Type = FieldType.Select, SelectOptions = typeof(FailDownloads), Label = "IndexerSettingsFailDownloads", HelpText = "IndexerSettingsFailDownloadsHelpText", Advanced = true)]
+        public IEnumerable<int> FailDownloads { get; set; }
 
         public NzbDroneValidationResult Validate()
         {

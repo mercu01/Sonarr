@@ -70,8 +70,13 @@
 }
 
 .originalLanguageName,
-.network {
+.network,
+.genres {
   margin-left: 8px;
+}
+
+.genres {
+  pointer-events: all;
 }
 
 .tvdbLink {
@@ -89,6 +94,12 @@
 .alreadyExistsIcon {
   margin-left: 10px;
   color: #37bc9b;
+  pointer-events: all;
+}
+
+.excludedIcon {
+  margin-left: 10px;
+  color: var(--dangerColor);
   pointer-events: all;
 }
 

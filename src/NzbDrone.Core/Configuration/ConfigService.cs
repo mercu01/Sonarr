@@ -55,6 +55,7 @@ namespace NzbDrone.Core.Configuration
         public void SaveConfigDictionary(Dictionary<string, object> configValues)
         {
             var allWithDefaults = AllWithDefaults();
+            var hasUpdated = false;
 
             foreach (var configValue in configValues)
             {
@@ -68,11 +69,15 @@ namespace NzbDrone.Core.Configuration
 
                 if (!equal)
                 {
+                    hasUpdated = true;
                     SetValue(configValue.Key, configValue.Value.ToString());
                 }
             }
 
-            _eventAggregator.PublishEvent(new ConfigSavedEvent());
+            if (hasUpdated)
+            {
+                _eventAggregator.PublishEvent(new ConfigSavedEvent());
+            }
         }
 
         public bool IsDefined(string key)
@@ -257,6 +262,24 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EpisodeTitleRequired", value); }
         }
 
+        public string UserRejectedExtensions
+        {
+            get { return GetValue("UserRejectedExtensions", string.Empty); }
+            set { SetValue("UserRejectedExtensions", value); }
+        }
+
+        public SeasonPackUpgradeType SeasonPackUpgrade
+        {
+            get { return GetValueEnum("SeasonPackUpgrade", SeasonPackUpgradeType.All); }
+            set { SetValue("SeasonPackUpgrade", value); }
+        }
+
+        public double SeasonPackUpgradeThreshold
+        {
+            get { return GetValueDouble("SeasonPackUpgradeThreshold", 100.0); }
+            set { SetValue("SeasonPackUpgradeThreshold", value); }
+        }
+
         public bool SetPermissionsLinux
         {
             get { return GetValueBoolean("SetPermissionsLinux", false); }
@@ -325,6 +348,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("TimeFormat", value); }
         }
 
+        public string TimeZone
+        {
+            get { return GetValue("TimeZone", ""); }
+
+            set { SetValue("TimeZone", value); }
+        }
+
         public bool ShowRelativeDates
         {
             get { return GetValueBoolean("ShowRelativeDates", true); }
@@ -390,6 +420,12 @@ namespace NzbDrone.Core.Configuration
 
         public string ApplicationUrl => GetValue("ApplicationUrl", string.Empty);
 
+        public bool TrustCgnatIpAddresses
+        {
+            get { return GetValueBoolean("TrustCgnatIpAddresses", false); }
+            set { SetValue("TrustCgnatIpAddresses", value); }
+        }
+
         private string GetValue(string key)
         {
             return GetValue(key, string.Empty);
@@ -403,6 +439,11 @@ namespace NzbDrone.Core.Configuration
         private int GetValueInt(string key, int defaultValue = 0)
         {
             return Convert.ToInt32(GetValue(key, defaultValue));
+        }
+
+        private double GetValueDouble(string key, double defaultValue = 0)
+        {
+            return Convert.ToDouble(GetValue(key, defaultValue), CultureInfo.InvariantCulture);
         }
 
         private T GetValueEnum<T>(string key, T defaultValue)
@@ -440,6 +481,11 @@ namespace NzbDrone.Core.Configuration
         private void SetValue(string key, int value)
         {
             SetValue(key, value.ToString());
+        }
+
+        private void SetValue(string key, double value)
+        {
+            SetValue(key, value.ToString(CultureInfo.InvariantCulture));
         }
 
         private void SetValue(string key, Enum value)

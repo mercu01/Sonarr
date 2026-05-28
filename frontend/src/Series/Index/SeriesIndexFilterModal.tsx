@@ -1,55 +1,29 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import AppState from 'App/State/AppState';
-import FilterModal from 'Components/Filter/FilterModal';
-import { setSeriesFilter } from 'Store/Actions/seriesIndexActions';
+import FilterModal, { FilterModalProps } from 'Components/Filter/FilterModal';
+import Series from 'Series/Series';
+import { setSeriesOption } from 'Series/seriesOptionsStore';
+import useSeries, { FILTER_BUILDER } from 'Series/useSeries';
 
-function createSeriesSelector() {
-  return createSelector(
-    (state: AppState) => state.series.items,
-    (series) => {
-      return series;
-    }
-  );
-}
-
-function createFilterBuilderPropsSelector() {
-  return createSelector(
-    (state: AppState) => state.seriesIndex.filterBuilderProps,
-    (filterBuilderProps) => {
-      return filterBuilderProps;
-    }
-  );
-}
-
-interface SeriesIndexFilterModalProps {
-  isOpen: boolean;
-}
+type SeriesIndexFilterModalProps = FilterModalProps<Series>;
 
 export default function SeriesIndexFilterModal(
   props: SeriesIndexFilterModalProps
 ) {
-  const sectionItems = useSelector(createSeriesSelector());
-  const filterBuilderProps = useSelector(createFilterBuilderPropsSelector());
-  const customFilterType = 'series';
-
-  const dispatch = useDispatch();
+  const { data: sectionItems } = useSeries();
 
   const dispatchSetFilter = useCallback(
-    (payload: unknown) => {
-      dispatch(setSeriesFilter(payload));
+    ({ selectedFilterKey }: { selectedFilterKey: string | number }) => {
+      setSeriesOption('selectedFilterKey', selectedFilterKey);
     },
-    [dispatch]
+    []
   );
 
   return (
     <FilterModal
-      // TODO: Don't spread all the props
       {...props}
       sectionItems={sectionItems}
-      filterBuilderProps={filterBuilderProps}
-      customFilterType={customFilterType}
+      filterBuilderProps={FILTER_BUILDER}
+      customFilterType="series"
       dispatchSetFilter={dispatchSetFilter}
     />
   );

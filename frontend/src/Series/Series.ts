@@ -1,5 +1,7 @@
 import ModelBase from 'App/ModelBase';
+import ReleaseType from 'InteractiveImport/ReleaseType';
 import Language from 'Language/Language';
+import Quality from 'Quality/Quality';
 
 export type SeriesType = 'anime' | 'daily' | 'standard';
 export type SeriesMonitor =
@@ -34,15 +36,17 @@ export interface Statistics {
   percentOfEpisodes: number;
   previousAiring?: Date;
   releaseGroups: string[];
+  releaseTypes: ReleaseType[];
+  episodeFileQualities: Quality[];
   sizeOnDisk: number;
   totalEpisodeCount: number;
+  monitoredEpisodeCount: number;
 }
 
 export interface Season {
   monitored: boolean;
   seasonNumber: number;
   statistics: Statistics;
-  isSaving?: boolean;
 }
 
 export interface Ratings {
@@ -70,13 +74,15 @@ interface Series extends ModelBase {
   certification: string;
   cleanTitle: string;
   ended: boolean;
-  firstAired: string;
+  firstAired?: string;
+  lastAired?: string;
   genres: string[];
   images: Image[];
   imdbId?: string;
   monitored: boolean;
   monitorNewItems: MonitorNewItems;
   network: string;
+  originalCountry: string;
   originalLanguage: Language;
   overview: string;
   path: string;
@@ -90,7 +96,7 @@ interface Series extends ModelBase {
   seasons: Season[];
   seriesType: SeriesType;
   sortTitle: string;
-  statistics: Statistics;
+  statistics?: Statistics;
   status: SeriesStatus;
   tags: number[];
   title: string;
@@ -101,7 +107,6 @@ interface Series extends ModelBase {
   tmdbId: number;
   useSceneNumbering: boolean;
   year: number;
-  isSaving?: boolean;
   addOptions: SeriesAddOptions;
 }
 

@@ -72,6 +72,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                                 return new HealthCheck(
                                     GetType(),
                                     HealthCheckResult.Error,
+                                    HealthCheckReason.RemotePathMappingWrongOSPath,
                                     _localizationService.GetLocalizedString(
                                         "RemotePathMappingWrongOSPathHealthCheckMessage", new Dictionary<string, object>
                                         {
@@ -87,6 +88,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                                 return new HealthCheck(
                                     GetType(),
                                     HealthCheckResult.Error,
+                                    HealthCheckReason.RemotePathMappingBadDockerPath,
                                     _localizationService.GetLocalizedString(
                                         "RemotePathMappingBadDockerPathHealthCheckMessage",
                                         new Dictionary<string, object>
@@ -101,6 +103,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                             return new HealthCheck(
                                 GetType(),
                                 HealthCheckResult.Error,
+                                HealthCheckReason.RemotePathMappingLocalWrongOSPath,
                                 _localizationService.GetLocalizedString(
                                     "RemotePathMappingLocalWrongOSPathHealthCheckMessage",
                                     new Dictionary<string, object>
@@ -119,6 +122,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                                 return new HealthCheck(
                                     GetType(),
                                     HealthCheckResult.Error,
+                                    HealthCheckReason.RemotePathMappingDockerFolderMissing,
                                     _localizationService.GetLocalizedString(
                                         "RemotePathMappingDockerFolderMissingHealthCheckMessage",
                                         new Dictionary<string, object>
@@ -134,6 +138,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                                 return new HealthCheck(
                                     GetType(),
                                     HealthCheckResult.Error,
+                                    HealthCheckReason.RemotePathMappingLocalFolderMissing,
                                     _localizationService.GetLocalizedString(
                                         "RemotePathMappingLocalFolderMissingHealthCheckMessage",
                                         new Dictionary<string, object>
@@ -147,6 +152,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                             return new HealthCheck(
                                 GetType(),
                                 HealthCheckResult.Error,
+                                HealthCheckReason.RemotePathMappingGenericPermissions,
                                 _localizationService.GetLocalizedString(
                                     "RemotePathMappingGenericPermissionsHealthCheckMessage",
                                     new Dictionary<string, object>
@@ -168,7 +174,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Unknown error occured in RemotePathMapping HealthCheck");
+                    _logger.Error(ex, "Unknown error occurred in RemotePathMapping HealthCheck");
                 }
             }
 
@@ -194,6 +200,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     {
                         return new HealthCheck(GetType(),
                             HealthCheckResult.Error,
+                            HealthCheckReason.RemotePathMappingDownloadPermissionsEpisode,
                             _localizationService.GetLocalizedString(
                                 "RemotePathMappingDownloadPermissionsEpisodeHealthCheckMessage",
                                 new Dictionary<string, object>
@@ -207,6 +214,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     // ImportApprovedEpisodes and the file must have been removed part way through processing
                     return new HealthCheck(GetType(),
                         HealthCheckResult.Error,
+                        HealthCheckReason.RemotePathMappingFileRemoved,
                         _localizationService.GetLocalizedString(
                             "RemotePathMappingFileRemovedHealthCheckMessage",
                             new Dictionary<string, object>
@@ -216,7 +224,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         "#remote-path-file-removed");
                 }
 
-                // If the previous case did not match then the failure occured in DownloadedEpisodeImportService,
+                // If the previous case did not match then the failure occurred in DownloadedEpisodeImportService,
                 // while trying to locate the files reported by the download client
                 // Only check clients not in failure status, those get another message
                 var client = _downloadClientProvider.GetDownloadClients(true).FirstOrDefault(x => x.Definition.Name == failureMessage.DownloadClientInfo.Name);
@@ -238,6 +246,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         return new HealthCheck(
                             GetType(),
                             HealthCheckResult.Error,
+                            HealthCheckReason.RemotePathMappingImportEpisodeFailed,
                             _localizationService.GetLocalizedString("RemotePathMappingImportEpisodeFailedHealthCheckMessage"),
                             "#remote-path-import-failed");
                     }
@@ -249,6 +258,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                             return new HealthCheck(
                                 GetType(),
                                 HealthCheckResult.Error,
+                                HealthCheckReason.RemotePathMappingFilesWrongOSPath,
                                 _localizationService.GetLocalizedString(
                                     "RemotePathMappingFilesWrongOSPathHealthCheckMessage",
                                     new Dictionary<string, object>
@@ -265,6 +275,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                             return new HealthCheck(
                                 GetType(),
                                 HealthCheckResult.Error,
+                                HealthCheckReason.RemotePathMappingFilesBadDockerPath,
                                 _localizationService.GetLocalizedString(
                                     "RemotePathMappingFilesBadDockerPathHealthCheckMessage",
                                     new Dictionary<string, object>
@@ -279,6 +290,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         return new HealthCheck(
                             GetType(),
                             HealthCheckResult.Error,
+                            HealthCheckReason.RemotePathMappingFilesLocalWrongOSPath,
                             _localizationService.GetLocalizedString(
                                 "RemotePathMappingFilesLocalWrongOSPathHealthCheckMessage",
                                 new Dictionary<string, object>
@@ -295,6 +307,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         return new HealthCheck(
                             GetType(),
                             HealthCheckResult.Error,
+                            HealthCheckReason.RemotePathMappingFolderPermissions,
                             _localizationService.GetLocalizedString(
                                 "RemotePathMappingFolderPermissionsHealthCheckMessage",
                                 new Dictionary<string, object>
@@ -310,6 +323,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         return new HealthCheck(
                             GetType(),
                             HealthCheckResult.Error,
+                            HealthCheckReason.RemotePathMappingFolderPermissions,
                             _localizationService.GetLocalizedString(
                                 "RemotePathMappingFolderPermissionsHealthCheckMessage",
                                 new Dictionary<string, object>
@@ -325,6 +339,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         return new HealthCheck(
                             GetType(),
                             HealthCheckResult.Error,
+                            HealthCheckReason.RemotePathMappingRemoteDownloadClient,
                             _localizationService.GetLocalizedString(
                                 "RemotePathMappingRemoteDownloadClientHealthCheckMessage",
                                 new Dictionary<string, object>
@@ -332,13 +347,15 @@ namespace NzbDrone.Core.HealthCheck.Checks
                                     { "downloadClientName", client.Definition.Name },
                                     { "path", dlpath },
                                     { "osName", _osInfo.Name }
-                                }), "#bad-remote-path-mapping");
+                                }),
+                            "#bad-remote-path-mapping");
                     }
 
                     // path mappings shouldn't be needed locally so probably a permissions issue
                     return new HealthCheck(
                         GetType(),
                         HealthCheckResult.Error,
+                        HealthCheckReason.RemotePathMappingFilesGenericPermissions,
                         _localizationService.GetLocalizedString(
                             "RemotePathMappingFilesGenericPermissionsHealthCheckMessage",
                             new Dictionary<string, object>
@@ -358,7 +375,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Unknown error occured in RemotePathMapping HealthCheck");
+                    _logger.Error(ex, "Unknown error occurred in RemotePathMapping HealthCheck");
                 }
 
                 return new HealthCheck(GetType());

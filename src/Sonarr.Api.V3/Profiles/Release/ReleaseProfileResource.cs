@@ -15,12 +15,16 @@ namespace Sonarr.Api.V3.Profiles.Release
         // Is List<string>, string or JArray, we accept 'string' with POST for backward compatibility
         public object Required { get; set; }
         public object Ignored { get; set; }
+        public bool AirDateRestriction { get; set; }
+        public int AirDateGracePeriod { get; set; }
         public int IndexerId { get; set; }
         public HashSet<int> Tags { get; set; }
+        public HashSet<int> ExcludedTags { get; set; }
 
         public ReleaseProfileResource()
         {
             Tags = new HashSet<int>();
+            ExcludedTags = new HashSet<int>();
         }
     }
 
@@ -40,8 +44,11 @@ namespace Sonarr.Api.V3.Profiles.Release
                 Enabled = model.Enabled,
                 Required = model.Required ?? new List<string>(),
                 Ignored = model.Ignored ?? new List<string>(),
-                IndexerId = model.IndexerId,
-                Tags = new HashSet<int>(model.Tags)
+                AirDateRestriction = model.AirDateRestriction,
+                AirDateGracePeriod = model.AirDateGracePeriod,
+                IndexerId = model.IndexerIds.FirstOrDefault(0),
+                Tags = new HashSet<int>(model.Tags),
+                ExcludedTags = new HashSet<int>(model.ExcludedTags)
             };
         }
 
@@ -59,8 +66,11 @@ namespace Sonarr.Api.V3.Profiles.Release
                 Enabled = resource.Enabled,
                 Required = resource.MapRequired(),
                 Ignored = resource.MapIgnored(),
-                IndexerId = resource.IndexerId,
-                Tags = new HashSet<int>(resource.Tags)
+                AirDateRestriction = resource.AirDateRestriction,
+                AirDateGracePeriod = resource.AirDateGracePeriod,
+                IndexerIds = new List<int> { resource.IndexerId },
+                Tags = new HashSet<int>(resource.Tags),
+                ExcludedTags = new HashSet<int>(resource.ExcludedTags)
             };
         }
 

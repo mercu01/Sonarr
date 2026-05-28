@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Indexers.BroadcastheNet
 {
     public class BroadcastheNetParser : IParseIndexerResponse
     {
-        private static readonly Regex RegexProtocol = new ("^https?:", RegexOptions.Compiled);
+        private static readonly Regex RegexProtocol = new("^https?:", RegexOptions.Compiled);
 
         public IList<ReleaseInfo> ParseResponse(IndexerResponse indexerResponse)
         {
@@ -119,6 +119,11 @@ namespace NzbDrone.Core.Indexers.BroadcastheNet
                 case "SCENE":
                     flags |= IndexerFlags.Scene;
                     break;
+            }
+
+            if (item.Tags?.Contains("Subtitles") == true)
+            {
+                flags |= IndexerFlags.Subtitles;
             }
 
             return flags;

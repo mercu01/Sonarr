@@ -1,53 +1,26 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import AppState from 'App/State/AppState';
-import FilterModal from 'Components/Filter/FilterModal';
-import { setHistoryFilter } from 'Store/Actions/historyActions';
+import FilterModal, { FilterModalProps } from 'Components/Filter/FilterModal';
+import { setHistoryOption } from './historyOptionsStore';
+import useHistory, { FILTER_BUILDER } from './useHistory';
 
-function createHistorySelector() {
-  return createSelector(
-    (state: AppState) => state.history.items,
-    (queueItems) => {
-      return queueItems;
-    }
-  );
-}
-
-function createFilterBuilderPropsSelector() {
-  return createSelector(
-    (state: AppState) => state.history.filterBuilderProps,
-    (filterBuilderProps) => {
-      return filterBuilderProps;
-    }
-  );
-}
-
-interface HistoryFilterModalProps {
-  isOpen: boolean;
-}
+type HistoryFilterModalProps = FilterModalProps<History>;
 
 export default function HistoryFilterModal(props: HistoryFilterModalProps) {
-  const sectionItems = useSelector(createHistorySelector());
-  const filterBuilderProps = useSelector(createFilterBuilderPropsSelector());
-  const customFilterType = 'history';
-
-  const dispatch = useDispatch();
+  const { records } = useHistory();
 
   const dispatchSetFilter = useCallback(
-    (payload: unknown) => {
-      dispatch(setHistoryFilter(payload));
+    ({ selectedFilterKey }: { selectedFilterKey: string | number }) => {
+      setHistoryOption('selectedFilterKey', selectedFilterKey);
     },
-    [dispatch]
+    []
   );
 
   return (
     <FilterModal
-      // TODO: Don't spread all the props
       {...props}
-      sectionItems={sectionItems}
-      filterBuilderProps={filterBuilderProps}
-      customFilterType={customFilterType}
+      sectionItems={records}
+      filterBuilderProps={FILTER_BUILDER}
+      customFilterType="history"
       dispatchSetFilter={dispatchSetFilter}
     />
   );

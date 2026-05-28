@@ -22,10 +22,8 @@ interface Episode extends ModelBase {
   monitored: boolean;
   grabbed?: boolean;
   unverifiedSceneNumbering: boolean;
-  endTime?: string;
-  grabDate?: string;
-  seriesTitle?: string;
   series?: Series;
+  finaleType?: string;
 }
 
 export default Episode;

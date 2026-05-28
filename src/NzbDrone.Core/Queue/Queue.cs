@@ -13,16 +13,22 @@ namespace NzbDrone.Core.Queue
     public class Queue : ModelBase
     {
         public Series Series { get; set; }
+
+        public int? SeasonNumber { get; set; }
+
+        [Obsolete]
         public Episode Episode { get; set; }
+
+        public List<Episode> Episodes { get; set; }
         public List<Language> Languages { get; set; }
         public QualityModel Quality { get; set; }
         public decimal Size { get; set; }
         public string Title { get; set; }
-        public decimal Sizeleft { get; set; }
-        public TimeSpan? Timeleft { get; set; }
+        public decimal SizeLeft { get; set; }
+        public TimeSpan? TimeLeft { get; set; }
         public DateTime? EstimatedCompletionTime { get; set; }
         public DateTime? Added { get; set; }
-        public string Status { get; set; }
+        public QueueStatus Status { get; set; }
         public TrackedDownloadStatus? TrackedDownloadStatus { get; set; }
         public TrackedDownloadState? TrackedDownloadState { get; set; }
         public List<TrackedDownloadStatusMessage> StatusMessages { get; set; }

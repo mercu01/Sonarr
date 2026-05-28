@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
-import { Error } from 'App/State/AppSectionState';
+import { useSelect } from 'App/Select/SelectContext';
 import IconButton from 'Components/Link/IconButton';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
 import ProgressBar from 'Components/ProgressBar';
@@ -15,37 +14,39 @@ import DownloadProtocol from 'DownloadClient/DownloadProtocol';
 import EpisodeFormats from 'Episode/EpisodeFormats';
 import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
-import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
-import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
-import useEpisode from 'Episode/useEpisode';
+import { useEpisodesWithIds } from 'Episode/useEpisode';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
 import SeriesTitleLink from 'Series/SeriesTitleLink';
-import useSeries from 'Series/useSeries';
-import { grabQueueItem, removeQueueItem } from 'Store/Actions/queueActions';
-import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
-import CustomFormat from 'typings/CustomFormat';
+import { useSingleSeries } from 'Series/useSeries';
+import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
+import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import { SelectStateInputProps } from 'typings/props';
-import {
+import Queue, {
   QueueTrackedDownloadState,
   QueueTrackedDownloadStatus,
   StatusMessage,
 } from 'typings/Queue';
+import formatDateTime from 'Utilities/Date/formatDateTime';
+import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import translate from 'Utilities/String/translate';
+import EpisodeCellContent from './EpisodeCellContent';
+import EpisodeTitleCellContent from './EpisodeTitleCellContent';
 import QueueStatusCell from './QueueStatusCell';
-import RemoveQueueItemModal, { RemovePressProps } from './RemoveQueueItemModal';
-import TimeleftCell from './TimeleftCell';
+import RemoveQueueItemModal from './RemoveQueueItemModal';
+import TimeLeftCell from './TimeLeftCell';
+import { useGrabQueueItem, useRemoveQueueItem } from './useQueue';
 import styles from './QueueRow.css';
 
 interface QueueRowProps {
   id: number;
   seriesId?: number;
-  episodeId?: number;
-  downloadId?: string;
+  episodeIds: number[];
+  downloadId: string;
   title: string;
   status: string;
   trackedDownloadStatus?: QueueTrackedDownloadStatus;
@@ -58,20 +59,18 @@ interface QueueRowProps {
   customFormatScore: number;
   protocol: DownloadProtocol;
   indexer?: string;
+  isFullSeason: boolean;
+  seasonNumbers: number[];
   outputPath?: string;
   downloadClient?: string;
   downloadClientHasPostImportCategory?: boolean;
   estimatedCompletionTime?: string;
   added?: string;
-  timeleft?: string;
+  timeLeft?: string;
   size: number;
-  sizeleft: number;
-  isGrabbing?: boolean;
-  grabError?: Error;
+  sizeLeft: number;
   isRemoving?: boolean;
-  isSelected?: boolean;
   columns: Column[];
-  onSelectedChange: (options: SelectStateInputProps) => void;
   onQueueRowModalOpenOrClose: (isOpen: boolean) => void;
 }
 
@@ -79,7 +78,7 @@ function QueueRow(props: QueueRowProps) {
   const {
     id,
     seriesId,
-    episodeId,
+    episodeIds,
     downloadId,
     title,
     status,
@@ -97,25 +96,24 @@ function QueueRow(props: QueueRowProps) {
     downloadClient,
     downloadClientHasPostImportCategory,
     estimatedCompletionTime,
+    isFullSeason,
+    seasonNumbers,
     added,
-    timeleft,
+    timeLeft,
     size,
-    sizeleft,
-    isGrabbing = false,
-    grabError,
-    isRemoving = false,
-    isSelected,
+    sizeLeft,
     columns,
-    onSelectedChange,
     onQueueRowModalOpenOrClose,
   } = props;
 
-  const dispatch = useDispatch();
-  const series = useSeries(seriesId);
-  const episode = useEpisode(episodeId, 'episodes');
-  const { showRelativeDates, shortDateFormat, timeFormat } = useSelector(
-    createUISettingsSelector()
-  );
+  const series = useSingleSeries(seriesId);
+  const episodes = useEpisodesWithIds(episodeIds);
+  const { showRelativeDates, shortDateFormat, longDateFormat, timeFormat } =
+    useUiSettingsValues();
+  const { removeQueueItem, isRemoving } = useRemoveQueueItem(id);
+  const { grabQueueItem, isGrabbing, grabError } = useGrabQueueItem(id);
+  const { toggleSelected, useIsSelected } = useSelect<Queue>();
+  const isSelected = useIsSelected(id);
 
   const [isRemoveQueueItemModalOpen, setIsRemoveQueueItemModalOpen] =
     useState(false);
@@ -124,8 +122,8 @@ function QueueRow(props: QueueRowProps) {
     useState(false);
 
   const handleGrabPress = useCallback(() => {
-    dispatch(grabQueueItem({ id }));
-  }, [id, dispatch]);
+    grabQueueItem();
+  }, [grabQueueItem]);
 
   const handleInteractiveImportPress = useCallback(() => {
     onQueueRowModalOpenOrClose(true);
@@ -142,21 +140,33 @@ function QueueRow(props: QueueRowProps) {
     setIsRemoveQueueItemModalOpen(true);
   }, [setIsRemoveQueueItemModalOpen, onQueueRowModalOpenOrClose]);
 
-  const handleRemoveQueueItemModalConfirmed = useCallback(
-    (payload: RemovePressProps) => {
-      onQueueRowModalOpenOrClose(false);
-      dispatch(removeQueueItem({ id, ...payload }));
-      setIsRemoveQueueItemModalOpen(false);
-    },
-    [id, setIsRemoveQueueItemModalOpen, onQueueRowModalOpenOrClose, dispatch]
-  );
+  const handleRemoveQueueItemModalConfirmed = useCallback(() => {
+    onQueueRowModalOpenOrClose(false);
+    removeQueueItem();
+    setIsRemoveQueueItemModalOpen(false);
+  }, [
+    setIsRemoveQueueItemModalOpen,
+    removeQueueItem,
+    onQueueRowModalOpenOrClose,
+  ]);
 
   const handleRemoveQueueItemModalClose = useCallback(() => {
     onQueueRowModalOpenOrClose(false);
     setIsRemoveQueueItemModalOpen(false);
   }, [setIsRemoveQueueItemModalOpen, onQueueRowModalOpenOrClose]);
 
-  const progress = 100 - (sizeleft / size) * 100;
+  const handleSelectedChange = useCallback(
+    ({ id, value, shiftKey = false }: SelectStateInputProps) => {
+      toggleSelected({
+        id,
+        isSelected: value,
+        shiftKey,
+      });
+    },
+    [toggleSelected]
+  );
+
+  const progress = 100 - (sizeLeft / size) * 100;
   const showInteractiveImport =
     status === 'completed' && trackedDownloadStatus === 'warning';
   const isPending =
@@ -167,7 +177,7 @@ function QueueRow(props: QueueRowProps) {
       <TableSelectCell
         id={id}
         isSelected={isSelected}
-        onSelectedChange={onSelectedChange}
+        onSelectedChange={handleSelectedChange}
       />
 
       {columns.map((column) => {
@@ -209,23 +219,12 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'episode') {
           return (
             <TableRowCell key={name}>
-              {episode ? (
-                <SeasonEpisodeNumber
-                  seasonNumber={episode.seasonNumber}
-                  episodeNumber={episode.episodeNumber}
-                  absoluteEpisodeNumber={episode.absoluteEpisodeNumber}
-                  seriesType={series?.seriesType}
-                  alternateTitles={series?.alternateTitles}
-                  sceneSeasonNumber={episode.sceneSeasonNumber}
-                  sceneEpisodeNumber={episode.sceneEpisodeNumber}
-                  sceneAbsoluteEpisodeNumber={
-                    episode.sceneAbsoluteEpisodeNumber
-                  }
-                  unverifiedSceneNumbering={episode.unverifiedSceneNumbering}
-                />
-              ) : (
-                '-'
-              )}
+              <EpisodeCellContent
+                episodes={episodes}
+                isFullSeason={isFullSeason}
+                seasonNumber={seasonNumbers[0]}
+                series={series}
+              />
             </TableRowCell>
           );
         }
@@ -233,27 +232,59 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'episodes.title') {
           return (
             <TableRowCell key={name}>
-              {series && episode ? (
-                <EpisodeTitleLink
-                  episodeId={episode.id}
-                  seriesId={series.id}
-                  episodeTitle={episode.title}
-                  episodeEntity="episodes"
-                  showOpenSeriesButton={true}
-                />
-              ) : (
-                '-'
-              )}
+              <EpisodeTitleCellContent episodes={episodes} series={series} />
             </TableRowCell>
           );
         }
 
         if (name === 'episodes.airDateUtc') {
-          if (episode) {
-            return <RelativeDateCell key={name} date={episode.airDateUtc} />;
+          if (episodes.length === 0) {
+            return <TableRowCell key={name}>-</TableRowCell>;
           }
 
-          return <TableRowCell key={name}>-</TableRowCell>;
+          if (episodes.length === 1) {
+            return (
+              <RelativeDateCell key={name} date={episodes[0].airDateUtc} />
+            );
+          }
+
+          return (
+            <TableRowCell key={name}>
+              <span
+                title={`${formatDateTime(
+                  episodes[0].airDateUtc,
+                  longDateFormat,
+                  timeFormat,
+                  {
+                    includeRelativeDay: !showRelativeDates,
+                  }
+                )} - ${formatDateTime(
+                  episodes[episodes.length - 1].airDateUtc,
+                  longDateFormat,
+                  timeFormat,
+                  {
+                    includeRelativeDay: !showRelativeDates,
+                  }
+                )}`}
+              >
+                {getRelativeDate({
+                  date: episodes[0].airDateUtc,
+                  shortDateFormat,
+                  showRelativeDates,
+                  timeFormat,
+                  timeForToday: true,
+                })}
+                {' - '}
+                {getRelativeDate({
+                  date: episodes[episodes.length - 1].airDateUtc,
+                  shortDateFormat,
+                  showRelativeDates,
+                  timeFormat,
+                  timeForToday: true,
+                })}
+              </span>
+            </TableRowCell>
+          );
         }
 
         if (name === 'languages') {
@@ -325,13 +356,13 @@ function QueueRow(props: QueueRowProps) {
 
         if (name === 'estimatedCompletionTime') {
           return (
-            <TimeleftCell
+            <TimeLeftCell
               key={name}
               status={status}
               estimatedCompletionTime={estimatedCompletionTime}
-              timeleft={timeleft}
+              timeLeft={timeLeft}
               size={size}
-              sizeleft={sizeleft}
+              sizeLeft={sizeLeft}
               showRelativeDates={showRelativeDates}
               shortDateFormat={shortDateFormat}
               timeFormat={timeFormat}
@@ -362,6 +393,7 @@ function QueueRow(props: QueueRowProps) {
               {showInteractiveImport ? (
                 <IconButton
                   name={icons.INTERACTIVE}
+                  aria-label={translate('InteractiveSearch')}
                   onPress={handleInteractiveImportPress}
                 />
               ) : null}
@@ -370,6 +402,7 @@ function QueueRow(props: QueueRowProps) {
                 <SpinnerIconButton
                   name={icons.DOWNLOAD}
                   kind={grabError ? kinds.DANGER : kinds.DEFAULT}
+                  aria-label={translate('Grab')}
                   isSpinning={isGrabbing}
                   onPress={handleGrabPress}
                 />
@@ -390,8 +423,8 @@ function QueueRow(props: QueueRowProps) {
 
       <InteractiveImportModal
         isOpen={isInteractiveImportModalOpen}
-        downloadId={downloadId}
-        modalTitle={title}
+        downloadIds={[downloadId]}
+        title={title}
         onModalClose={handleInteractiveImportModalClose}
       />
 
@@ -401,6 +434,7 @@ function QueueRow(props: QueueRowProps) {
         canChangeCategory={!!downloadClientHasPostImportCategory}
         canIgnore={!!series}
         isPending={isPending}
+        downloadClient={downloadClient}
         onRemovePress={handleRemoveQueueItemModalConfirmed}
         onModalClose={handleRemoveQueueItemModalClose}
       />

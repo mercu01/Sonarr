@@ -8,6 +8,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download.Pending;
+using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
@@ -54,8 +55,10 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
 
             _release = Builder<ReleaseInfo>.CreateNew().Build();
 
-            _parsedEpisodeInfo = Builder<ParsedEpisodeInfo>.CreateNew().Build();
-            _parsedEpisodeInfo.Quality = new QualityModel(Quality.HDTV720p);
+            _parsedEpisodeInfo = Builder<ParsedEpisodeInfo>.CreateNew()
+                .With(p => p.Quality = new QualityModel(Quality.HDTV720p))
+                .With(p => p.AirDate = null)
+                .Build();
 
             _remoteEpisode = new RemoteEpisode();
             _remoteEpisode.Episodes = new List<Episode> { _episode };
@@ -63,7 +66,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _remoteEpisode.ParsedEpisodeInfo = _parsedEpisodeInfo;
             _remoteEpisode.Release = _release;
 
-            _temporarilyRejected = new DownloadDecision(_remoteEpisode, new Rejection("Temp Rejected", RejectionType.Temporary));
+            _temporarilyRejected = new DownloadDecision(_remoteEpisode, new DownloadRejection(DownloadRejectionReason.MinimumAgeDelay, "Temp Rejected", RejectionType.Temporary));
 
             _heldReleases = new List<PendingRelease>();
 
@@ -86,6 +89,10 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             Mocker.GetMock<IParsingService>()
                   .Setup(s => s.GetEpisodes(It.IsAny<ParsedEpisodeInfo>(), _series, true, null))
                   .Returns(new List<Episode> { _episode });
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), _series))
+                .Returns(_remoteEpisode);
 
             Mocker.GetMock<IPrioritizeDownloadDecision>()
                   .Setup(s => s.PrioritizeDecisions(It.IsAny<List<DownloadDecision>>()))
@@ -110,9 +117,15 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _heldReleases.AddRange(heldReleases);
         }
 
+        private void InitializeReleases()
+        {
+            Subject.Handle(new ApplicationStartedEvent());
+        }
+
         [Test]
         public void should_add()
         {
+            InitializeReleases();
             Subject.Add(_temporarilyRejected, PendingReleaseReason.Delay);
 
             VerifyInsert();
@@ -123,6 +136,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(_release.Title, _release.Indexer, _release.PublishDate);
 
+            InitializeReleases();
             Subject.Add(_temporarilyRejected, PendingReleaseReason.Delay);
 
             VerifyNoInsert();
@@ -134,6 +148,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             GivenHeldRelease(_release.Title, _release.Indexer, _release.PublishDate, PendingReleaseReason.DownloadClientUnavailable);
             GivenHeldRelease(_release.Title, _release.Indexer, _release.PublishDate, PendingReleaseReason.Fallback);
 
+            InitializeReleases();
             Subject.Add(_temporarilyRejected, PendingReleaseReason.Delay);
 
             VerifyNoInsert();
@@ -145,6 +160,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             GivenHeldRelease(_release.Title, _release.Indexer, _release.PublishDate, PendingReleaseReason.DownloadClientUnavailable);
             GivenHeldRelease(_release.Title, _release.Indexer, _release.PublishDate, PendingReleaseReason.Fallback);
 
+            InitializeReleases();
             Subject.Add(_temporarilyRejected, PendingReleaseReason.Fallback);
 
             Mocker.GetMock<IPendingReleaseRepository>()
@@ -156,6 +172,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(_release.Title + "-RP", _release.Indexer, _release.PublishDate);
 
+            InitializeReleases();
             Subject.Add(_temporarilyRejected, PendingReleaseReason.Delay);
 
             VerifyInsert();
@@ -166,6 +183,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(_release.Title, "AnotherIndexer", _release.PublishDate);
 
+            InitializeReleases();
             Subject.Add(_temporarilyRejected, PendingReleaseReason.Delay);
 
             VerifyInsert();
@@ -176,6 +194,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(_release.Title, _release.Indexer, _release.PublishDate.AddHours(1));
 
+            InitializeReleases();
             Subject.Add(_temporarilyRejected, PendingReleaseReason.Delay);
 
             VerifyInsert();

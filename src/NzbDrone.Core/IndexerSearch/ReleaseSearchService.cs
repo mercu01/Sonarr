@@ -104,6 +104,12 @@ namespace NzbDrone.Core.IndexerSearch
                 episodes = episodes.Where(e => !e.HasFile).ToList();
             }
 
+            if (episodes.Count == 0)
+            {
+                _logger.Debug("No wanted episodes found for season {0}", seasonNumber);
+                return new List<DownloadDecision>();
+            }
+
             return await SeasonSearch(seriesId, seasonNumber, episodes, monitoredOnly, userInvokedSearch, interactiveSearch);
         }
 
@@ -341,7 +347,9 @@ namespace NzbDrone.Core.IndexerSearch
             var searchSpec = Get<DailyEpisodeSearchCriteria>(series, new List<Episode> { episode }, monitoredOnly, userInvokedSearch, interactiveSearch);
             searchSpec.AirDate = airDate;
 
-            return await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+            var downloadDecisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+
+            return DeDupeDecisions(downloadDecisions);
         }
 
         private async Task<List<DownloadDecision>> SearchAnime(Series series, Episode episode, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch, bool isSeasonSearch = false)
@@ -354,7 +362,9 @@ namespace NzbDrone.Core.IndexerSearch
             searchSpec.EpisodeNumber = episode.SceneEpisodeNumber ?? episode.EpisodeNumber;
             searchSpec.AbsoluteEpisodeNumber = episode.SceneAbsoluteEpisodeNumber ?? episode.AbsoluteEpisodeNumber ?? 0;
 
-            return await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+            var downloadDecisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+
+            return DeDupeDecisions(downloadDecisions);
         }
 
         private async Task<List<DownloadDecision>> SearchSpecial(Series series, List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch)
@@ -365,7 +375,9 @@ namespace NzbDrone.Core.IndexerSearch
 
             // build list of queries for each episode in the form: "<series> <episode-title>"
             searchSpec.EpisodeQueryTitles = episodes.Where(e => !string.IsNullOrWhiteSpace(e.Title))
+                                                    .Where(e => interactiveSearch || !monitoredOnly || e.Monitored)
                                                     .SelectMany(e => searchSpec.CleanSceneTitles.Select(title => title + " " + SearchCriteriaBase.GetCleanSceneTitle(e.Title)))
+                                                    .Distinct(StringComparer.InvariantCultureIgnoreCase)
                                                     .ToArray();
 
             downloadDecisions.AddRange(await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec));

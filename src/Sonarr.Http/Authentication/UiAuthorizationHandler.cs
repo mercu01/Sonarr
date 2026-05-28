@@ -27,8 +27,20 @@ namespace NzbDrone.Http.Authentication
             if (_authenticationRequired == AuthenticationRequiredType.DisabledForLocalAddresses)
             {
                 if (context.Resource is HttpContext httpContext &&
+                    IPAddress.TryParse(httpContext.GetRemoteIP(), out var ipAddress))
+                {
+                    if (ipAddress.IsLocalAddress() ||
+                        (_configService.TrustCgnatIpAddresses && ipAddress.IsCgnatIpAddress()))
+                    {
+                        context.Succeed(requirement);
+                    }
+                }
+            }
+            else if (_authenticationRequired == AuthenticationRequiredType.DisabledForLocalhost)
+            {
+                if (context.Resource is HttpContext httpContext &&
                     IPAddress.TryParse(httpContext.GetRemoteIP(), out var ipAddress) &&
-                    ipAddress.IsLocalAddress())
+                    IPAddress.IsLoopback(ipAddress))
                 {
                     context.Succeed(requirement);
                 }

@@ -1,10 +1,6 @@
 using System;
-using NzbDrone.Common.Cache;
-using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download.Clients;
-using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.Indexers
 {
@@ -14,15 +10,13 @@ namespace NzbDrone.Core.Indexers
         TorrentSeedConfiguration GetSeedConfiguration(int indexerId, bool fullSeason);
     }
 
-    public class SeedConfigProvider : ISeedConfigProvider, IHandle<ProviderUpdatedEvent<IIndexer>>
+    public class SeedConfigProvider : ISeedConfigProvider
     {
-        private readonly IIndexerFactory _indexerFactory;
-        private readonly ICached<SeedCriteriaSettings> _cache;
+        private readonly ICachedIndexerSettingsProvider _cachedIndexerSettingsProvider;
 
-        public SeedConfigProvider(IIndexerFactory indexerFactory, ICacheManager cacheManager)
+        public SeedConfigProvider(ICachedIndexerSettingsProvider cachedIndexerSettingsProvider)
         {
-            _indexerFactory = indexerFactory;
-            _cache = cacheManager.GetRollingCache<SeedCriteriaSettings>(GetType(), "criteriaByIndexer", TimeSpan.FromHours(1));
+            _cachedIndexerSettingsProvider = cachedIndexerSettingsProvider;
         }
 
         public TorrentSeedConfiguration GetSeedConfiguration(RemoteEpisode remoteEpisode)
@@ -47,45 +41,30 @@ namespace NzbDrone.Core.Indexers
                 return null;
             }
 
-            var seedCriteria = _cache.Get(indexerId.ToString(), () => FetchSeedCriteria(indexerId));
+            var settings = _cachedIndexerSettingsProvider.GetSettings(indexerId);
+            var seedCriteria = settings?.SeedCriteriaSettings;
 
             if (seedCriteria == null)
             {
                 return null;
             }
 
+            var useSeasonPackSeedGoal = (SeasonPackSeedGoal)seedCriteria.SeasonPackSeedGoal == SeasonPackSeedGoal.UseSeasonPackSeedGoal;
+
             var seedConfig = new TorrentSeedConfiguration
             {
-                Ratio = seedCriteria.SeedRatio
+                Ratio = (fullSeason && useSeasonPackSeedGoal)
+                    ? seedCriteria.SeasonPackSeedRatio
+                    : seedCriteria.SeedRatio
             };
 
-            var seedTime = fullSeason ? seedCriteria.SeasonPackSeedTime : seedCriteria.SeedTime;
+            var seedTime = (fullSeason && useSeasonPackSeedGoal) ? seedCriteria.SeasonPackSeedTime : seedCriteria.SeedTime;
             if (seedTime.HasValue)
             {
                 seedConfig.SeedTime = TimeSpan.FromMinutes(seedTime.Value);
             }
 
             return seedConfig;
-        }
-
-        private SeedCriteriaSettings FetchSeedCriteria(int indexerId)
-        {
-            try
-            {
-                var indexer = _indexerFactory.Get(indexerId);
-                var torrentIndexerSettings = indexer.Settings as ITorrentIndexerSettings;
-
-                return torrentIndexerSettings?.SeedCriteria;
-            }
-            catch (ModelNotFoundException)
-            {
-                return null;
-            }
-        }
-
-        public void Handle(ProviderUpdatedEvent<IIndexer> message)
-        {
-            _cache.Clear();
         }
     }
 }

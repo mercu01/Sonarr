@@ -1,47 +1,46 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { EPISODE_SEARCH } from 'Commands/commandNames';
+import CommandNames from 'Commands/CommandNames';
+import { useCommandExecuting, useExecuteCommand } from 'Commands/useCommands';
 import IconButton from 'Components/Link/IconButton';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
-import { EpisodeEntities } from 'Episode/useEpisode';
+import { EpisodeEntity } from 'Episode/useEpisode';
 import useModalOpenState from 'Helpers/Hooks/useModalOpenState';
 import { icons } from 'Helpers/Props';
-import { executeCommand } from 'Store/Actions/commandActions';
-import createExecutingCommandsSelector from 'Store/Selectors/createExecutingCommandsSelector';
 import translate from 'Utilities/String/translate';
 import EpisodeDetailsModal from './EpisodeDetailsModal';
 import styles from './EpisodeSearchCell.css';
 
 interface EpisodeSearchCellProps {
   episodeId: number;
-  episodeEntity: EpisodeEntities;
+  episodeEntity: EpisodeEntity;
   seriesId: number;
   episodeTitle: string;
+  showOpenSeriesButton: boolean;
 }
 
-function EpisodeSearchCell(props: EpisodeSearchCellProps) {
-  const { episodeId, episodeEntity, seriesId, episodeTitle } = props;
-
-  const executingCommands = useSelector(createExecutingCommandsSelector());
-  const isSearching = executingCommands.some(({ name, body }) => {
-    const { episodeIds = [] } = body;
-    return name === EPISODE_SEARCH && episodeIds.indexOf(episodeId) > -1;
+function EpisodeSearchCell({
+  episodeId,
+  episodeEntity,
+  seriesId,
+  episodeTitle,
+  showOpenSeriesButton,
+}: EpisodeSearchCellProps) {
+  const isSearching = useCommandExecuting(CommandNames.EpisodeSearch, {
+    episodeIds: [episodeId],
   });
 
-  const dispatch = useDispatch();
+  const executeCommand = useExecuteCommand();
 
   const [isDetailsModalOpen, setDetailsModalOpen, setDetailsModalClosed] =
     useModalOpenState(false);
 
   const handleSearchPress = useCallback(() => {
-    dispatch(
-      executeCommand({
-        name: EPISODE_SEARCH,
-        episodeIds: [episodeId],
-      })
-    );
-  }, [episodeId, dispatch]);
+    executeCommand({
+      name: CommandNames.EpisodeSearch,
+      episodeIds: [episodeId],
+    });
+  }, [episodeId, executeCommand]);
 
   return (
     <TableRowCell className={styles.episodeSearchCell}>
@@ -55,6 +54,7 @@ function EpisodeSearchCell(props: EpisodeSearchCellProps) {
       <IconButton
         name={icons.INTERACTIVE}
         title={translate('InteractiveSearch')}
+        aria-label={translate('InteractiveSearch')}
         onPress={setDetailsModalOpen}
       />
 
@@ -66,6 +66,7 @@ function EpisodeSearchCell(props: EpisodeSearchCellProps) {
         episodeTitle={episodeTitle}
         selectedTab="search"
         startInteractiveSearch={true}
+        showOpenSeriesButton={showOpenSeriesButton}
         onModalClose={setDetailsModalClosed}
       />
     </TableRowCell>

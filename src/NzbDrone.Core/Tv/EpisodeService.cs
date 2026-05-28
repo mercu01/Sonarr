@@ -23,17 +23,18 @@ namespace NzbDrone.Core.Tv
         List<Episode> FindEpisodesBySceneNumbering(int seriesId, int sceneAbsoluteEpisodeNumber);
         Episode FindEpisode(int seriesId, string date, int? part);
         List<Episode> GetEpisodeBySeries(int seriesId);
+        List<Episode> GetEpisodesBySeries(List<int> seriesIds);
         List<Episode> GetEpisodesBySeason(int seriesId, int seasonNumber);
         List<Episode> GetEpisodesBySceneSeason(int seriesId, int sceneSeasonNumber);
         List<Episode> EpisodesWithFiles(int seriesId);
-        PagingSpec<Episode> EpisodesWithoutFiles(PagingSpec<Episode> pagingSpec);
+        PagingSpec<Episode> EpisodesWithoutFiles(PagingSpec<Episode> pagingSpec, bool includeSpecials);
         List<Episode> GetEpisodesByFileId(int episodeFileId);
         void UpdateEpisode(Episode episode);
         void SetEpisodeMonitored(int episodeId, bool monitored);
         void SetMonitored(IEnumerable<int> ids, bool monitored);
         void UpdateEpisodes(List<Episode> episodes);
         void UpdateLastSearchTime(List<Episode> episodes);
-        List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored);
+        List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored, bool includeSpecials);
         void InsertMany(List<Episode> episodes);
         void UpdateMany(List<Episode> episodes);
         void DeleteMany(List<Episode> episodes);
@@ -99,6 +100,11 @@ namespace NzbDrone.Core.Tv
             return _episodeRepository.GetEpisodes(seriesId).ToList();
         }
 
+        public List<Episode> GetEpisodesBySeries(List<int> seriesIds)
+        {
+            return _episodeRepository.GetEpisodesBySeriesIds(seriesIds).ToList();
+        }
+
         public List<Episode> GetEpisodesBySeason(int seriesId, int seasonNumber)
         {
             return _episodeRepository.GetEpisodes(seriesId, seasonNumber);
@@ -152,11 +158,9 @@ namespace NzbDrone.Core.Tv
             return _episodeRepository.EpisodesWithFiles(seriesId);
         }
 
-        public PagingSpec<Episode> EpisodesWithoutFiles(PagingSpec<Episode> pagingSpec)
+        public PagingSpec<Episode> EpisodesWithoutFiles(PagingSpec<Episode> pagingSpec, bool includeSpecials)
         {
-            var episodeResult = _episodeRepository.EpisodesWithoutFiles(pagingSpec, true);
-
-            return episodeResult;
+            return _episodeRepository.EpisodesWithoutFiles(pagingSpec, includeSpecials);
         }
 
         public List<Episode> GetEpisodesByFileId(int episodeFileId)
@@ -197,9 +201,9 @@ namespace NzbDrone.Core.Tv
             _episodeRepository.SetFields(episodes, e => e.LastSearchTime);
         }
 
-        public List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored)
+        public List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored, bool includeSpecials)
         {
-            var episodes = _episodeRepository.EpisodesBetweenDates(start.ToUniversalTime(), end.ToUniversalTime(), includeUnmonitored);
+            var episodes = _episodeRepository.EpisodesBetweenDates(start.ToUniversalTime(), end.ToUniversalTime(), includeUnmonitored, includeSpecials);
 
             return episodes;
         }

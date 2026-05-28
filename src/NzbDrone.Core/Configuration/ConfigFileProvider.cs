@@ -47,6 +47,7 @@ namespace NzbDrone.Core.Configuration
         string Branch { get; }
         string ApiKey { get; }
         string SslCertPath { get; }
+        string SslKeyPath { get; }
         string SslCertPassword { get; }
         string UrlBase { get; }
         string UiFolder { get; }
@@ -65,6 +66,11 @@ namespace NzbDrone.Core.Configuration
         string PostgresPassword { get; }
         string PostgresMainDb { get; }
         string PostgresLogDb { get; }
+        string PostgresMainDbConnectionString { get; }
+        string PostgresLogDbConnectionString { get; }
+        bool TrustCgnatIpAddresses { get; }
+        bool ProfilerEnabled { get; }
+        string ProfilerPosition { get; }
     }
 
     public class ConfigFileProvider : IConfigFileProvider
@@ -131,6 +137,7 @@ namespace NzbDrone.Core.Configuration
             _cache.Clear();
 
             var allWithDefaults = GetConfigDictionary();
+            var hasUpdated = false;
 
             foreach (var configValue in configValues)
             {
@@ -149,11 +156,15 @@ namespace NzbDrone.Core.Configuration
 
                 if (!equal)
                 {
+                    hasUpdated = true;
                     SetValue(configValue.Key.FirstCharToUpper(), configValue.Value.ToString());
                 }
             }
 
-            _eventAggregator.PublishEvent(new ConfigFileSavedEvent());
+            if (hasUpdated)
+            {
+                _eventAggregator.PublishEvent(new ConfigFileSavedEvent());
+            }
         }
 
         public string BindAddress
@@ -204,13 +215,24 @@ namespace NzbDrone.Core.Configuration
 
                 if (enabled)
                 {
-                    SetValue("AuthenticationMethod", AuthenticationType.Basic);
-                    return AuthenticationType.Basic;
+                    SetValue("AuthenticationMethod", AuthenticationType.Forms);
+                    return AuthenticationType.Forms;
                 }
 
-                return Enum.TryParse<AuthenticationType>(_authOptions.Method, out var enumValue)
+                var value = Enum.TryParse<AuthenticationType>(_authOptions.Method, out var enumValue)
                     ? enumValue
                     : GetValueEnum("AuthenticationMethod", AuthenticationType.None);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (value == AuthenticationType.Basic)
+#pragma warning restore CS0618 // Type or member is obsolete
+                {
+                    SetValue("AuthenticationMethod", AuthenticationType.Forms);
+
+                    return AuthenticationType.Forms;
+                }
+
+                return value;
             }
         }
 
@@ -218,6 +240,8 @@ namespace NzbDrone.Core.Configuration
             Enum.TryParse<AuthenticationRequiredType>(_authOptions.Required, out var enumValue)
                 ? enumValue
                 : GetValueEnum("AuthenticationRequired", AuthenticationRequiredType.Enabled);
+
+        public bool TrustCgnatIpAddresses => _authOptions.TrustCgnatIpAddresses ?? GetValueBoolean("TrustCgnatIpAddresses", false, persist: false);
 
         public bool AnalyticsEnabled => _logOptions.AnalyticsEnabled ?? GetValueBoolean("AnalyticsEnabled", true, persist: false);
 
@@ -239,12 +263,15 @@ namespace NzbDrone.Core.Configuration
         public string PostgresMainDb => _postgresOptions?.MainDb ?? GetValue("PostgresMainDb", "sonarr-main", persist: false);
         public string PostgresLogDb => _postgresOptions?.LogDb ?? GetValue("PostgresLogDb", "sonarr-log", persist: false);
         public int PostgresPort => (_postgresOptions?.Port ?? 0) != 0 ? _postgresOptions.Port : GetValueInt("PostgresPort", 5432, persist: false);
+        public string PostgresMainDbConnectionString => _postgresOptions?.MainDbConnectionString ?? GetValue("PostgresMainDbConnectionString", string.Empty, persist: false);
+        public string PostgresLogDbConnectionString => _postgresOptions?.LogDbConnectionString ?? GetValue("PostgresLogDbConnectionString", string.Empty, persist: false);
         public bool LogDbEnabled => _logOptions.DbEnabled ?? GetValueBoolean("LogDbEnabled", true, persist: false);
         public bool LogSql => _logOptions.Sql ?? GetValueBoolean("LogSql", false, persist: false);
         public int LogRotate => _logOptions.Rotate ?? GetValueInt("LogRotate", 50, persist: false);
         public int LogSizeLimit => Math.Min(Math.Max(_logOptions.SizeLimit ?? GetValueInt("LogSizeLimit", 1, persist: false), 0), 10);
         public bool FilterSentryEvents => _logOptions.FilterSentryEvents ?? GetValueBoolean("FilterSentryEvents", true, persist: false);
         public string SslCertPath => _serverOptions.SslCertPath ?? GetValue("SslCertPath", "");
+        public string SslKeyPath => _serverOptions.SslKeyPath ?? GetValue("SslKeyPath", "");
         public string SslCertPassword => _serverOptions.SslCertPassword ?? GetValue("SslCertPassword", "");
 
         public string UrlBase
@@ -293,6 +320,9 @@ namespace NzbDrone.Core.Configuration
         public int SyslogPort => _logOptions.SyslogPort ?? GetValueInt("SyslogPort", 514, persist: false);
 
         public string SyslogLevel => _logOptions.SyslogLevel ?? GetValue("SyslogLevel", LogLevel, persist: false).ToLowerInvariant();
+
+        public bool ProfilerEnabled => _appOptions.ProfilerEnabled ?? GetValueBoolean("ProfilerEnabled", false, persist: false);
+        public string ProfilerPosition => _appOptions.ProfilerPosition ?? GetValue("ProfilerPosition", "bottom-right", persist: false);
 
         public int GetValueInt(string key, int defaultValue, bool persist = true)
         {
@@ -384,6 +414,12 @@ namespace NzbDrone.Core.Configuration
             if (EnableSsl && (GetValue("SslCertHash", string.Empty, false).IsNotNullOrWhiteSpace() || SslCertPath.IsNullOrWhiteSpace()))
             {
                 SetValue("EnableSsl", false);
+            }
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (AuthenticationMethod == AuthenticationType.Basic)
+#pragma warning restore CS0618 // Type or member is obsolete
+            {
+                SetValue("AuthenticationMethod", AuthenticationType.Forms);
             }
         }
 

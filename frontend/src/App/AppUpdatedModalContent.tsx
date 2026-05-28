@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
@@ -9,14 +8,18 @@ import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { kinds } from 'Helpers/Props';
-import { fetchUpdates } from 'Store/Actions/systemActions';
 import UpdateChanges from 'System/Updates/UpdateChanges';
+import useUpdates from 'System/Updates/useUpdates';
 import Update from 'typings/Update';
 import translate from 'Utilities/String/translate';
-import AppState from './State/AppState';
+import { useAppValues } from './appStore';
 import styles from './AppUpdatedModalContent.css';
 
-function mergeUpdates(items: Update[], version: string, prevVersion?: string) {
+function mergeUpdates(
+  items: ReadonlyArray<Update>,
+  version: string,
+  prevVersion?: string
+) {
   let installedIndex = items.findIndex((u) => u.version === version);
   let installedPreviouslyIndex = items.findIndex(
     (u) => u.version === prevVersion
@@ -63,30 +66,23 @@ interface AppUpdatedModalContentProps {
 }
 
 function AppUpdatedModalContent(props: AppUpdatedModalContentProps) {
-  const dispatch = useDispatch();
-  const { version, prevVersion } = useSelector((state: AppState) => state.app);
-  const { isPopulated, error, items } = useSelector(
-    (state: AppState) => state.system.updates
-  );
+  const { version, prevVersion } = useAppValues('version', 'prevVersion');
+  const { isFetched, error, data, refetch } = useUpdates();
   const previousVersion = usePrevious(version);
 
   const { onModalClose } = props;
 
-  const update = mergeUpdates(items, version, prevVersion);
+  const update = mergeUpdates(data, version, prevVersion);
 
   const handleSeeChangesPress = useCallback(() => {
     window.location.href = `${window.Sonarr.urlBase}/system/updates`;
   }, []);
 
   useEffect(() => {
-    dispatch(fetchUpdates());
-  }, [dispatch]);
-
-  useEffect(() => {
     if (version !== previousVersion) {
-      dispatch(fetchUpdates());
+      refetch();
     }
-  }, [version, previousVersion, dispatch]);
+  }, [version, previousVersion, refetch]);
 
   return (
     <ModalContent onModalClose={onModalClose}>
@@ -100,7 +96,7 @@ function AppUpdatedModalContent(props: AppUpdatedModalContentProps) {
           />
         </div>
 
-        {isPopulated && !error && !!update ? (
+        {isFetched && !error && !!update ? (
           <div>
             {update.changes ? (
               <div className={styles.maintenance}>
@@ -126,7 +122,7 @@ function AppUpdatedModalContent(props: AppUpdatedModalContentProps) {
           </div>
         ) : null}
 
-        {!isPopulated && !error ? <LoadingIndicator /> : null}
+        {!isFetched && !error ? <LoadingIndicator /> : null}
       </ModalBody>
 
       <ModalFooter>

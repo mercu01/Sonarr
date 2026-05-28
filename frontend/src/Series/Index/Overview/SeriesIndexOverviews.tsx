@@ -1,12 +1,11 @@
 import { throttle } from 'lodash';
 import React, { RefObject, useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
 import useMeasure from 'Helpers/Hooks/useMeasure';
 import Series from 'Series/Series';
+import { useSeriesOverviewOptions } from 'Series/seriesOptionsStore';
 import dimensions from 'Styles/Variables/dimensions';
 import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
-import selectOverviewOptions from './selectOverviewOptions';
 import SeriesIndexOverview from './SeriesIndexOverview';
 
 // Poster container dimensions
@@ -72,25 +71,23 @@ function SeriesIndexOverviews(props: SeriesIndexOverviewsProps) {
     isSmallScreen,
   } = props;
 
-  const { size: posterSize, detailedProgressBar } = useSelector(
-    selectOverviewOptions
-  );
+  const { size: posterSize, detailedProgressBar } = useSeriesOverviewOptions();
   const listRef = useRef<List>(null);
   const [measureRef, bounds] = useMeasure();
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   const posterWidth = useMemo(() => {
-    const maxiumPosterWidth = isSmallScreen ? 152 : 162;
+    const maximumPosterWidth = isSmallScreen ? 152 : 162;
 
     if (posterSize === 'large') {
-      return maxiumPosterWidth;
+      return maximumPosterWidth;
     }
 
     if (posterSize === 'medium') {
-      return Math.floor(maxiumPosterWidth * 0.75);
+      return Math.floor(maximumPosterWidth * 0.75);
     }
 
-    return Math.floor(maxiumPosterWidth * 0.5);
+    return Math.floor(maximumPosterWidth * 0.5);
   }, [posterSize, isSmallScreen]);
 
   const posterHeight = useMemo(() => {

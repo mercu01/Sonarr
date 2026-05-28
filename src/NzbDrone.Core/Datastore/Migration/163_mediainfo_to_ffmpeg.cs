@@ -12,6 +12,7 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore.Migration.Framework;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 
 namespace NzbDrone.Core.Datastore.Migration
@@ -364,7 +365,7 @@ namespace NzbDrone.Core.Datastore.Migration
                 }
             }
 
-            return VideoFileInfoReader.GetHdrFormat(mediaInfo.VideoBitDepth, mediaInfo.VideoColourPrimaries, mediaInfo.VideoTransferCharacteristics, new ());
+            return VideoFileInfoReader.GetHdrFormat(mediaInfo.VideoBitDepth, mediaInfo.VideoColourPrimaries, mediaInfo.VideoTransferCharacteristics, new());
         }
 
         private void MigrateAudioCodec(MediaInfo162 mediaInfo, MediaInfo163 m)
@@ -772,7 +773,7 @@ namespace NzbDrone.Core.Datastore.Migration
 
                 try
                 {
-                    var cultureInfo = cultures.FirstOrDefault(p => p.EnglishName.RemoveAccent() == tokens[i]);
+                    var cultureInfo = cultures.FirstOrDefault(p => p.EnglishName.RemoveDiacritics() == tokens[i]);
 
                     if (cultureInfo != null)
                     {
@@ -809,7 +810,7 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private static string GetSceneNameMatch(string sceneName, params string[] tokens)
         {
-            sceneName = sceneName.IsNotNullOrWhiteSpace() ? Parser.Parser.RemoveFileExtension(sceneName) : string.Empty;
+            sceneName = sceneName.IsNotNullOrWhiteSpace() ? FileExtensions.RemoveFileExtension(sceneName) : string.Empty;
 
             foreach (var token in tokens)
             {

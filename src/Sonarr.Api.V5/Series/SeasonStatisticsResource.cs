@@ -1,0 +1,52 @@
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
+using NzbDrone.Core.SeriesStats;
+
+namespace Sonarr.Api.V5.Series;
+
+public class SeasonStatisticsResource
+{
+    public DateTime? NextAiring { get; set; }
+    public DateTime? PreviousAiring { get; set; }
+    public int EpisodeFileCount { get; set; }
+    public int EpisodeCount { get; set; }
+    public int TotalEpisodeCount { get; set; }
+    public int MonitoredEpisodeCount { get; set; }
+    public long SizeOnDisk { get; set; }
+    public List<string>? ReleaseGroups { get; set; }
+    public List<ReleaseType>? ReleaseTypes { get; set; }
+    public List<Quality>? EpisodeFileQualities { get; set; }
+
+    public decimal PercentOfEpisodes
+    {
+        get
+        {
+            if (EpisodeCount == 0)
+            {
+                return 0;
+            }
+
+            return (decimal)EpisodeFileCount / (decimal)EpisodeCount * 100;
+        }
+    }
+}
+
+public static class SeasonStatisticsResourceMapper
+{
+    public static SeasonStatisticsResource ToResource(this SeasonStatistics model)
+    {
+        return new SeasonStatisticsResource
+        {
+            NextAiring = model.NextAiring,
+            PreviousAiring = model.PreviousAiring,
+            EpisodeFileCount = model.EpisodeFileCount,
+            EpisodeCount = model.EpisodeCount,
+            TotalEpisodeCount = model.TotalEpisodeCount,
+            MonitoredEpisodeCount = model.MonitoredEpisodeCount,
+            SizeOnDisk = model.SizeOnDisk,
+            ReleaseGroups = model.ReleaseGroups,
+            ReleaseTypes = model.ReleaseTypes,
+            EpisodeFileQualities = model.EpisodeFileQualities
+        };
+    }
+}

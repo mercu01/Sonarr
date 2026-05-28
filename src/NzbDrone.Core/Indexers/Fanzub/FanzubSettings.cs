@@ -18,12 +18,13 @@ namespace NzbDrone.Core.Indexers.Fanzub
 
     public class FanzubSettings : PropertywiseEquatable<FanzubSettings>, IIndexerSettings
     {
-        private static readonly FanzubSettingsValidator Validator = new ();
+        private static readonly FanzubSettingsValidator Validator = new();
 
         public FanzubSettings()
         {
             BaseUrl = "http://fanzub.com/rss/";
             MultiLanguages = Array.Empty<int>();
+            FailDownloads = Array.Empty<int>();
         }
 
         [FieldDefinition(0, Label = "IndexerSettingsRssUrl", HelpText = "IndexerSettingsRssUrlHelpText")]
@@ -35,6 +36,9 @@ namespace NzbDrone.Core.Indexers.Fanzub
 
         [FieldDefinition(2, Type = FieldType.Select, SelectOptions = typeof(RealLanguageFieldConverter), Label = "IndexerSettingsMultiLanguageRelease", HelpText = "IndexerSettingsMultiLanguageReleaseHelpText", Advanced = true)]
         public IEnumerable<int> MultiLanguages { get; set; }
+
+        [FieldDefinition(3, Type = FieldType.Select, SelectOptions = typeof(FailDownloads), Label = "IndexerSettingsFailDownloads", HelpText = "IndexerSettingsFailDownloadsHelpText", Advanced = true)]
+        public IEnumerable<int> FailDownloads { get; set; }
 
         public NzbDroneValidationResult Validate()
         {

@@ -111,31 +111,31 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             _mockIndexer.Setup(v => v.Fetch(It.IsAny<SingleEpisodeSearchCriteria>()))
                 .Callback<SingleEpisodeSearchCriteria>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+                .ReturnsAsync(new List<Parser.Model.ReleaseInfo>());
 
             _mockIndexer.Setup(v => v.Fetch(It.IsAny<SeasonSearchCriteria>()))
                 .Callback<SeasonSearchCriteria>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+                .ReturnsAsync(new List<Parser.Model.ReleaseInfo>());
 
             _mockIndexer.Setup(v => v.Fetch(It.IsAny<DailyEpisodeSearchCriteria>()))
                 .Callback<DailyEpisodeSearchCriteria>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+                .ReturnsAsync(new List<Parser.Model.ReleaseInfo>());
 
             _mockIndexer.Setup(v => v.Fetch(It.IsAny<DailySeasonSearchCriteria>()))
                 .Callback<DailySeasonSearchCriteria>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+                .ReturnsAsync(new List<Parser.Model.ReleaseInfo>());
 
             _mockIndexer.Setup(v => v.Fetch(It.IsAny<AnimeEpisodeSearchCriteria>()))
                 .Callback<AnimeEpisodeSearchCriteria>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+                .ReturnsAsync(new List<Parser.Model.ReleaseInfo>());
 
             _mockIndexer.Setup(v => v.Fetch(It.IsAny<AnimeSeasonSearchCriteria>()))
                 .Callback<AnimeSeasonSearchCriteria>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+                .ReturnsAsync(new List<Parser.Model.ReleaseInfo>());
 
             _mockIndexer.Setup(v => v.Fetch(It.IsAny<SpecialEpisodeSearchCriteria>()))
                 .Callback<SpecialEpisodeSearchCriteria>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+                .ReturnsAsync(new List<Parser.Model.ReleaseInfo>());
 
             return result;
         }
@@ -329,6 +329,21 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             criteria.Count.Should().Be(1);
             criteria[0].SeasonNumber.Should().Be(7);
+        }
+
+        [Test]
+        public async Task scene_seasonsearch_should_skip_search_if_no_episodes_after_filtering()
+        {
+            WithEpisodes();
+            _xemEpisodes.ForEach(e => e.EpisodeFileId = 1);
+
+            var allCriteria = WatchForSearchCriteria();
+
+            await Subject.SeasonSearch(_xemSeries.Id, 1, true, false, true, false);
+
+            var criteria = allCriteria.OfType<SeasonSearchCriteria>().ToList();
+
+            criteria.Count.Should().Be(0);
         }
 
         [Test]

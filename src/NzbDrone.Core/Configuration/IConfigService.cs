@@ -41,6 +41,11 @@ namespace NzbDrone.Core.Configuration
         string ExtraFileExtensions { get; set; }
         RescanAfterRefreshType RescanAfterRefresh { get; set; }
         EpisodeTitleRequiredType EpisodeTitleRequired { get; set; }
+        string UserRejectedExtensions { get; set; }
+
+        // Season Pack Upgrade (Media Management)
+        SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
+        double SeasonPackUpgradeThreshold { get; set; }
 
         // Permissions (Media Management)
         bool SetPermissionsLinux { get; set; }
@@ -63,6 +68,7 @@ namespace NzbDrone.Core.Configuration
         string ShortDateFormat { get; set; }
         string LongDateFormat { get; set; }
         string TimeFormat { get; set; }
+        string TimeZone { get; set; }
         bool ShowRelativeDates { get; set; }
         bool EnableColorImpairedMode { get; set; }
         int UILanguage { get; set; }

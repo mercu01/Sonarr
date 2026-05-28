@@ -1,52 +1,32 @@
-import React, { useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import React from 'react';
 import Modal from 'Components/Modal/Modal';
 import { sizes } from 'Helpers/Props';
-import {
-  cancelFetchReleases,
-  clearReleases,
-} from 'Store/Actions/releaseActions';
-import SeasonInteractiveSearchModalContent from './SeasonInteractiveSearchModalContent';
+import SeasonInteractiveSearchModalContent, {
+  SeasonInteractiveSearchModalContentProps,
+} from './SeasonInteractiveSearchModalContent';
 
-interface SeasonInteractiveSearchModalProps {
+interface SeasonInteractiveSearchModalProps
+  extends SeasonInteractiveSearchModalContentProps {
   isOpen: boolean;
-  seriesId: number;
-  seasonNumber: number;
-  onModalClose(): void;
 }
 
 function SeasonInteractiveSearchModal(
   props: SeasonInteractiveSearchModalProps
 ) {
-  const { isOpen, seriesId, seasonNumber, onModalClose } = props;
-
-  const dispatch = useDispatch();
-
-  const handleModalClose = useCallback(() => {
-    dispatch(cancelFetchReleases());
-    dispatch(clearReleases());
-
-    onModalClose();
-  }, [dispatch, onModalClose]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(cancelFetchReleases());
-      dispatch(clearReleases());
-    };
-  }, [dispatch]);
+  const { isOpen, episodeCount, seriesId, seasonNumber, onModalClose } = props;
 
   return (
     <Modal
       isOpen={isOpen}
       size={sizes.EXTRA_EXTRA_LARGE}
       closeOnBackgroundClick={false}
-      onModalClose={handleModalClose}
+      onModalClose={onModalClose}
     >
       <SeasonInteractiveSearchModalContent
+        episodeCount={episodeCount}
         seriesId={seriesId}
         seasonNumber={seasonNumber}
-        onModalClose={handleModalClose}
+        onModalClose={onModalClose}
       />
     </Modal>
   );

@@ -1,64 +1,45 @@
-import React, { useCallback, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useSelect } from 'App/SelectContext';
-import ClientSideCollectionAppState from 'App/State/ClientSideCollectionAppState';
-import SeriesAppState, { SeriesIndexAppState } from 'App/State/SeriesAppState';
-import { REFRESH_SERIES } from 'Commands/commandNames';
+import React, { useCallback } from 'react';
+import { useSelect } from 'App/Select/SelectContext';
+import CommandNames from 'Commands/CommandNames';
+import { useCommandExecuting, useExecuteCommand } from 'Commands/useCommands';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import { icons } from 'Helpers/Props';
-import { executeCommand } from 'Store/Actions/commandActions';
-import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
-import createSeriesClientSideCollectionItemsSelector from 'Store/Selectors/createSeriesClientSideCollectionItemsSelector';
+import Series from 'Series/Series';
+import { useSeriesIndex } from 'Series/useSeries';
 import translate from 'Utilities/String/translate';
-import getSelectedIds from 'Utilities/Table/getSelectedIds';
 
 interface SeriesIndexRefreshSeriesButtonProps {
   isSelectMode: boolean;
-  selectedFilterKey: string;
+  selectedFilterKey: string | number;
 }
 
 function SeriesIndexRefreshSeriesButton(
   props: SeriesIndexRefreshSeriesButtonProps
 ) {
-  const isRefreshing = useSelector(
-    createCommandExecutingSelector(REFRESH_SERIES)
-  );
-  const {
-    items,
-    totalItems,
-  }: SeriesAppState & SeriesIndexAppState & ClientSideCollectionAppState =
-    useSelector(createSeriesClientSideCollectionItemsSelector('seriesIndex'));
+  const isRefreshing = useCommandExecuting(CommandNames.RefreshSeries);
+  const { data, totalItems } = useSeriesIndex();
 
-  const dispatch = useDispatch();
+  const executeCommand = useExecuteCommand();
   const { isSelectMode, selectedFilterKey } = props;
-  const [selectState] = useSelect();
-  const { selectedState } = selectState;
-
-  const selectedSeriesIds = useMemo(() => {
-    return getSelectedIds(selectedState);
-  }, [selectedState]);
-
-  const seriesToRefresh =
-    isSelectMode && selectedSeriesIds.length > 0
-      ? selectedSeriesIds
-      : items.map((m) => m.id);
+  const { anySelected, getSelectedIds } = useSelect<Series>();
 
   let refreshLabel = translate('UpdateAll');
 
-  if (selectedSeriesIds.length > 0) {
+  if (anySelected) {
     refreshLabel = translate('UpdateSelected');
   } else if (selectedFilterKey !== 'all') {
     refreshLabel = translate('UpdateFiltered');
   }
 
   const onPress = useCallback(() => {
-    dispatch(
-      executeCommand({
-        name: REFRESH_SERIES,
-        seriesIds: seriesToRefresh,
-      })
-    );
-  }, [dispatch, seriesToRefresh]);
+    const seriesToRefresh =
+      isSelectMode && anySelected ? getSelectedIds() : data.map((m) => m.id);
+
+    executeCommand({
+      name: CommandNames.RefreshSeries,
+      seriesIds: seriesToRefresh,
+    });
+  }, [executeCommand, anySelected, isSelectMode, data, getSelectedIds]);
 
   return (
     <PageToolbarButton

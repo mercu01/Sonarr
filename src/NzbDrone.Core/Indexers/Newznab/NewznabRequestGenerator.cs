@@ -8,6 +8,7 @@ using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.ThingiProvider;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Indexers.Newznab
 {
@@ -228,10 +229,12 @@ namespace NzbDrone.Core.Indexers.Newznab
                 return pageableRequests;
             }
 
+            var categories = GetSearchCategories(searchCriteria);
+
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTvIdPageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&ep={searchCriteria.EpisodeNumber}");
             }
@@ -239,7 +242,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&ep={searchCriteria.EpisodeNumber}");
             }
@@ -249,7 +252,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&ep={searchCriteria.EpisodeNumber}");
             }
@@ -458,7 +461,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                     searchCriteria,
                     $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}");
 
-                var queryTitles = TextSearchEngine == "raw" ? searchCriteria.SceneTitles : searchCriteria.CleanSceneTitles;
+                var queryTitles = TextSearchEngine == "raw" ? searchCriteria.AllSceneTitles : searchCriteria.CleanSceneTitles;
 
                 foreach (var queryTitle in queryTitles)
                 {
@@ -478,13 +481,15 @@ namespace NzbDrone.Core.Indexers.Newznab
 
             if (SupportsSearch)
             {
+                var categories = GetSearchCategories(searchCriteria);
+
                 foreach (var queryTitle in searchCriteria.EpisodeQueryTitles)
                 {
                     var query = queryTitle.Replace('+', ' ');
                     query = System.Web.HttpUtility.UrlEncode(query);
 
                     pageableRequests.Add(GetPagedRequests(MaxPages,
-                        Settings.Categories.Concat(Settings.AnimeCategories),
+                        categories,
                         "search",
                         $"&q={query}"));
                 }
@@ -586,7 +591,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             }
             else if (SupportsTvQuerySearch)
             {
-                var queryTitles = TvTextSearchEngine == "raw" ? searchCriteria.SceneTitles : searchCriteria.CleanSceneTitles;
+                var queryTitles = TvTextSearchEngine == "raw" ? searchCriteria.AllSceneTitles : searchCriteria.CleanSceneTitles;
                 foreach (var queryTitle in queryTitles)
                 {
                     if (searchCriteria is SeasonSearchCriteria)
@@ -651,6 +656,13 @@ namespace NzbDrone.Core.Indexers.Newznab
         private static string NewznabifySeasonNumber(int seasonNumber)
         {
             return seasonNumber == 0 ? "00" : seasonNumber.ToString();
+        }
+
+        private IList<int> GetSearchCategories(SearchCriteriaBase searchCriteria)
+        {
+            return searchCriteria.Series?.SeriesType is SeriesTypes.Anime
+                ? Settings.AnimeCategories.ToList()
+                : Settings.Categories.ToList();
         }
     }
 }

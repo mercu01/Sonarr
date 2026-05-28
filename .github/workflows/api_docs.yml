@@ -1,12 +1,12 @@
-name: 'API Docs'
+name: "API Docs"
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: "0 0 * * 1"
   push:
     branches:
-      - develop
+      - v5-develop
     paths:
       - ".github/workflows/api_docs.yml"
       - "docs.sh"
@@ -26,14 +26,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         id: setup-dotnet
 
       - name: Create openapi.json
-        run: ./docs.sh Linux
+        run: ./scripts/docs.sh Linux x64
 
       - name: Commit API Docs Change
         continue-on-error: true
@@ -46,7 +46,20 @@ jobs:
           then
             git commit -am 'Automated API Docs update' -m "ignore-downstream"
             git push -f --set-upstream origin api-docs
-            curl -X POST -H "Authorization: Bearer ${{ secrets.OPENAPI_PAT }}" -H "Accept: application/vnd.github+json" https://api.github.com/repos/sonarr/sonarr/pulls -d '{"head":"api-docs","base":"develop","title":"Update API docs"}'
+            curl -X POST -H "Authorization: Bearer ${{ secrets.OPENAPI_PAT }}" -H "Accept: application/vnd.github+json" https://api.github.com/repos/sonarr/sonarr/pulls -d '{"head":"api-docs","base":"v5-develop","title":"Update API docs"}'
           else
             echo "No changes since last run"
           fi
+
+      - name: Notify
+        if: failure()
+        uses: tsickert/discord-webhook@v6.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          username: "GitHub Actions"
+          avatar-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+          embed-title: "${{ github.workflow }}: Failure"
+          embed-url: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          embed-description: |
+            Failed to update API docs
+          embed-color: "15158332"

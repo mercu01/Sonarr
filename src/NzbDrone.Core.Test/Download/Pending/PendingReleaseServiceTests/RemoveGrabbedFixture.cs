@@ -7,6 +7,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Pending;
+using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
@@ -64,7 +65,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _remoteEpisode.ParsedEpisodeInfo = _parsedEpisodeInfo;
             _remoteEpisode.Release = _release;
 
-            _temporarilyRejected = new DownloadDecision(_remoteEpisode, new Rejection("Temp Rejected", RejectionType.Temporary));
+            _temporarilyRejected = new DownloadDecision(_remoteEpisode, new DownloadRejection(DownloadRejectionReason.MinimumAgeDelay, "Temp Rejected", RejectionType.Temporary));
 
             _heldReleases = new List<PendingRelease>();
 
@@ -112,11 +113,17 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _heldReleases.AddRange(heldReleases);
         }
 
+        private void InitializeReleases()
+        {
+            Subject.Handle(new ApplicationStartedEvent());
+        }
+
         [Test]
         public void should_delete_if_the_grabbed_quality_is_the_same()
         {
             GivenHeldRelease(_parsedEpisodeInfo.Quality);
 
+            InitializeReleases();
             Subject.Handle(new EpisodeGrabbedEvent(_remoteEpisode));
 
             VerifyDelete();
@@ -127,6 +134,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(new QualityModel(Quality.SDTV));
 
+            InitializeReleases();
             Subject.Handle(new EpisodeGrabbedEvent(_remoteEpisode));
 
             VerifyDelete();
@@ -137,6 +145,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(new QualityModel(Quality.Bluray720p));
 
+            InitializeReleases();
             Subject.Handle(new EpisodeGrabbedEvent(_remoteEpisode));
 
             VerifyNoDelete();

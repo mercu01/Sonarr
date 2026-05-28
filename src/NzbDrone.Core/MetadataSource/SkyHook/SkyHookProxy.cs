@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using NLog;
 using NzbDrone.Common.Cloud;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.DataAugmentation.DailySeries;
@@ -106,6 +107,11 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
 
         public List<Series> SearchForNewSeries(string title)
         {
+            if (title.IsPathValid(PathValidationType.AnyOs))
+            {
+                throw new InvalidSearchTermException("Invalid search term '{0}'", title);
+            }
+
             try
             {
                 var lowerTitle = title.ToLowerInvariant();
@@ -147,17 +153,17 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             catch (HttpException ex)
             {
                 _logger.Warn(ex);
-                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook.", ex, title);
+                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook. {1}", ex, title, ex.Message);
             }
             catch (WebException ex)
             {
                 _logger.Warn(ex);
-                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook.", ex, title, ex.Message);
+                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook. {1}", ex, title, ex.Message);
             }
             catch (Exception ex)
             {
                 _logger.Warn(ex);
-                throw new SkyHookException("Search for '{0}' failed. Invalid response received from SkyHook.", ex, title);
+                throw new SkyHookException("Search for '{0}' failed. Invalid response received from SkyHook. {1}", ex, title, ex.Message);
             }
         }
 
@@ -194,6 +200,8 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             }
 
             series.ImdbId = show.ImdbId;
+            series.MalIds = show.MalIds;
+            series.AniListIds = show.AniListIds;
             series.Title = show.Title;
             series.CleanTitle = Parser.Parser.CleanSeriesTitle(show.Title);
             series.SortTitle = SeriesTitleNormalizer.Normalize(show.Title, show.TvdbId);
@@ -231,6 +239,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             series.Status = MapSeriesStatus(show.Status);
             series.Ratings = MapRatings(show.Rating);
             series.Genres = show.Genres;
+            series.OriginalCountry = show.OriginalCountry;
 
             if (show.ContentRating.IsNotNullOrWhiteSpace())
             {

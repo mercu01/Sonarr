@@ -1,9 +1,11 @@
 using System;
 using System.Text.RegularExpressions;
-using Diacritical;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Net.Http.Headers;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Authentication;
 using NzbDrone.Core.Configuration;
 
@@ -18,11 +20,6 @@ namespace Sonarr.Http.Authentication
             return authenticationBuilder.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(name, options);
         }
 
-        public static AuthenticationBuilder AddBasic(this AuthenticationBuilder authenticationBuilder, string name)
-        {
-            return authenticationBuilder.AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(name, options => { });
-        }
-
         public static AuthenticationBuilder AddNone(this AuthenticationBuilder authenticationBuilder, string name)
         {
             return authenticationBuilder.AddScheme<AuthenticationSchemeOptions, NoAuthenticationHandler>(name, options => { });
@@ -35,7 +32,7 @@ namespace Sonarr.Http.Authentication
 
         public static AuthenticationBuilder AddAppAuthentication(this IServiceCollection services)
         {
-            services.AddOptions<CookieAuthenticationOptions>(AuthenticationType.Forms.ToString())
+            services.AddOptions<CookieAuthenticationOptions>(nameof(AuthenticationType.Forms))
                 .Configure<IConfigFileProvider>((options, configFileProvider) =>
                 {
                     // Replace diacritics and replace non-word characters to ensure cookie name doesn't contain any valid URL characters not allowed in cookie names
@@ -49,13 +46,14 @@ namespace Sonarr.Http.Authentication
                     options.ExpireTimeSpan = TimeSpan.FromDays(7);
                     options.SlidingExpiration = true;
                     options.ReturnUrlParameter = "returnUrl";
+                    options.Events.OnRedirectToLogin = context => EventOnRedirectCookiesLogin(context, 401);
+                    options.Events.OnRedirectToAccessDenied = context => EventOnRedirectCookiesLogin(context, 403);
                 });
 
             return services.AddAuthentication()
-                .AddNone(AuthenticationType.None.ToString())
-                .AddExternal(AuthenticationType.External.ToString())
-                .AddBasic(AuthenticationType.Basic.ToString())
-                .AddCookie(AuthenticationType.Forms.ToString())
+                .AddNone(nameof(AuthenticationType.None))
+                .AddExternal(nameof(AuthenticationType.External))
+                .AddCookie(nameof(AuthenticationType.Forms))
                 .AddApiKey("API", options =>
                 {
                     options.HeaderName = "X-Api-Key";
@@ -66,6 +64,22 @@ namespace Sonarr.Http.Authentication
                     options.HeaderName = "X-Api-Key";
                     options.QueryName = "access_token";
                 });
+        }
+
+        private static Task EventOnRedirectCookiesLogin(RedirectContext<CookieAuthenticationOptions> context, int statusCode)
+        {
+            if (string.Equals(context.Request.Query[HeaderNames.XRequestedWith], "XMLHttpRequest", StringComparison.Ordinal) ||
+                string.Equals(context.Request.Headers.XRequestedWith, "XMLHttpRequest", StringComparison.Ordinal))
+            {
+                context.Response.Headers.Location = context.RedirectUri;
+                context.Response.StatusCode = statusCode;
+            }
+            else
+            {
+                context.Response.Redirect(context.RedirectUri);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

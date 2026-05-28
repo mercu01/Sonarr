@@ -14,7 +14,6 @@ module.exports = (env) => {
   const srcFolder = path.join(frontendFolder, 'src');
   const isProduction = !!env.production;
   const isProfiling = isProduction && !!env.profile;
-  const inlineWebWorkers = 'no-fallback';
 
   const distFolder = path.resolve(frontendFolder, '..', '_output', uiFolder);
 
@@ -26,6 +25,7 @@ module.exports = (env) => {
   const config = {
     mode: isProduction ? 'production' : 'development',
     devtool: isProduction ? 'source-map' : 'eval-source-map',
+    target: 'web',
 
     stats: {
       children: false
@@ -51,8 +51,7 @@ module.exports = (env) => {
         'node_modules'
       ],
       alias: {
-        jquery: 'jquery/dist/jquery.min',
-        'react-middle-truncate': 'react-middle-truncate/lib/react-middle-truncate'
+        jquery: 'jquery/dist/jquery.min'
       },
       fallback: {
         buffer: false,
@@ -66,7 +65,7 @@ module.exports = (env) => {
 
     output: {
       path: distFolder,
-      publicPath: '/',
+      publicPath: 'auto',
       filename: isProduction ? '[name]-[contenthash].js' : '[name].js',
       sourceMapFilename: '[file].map'
     },
@@ -161,16 +160,6 @@ module.exports = (env) => {
     module: {
       rules: [
         {
-          test: /\.worker\.js$/,
-          use: {
-            loader: 'worker-loader',
-            options: {
-              filename: '[name].js',
-              inline: inlineWebWorkers
-            }
-          }
-        },
-        {
           test: [/\.jsx?$/, /\.tsx?$/],
           exclude: /(node_modules|JsLibraries)/,
           use: [
@@ -187,7 +176,7 @@ module.exports = (env) => {
                       loose: true,
                       debug: false,
                       useBuiltIns: 'entry',
-                      corejs: 3
+                      corejs: '3.42'
                     }
                   ]
                 ]
