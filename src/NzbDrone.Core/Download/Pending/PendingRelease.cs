@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Parser.Model;
 
@@ -15,6 +16,7 @@ namespace NzbDrone.Core.Download.Pending
         public PendingReleaseAdditionalInfo AdditionalInfo { get; set; }
 
         // Not persisted
+        [JsonIgnore]
         public RemoteEpisode RemoteEpisode { get; set; }
     }
 
