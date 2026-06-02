@@ -224,7 +224,7 @@ namespace NzbDrone.Core.Test.IndexerTests.TorrentRssIndexerTests
             torrentInfo.CommentUrl.Should().Be("https://animetosho.org/view/fff-ore-monogatari-vol-01-bd-720p-aac.1009077");
             torrentInfo.Indexer.Should().Be(Subject.Definition.Name);
             torrentInfo.PublishDate.Should().Be(DateTime.Parse("Tue, 02 Aug 2016 13:48:04 +0000").ToUniversalTime());
-            torrentInfo.Size.Should().Be((long)Math.Round(1.366D  * 1024L * 1024L * 1024L));
+            torrentInfo.Size.Should().Be((long)Math.Round(1.366D * 1024L * 1024L * 1024L));
             torrentInfo.InfoHash.Should().BeNull();
             torrentInfo.MagnetUrl.Should().BeNull();
             torrentInfo.Peers.Should().NotHaveValue();
@@ -290,6 +290,27 @@ namespace NzbDrone.Core.Test.IndexerTests.TorrentRssIndexerTests
             torrentInfo.MagnetUrl.Should().BeNull();
             torrentInfo.Peers.Should().NotHaveValue();
             torrentInfo.Seeders.Should().NotHaveValue();
+        }
+
+        [Test]
+        public async Task should_parse_recent_feed_with_cdata_multiline_magnet_links()
+        {
+            Subject.Definition.Settings.As<TorrentRssIndexerSettings>().AllowZeroSize = true;
+
+            GivenRecentFeedResponse("TorrentRss/NewPCT_CdataMagnet.xml");
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().HaveCount(3);
+            releases.First().Should().BeOfType<TorrentInfo>();
+
+            var torrentInfo = releases.First() as TorrentInfo;
+
+            torrentInfo.Title.Should().Contain("Watson");
+            torrentInfo.DownloadProtocol.Should().Be(DownloadProtocol.Torrent);
+            torrentInfo.DownloadUrl.Should().StartWith("magnet:");
+            torrentInfo.InfoHash.Should().Be("02C347E70CD7830EF4EBE3DD9B860EBB3DC77A77");
+            torrentInfo.MagnetUrl.Should().StartWith("magnet:");
         }
 
         [Test]

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>NewPCT - RSS v0.1</title>
+    <link><![CDATA[ http://misrss.rss/ ]]></link>
+    <description><![CDATA[ NewPCT RSS ]]></description>
+    <author><![CDATA[ misrss ]]></author>
+    <language><![CDATA[ es-ES ]]></language>
+    <item>
+      <title><![CDATA[ Watson [HDTV 720p][Cap.217] [1.19GB] ]]></title>
+      <link><![CDATA[
+magnet:?xt=urn:btih:02c347e70cd7830ef4ebe3dd9b860ebb3dc77a77&dn=Watson [HDTV 720p][Cap.217]
+[1.19GB]&tr=http://173.254.204.71:1096/announce&tr=http://182.176.139.129:6969/announce&tr=http://5.79.83.193:2710/announce
+&tr=udp://tracker.coppersurfer.tk:6969/announce&tr=udp://tracker.leechers-paradise.org:6969/announce
+&tr=udp://open.demonii.com:1337/announce ]]></link>
+      <pubDate><![CDATA[ Thu, 28 May 2026 16:19:41 +0200 ]]></pubDate>
+    </item>
+    <item>
+      <title><![CDATA[ The Rookie [HDTV][Cap.815] [506.7MB] ]]></title>
+      <link><![CDATA[
+magnet:?xt=urn:btih:f239fed061b9f49f9056501ab164dc4bb1101a1f&dn=The Rookie [HDTV][Cap.815]
+[506.7MB]&tr=http://173.254.204.71:1096/announce&tr=http://182.176.139.129:6969/announce&tr=http://5.79.83.193:2710/announce
+&tr=udp://tracker.coppersurfer.tk:6969/announce&tr=udp://tracker.leechers-paradise.org:6969/announce
+&tr=udp://open.demonii.com:1337/announce ]]></link>
+      <pubDate><![CDATA[ Thu, 28 May 2026 21:28:58 +0200 ]]></pubDate>
+    </item>
+    <item>
+      <title><![CDATA[ Vicios ocultos [HDTV][Cap.208] [550.4MB] ]]></title>
+      <link><![CDATA[
+magnet:?xt=urn:btih:b3e476975b078c9ea1ccc7e7122e343ed6e7015b&dn=Vicios ocultos [HDTV][Cap.208]
+[550.4MB]&tr=http://173.254.204.71:1096/announce&tr=http://182.176.139.129:6969/announce&tr=http://5.79.83.193:2710/announce
+&tr=udp://tracker.coppersurfer.tk:6969/announce&tr=udp://tracker.leechers-paradise.org:6969/announce
+&tr=udp://open.demonii.com:1337/announce ]]></link>
+      <pubDate><![CDATA[ Fri, 22 May 2026 11:30:56 +0200 ]]></pubDate>
+    </item>
+  </channel>
+</rss>

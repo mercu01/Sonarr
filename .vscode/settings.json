@@ -1,3 +1,6 @@
 {
-  "typescript.tsdk": "node_modules\\typescript\\lib"
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "dotnet.defaultSolution": "src/Sonarr.sln",
+  "dotnet-test.testFramework": "nunit",
+  "omnisharp.enableMsBuildLoadProjectsOnDemand": true
 }

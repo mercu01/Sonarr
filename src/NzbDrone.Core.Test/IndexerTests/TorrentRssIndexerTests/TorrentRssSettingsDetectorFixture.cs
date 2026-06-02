@@ -37,14 +37,14 @@ namespace NzbDrone.Core.Test.IndexerTests.TorrentRssIndexerTests
             var settings = Subject.Detect(_indexerSettings);
 
             settings.Should().BeEquivalentTo(new TorrentRssIndexerParserSettings
-                {
-                    UseEZTVFormat = true,
-                    UseEnclosureUrl = false,
-                    UseEnclosureLength = false,
-                    ParseSizeInDescription = false,
-                    ParseSeedersInDescription = false,
-                    SizeElementName = null
-                });
+            {
+                UseEZTVFormat = true,
+                UseEnclosureUrl = false,
+                UseEnclosureLength = false,
+                ParseSizeInDescription = false,
+                ParseSeedersInDescription = false,
+                SizeElementName = null
+            });
         }
 
         [Test]
@@ -250,6 +250,18 @@ namespace NzbDrone.Core.Test.IndexerTests.TorrentRssIndexerTests
                 ParseSeedersInDescription = false,
                 SizeElementName = null
             });
+        }
+
+        [Test]
+        public void should_detect_rss_settings_for_feed_with_cdata_multiline_magnet_links()
+        {
+            _indexerSettings.AllowZeroSize = true;
+
+            GivenRecentFeedResponse("TorrentRss/NewPCT_CdataMagnet.xml");
+
+            var settings = Subject.Detect(_indexerSettings);
+
+            settings.Should().NotBeNull();
         }
 
         [TestCase("IPTorrents/IPTorrents.xml")]
