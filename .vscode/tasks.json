@@ -11,7 +11,8 @@
         "${workspaceFolder}/src/Sonarr.sln",
         "-p:GenerateFullPaths=true",
         "-p:Configuration=Debug",
-        "-p:Platform=Posix",
+        "-p:Platform=Windows",
+        "-p:NoWarn=NU1510%3bCS1591",
         "-consoleloggerparameters:NoSummary;ForceNoAlign"
       ],
       "problemMatcher": "$msCompile"

@@ -351,10 +351,7 @@ namespace NzbDrone.Core.Indexers
 
             try
             {
-                var cleanValue = value.Trim();
-                cleanValue = cleanValue.Replace("\r", "").Replace("\n", "").Replace(" ", "");
-
-                var url = _indexerResponse.HttpRequest.Url + new HttpUri(cleanValue);
+                var url = _indexerResponse.HttpRequest.Url + new HttpUri(value);
 
                 return url.FullUri;
             }
