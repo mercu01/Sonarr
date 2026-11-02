@@ -2,7 +2,6 @@ using System.IO;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Test.Common;
 using Sonarr.Api.V3.Series;
 
 namespace NzbDrone.Integration.Test.ApiTests
