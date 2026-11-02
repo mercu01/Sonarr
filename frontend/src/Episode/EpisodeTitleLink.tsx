@@ -3,7 +3,7 @@ import Link from 'Components/Link/Link';
 import EpisodeDetailsModal from 'Episode/EpisodeDetailsModal';
 import { EpisodeEntity } from 'Episode/useEpisode';
 import FinaleType from './FinaleType';
-import styles from './EpisodeTitleLink.css';
+import styles from './EpisodeTitleLink.module.css';
 
 interface EpisodeTitleLinkProps {
   episodeId: number;
@@ -11,7 +11,6 @@ interface EpisodeTitleLinkProps {
   episodeEntity: EpisodeEntity;
   episodeTitle: string;
   finaleType?: string;
-  showOpenSeriesButton: boolean;
 }
 
 function EpisodeTitleLink(props: EpisodeTitleLinkProps) {

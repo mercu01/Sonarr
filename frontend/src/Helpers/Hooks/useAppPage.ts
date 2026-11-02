@@ -1,5 +1,4 @@
-import { useEffect, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useMemo } from 'react';
 import { useTranslations } from 'App/useTranslations';
 import useCommands from 'Commands/useCommands';
 import useCustomFilters from 'Filters/useCustomFilters';
@@ -7,17 +6,16 @@ import { useInitializeLanguage } from 'Language/useLanguageName';
 import { useLanguages } from 'Language/useLanguages';
 import useSeries from 'Series/useSeries';
 import useIndexerFlags from 'Settings/Indexers/useIndexerFlags';
+import { useMetadataSourceSettings } from 'Settings/MetadataSource/useMetadataSourceSettings';
 import { useQualityProfiles } from 'Settings/Profiles/Quality/useQualityProfiles';
 import { useUiSettings } from 'Settings/UI/useUiSettings';
-import { fetchCustomFilters } from 'Store/Actions/customFilterActions';
 import useSystemStatus from 'System/Status/useSystemStatus';
 import useTags from 'Tags/useTags';
 
 const useAppPage = () => {
-  const dispatch = useDispatch();
-
   useCommands();
-  useInitializeLanguage();
+
+  const { isInitialized: isLanguageInitialized } = useInitializeLanguage();
 
   const { isFetched: isCustomFiltersFetched, error: customFiltersError } =
     useCustomFilters();
@@ -44,16 +42,23 @@ const useAppPage = () => {
   const { isFetched: isIndexerFlagsFetched, error: indexerFlagsError } =
     useIndexerFlags();
 
+  const {
+    isFetched: isMetadataSourceSettingsFetched,
+    error: metadataSourceSettingsError,
+  } = useMetadataSourceSettings();
+
   const isPopulated =
     isCustomFiltersFetched &&
     isIndexerFlagsFetched &&
+    isLanguageInitialized &&
     isSeriesFetched &&
     isSystemStatusFetched &&
     isTagsFetched &&
     isTranslationsFetched &&
     isUiSettingsFetched &&
     isQualityProfilesFetched &&
-    isLanguagesFetched;
+    isLanguagesFetched &&
+    isMetadataSourceSettingsFetched;
 
   const { hasError, errors } = useMemo(() => {
     return {
@@ -66,7 +71,8 @@ const useAppPage = () => {
         indexerFlagsError ||
         systemStatusError ||
         tagsError ||
-        translationsError
+        translationsError ||
+        metadataSourceSettingsError
       ),
       errors: {
         seriesError,
@@ -78,6 +84,7 @@ const useAppPage = () => {
         indexerFlagsError,
         systemStatusError,
         translationsError,
+        metadataSourceSettingsError,
       },
     };
   }, [
@@ -90,6 +97,7 @@ const useAppPage = () => {
     systemStatusError,
     tagsError,
     translationsError,
+    metadataSourceSettingsError,
   ]);
 
   const isLocalStorageSupported = useMemo(() => {
@@ -104,10 +112,6 @@ const useAppPage = () => {
       return false;
     }
   }, []);
-
-  useEffect(() => {
-    dispatch(fetchCustomFilters());
-  }, [dispatch]);
 
   return useMemo(() => {
     return { errors, hasError, isLocalStorageSupported, isPopulated };

@@ -19,7 +19,7 @@ import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomForm
 import { HistoryData, HistoryEventType } from 'typings/History';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import translate from 'Utilities/String/translate';
-import styles from './EpisodeHistoryRow.css';
+import styles from './EpisodeHistoryRow.module.css';
 
 function getTitle(eventType: HistoryEventType) {
   switch (eventType) {
@@ -83,6 +83,11 @@ function EpisodeHistoryRow({
     setIsMarkAsFailedModalOpen(false);
   }, []);
 
+  const detailsLabel = translate('DetailsForTitle', { title: sourceTitle });
+  const markAsFailedLabel = translate('MarkAsFailedWithTitle', {
+    title: sourceTitle,
+  });
+
   return (
     <TableRow>
       <HistoryEventTypeCell eventType={eventType} data={data} />
@@ -113,6 +118,7 @@ function EpisodeHistoryRow({
       <TableRowCell className={styles.actions}>
         <Popover
           anchor={<Icon name={icons.INFO} />}
+          accessibleLabel={detailsLabel}
           title={getTitle(eventType)}
           body={
             <HistoryDetails
@@ -127,10 +133,9 @@ function EpisodeHistoryRow({
 
         {eventType === 'grabbed' && (
           <IconButton
-            title={translate('MarkAsFailed')}
-            aria-label={translate('MarkAsFailed')}
+            title={markAsFailedLabel}
+            aria-label={markAsFailedLabel}
             name={icons.REMOVE}
-            size={14}
             onPress={handleMarkAsFailedPress}
           />
         )}

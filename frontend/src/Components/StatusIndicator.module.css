@@ -1,0 +1,8 @@
+.status {
+  position: relative;
+  display: inline-flex;
+}
+
+.label {
+  @add-mixin visuallyHidden;
+}

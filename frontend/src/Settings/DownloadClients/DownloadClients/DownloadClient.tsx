@@ -1,17 +1,21 @@
 import React, { useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
-import Card from 'Components/Card';
-import Label from 'Components/Label';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import SettingsCard from 'Components/SettingsCard/SettingsCard';
+import settingsCardStyles from 'Components/SettingsCard/SettingsCard.module.css';
+import SettingsCardAction from 'Components/SettingsCard/SettingsCardAction';
+import SettingsCardStatus from 'Components/SettingsCard/SettingsCardStatus';
 import TagList from 'Components/TagList';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
-import { kinds } from 'Helpers/Props';
-import { deleteDownloadClient } from 'Store/Actions/settingsActions';
+import { icons, kinds, sizes } from 'Helpers/Props';
+import {
+  getProviderTestStatusLabel,
+  ProviderTestStatus,
+} from 'Settings/ProviderTestAllResult';
 import { useTagList } from 'Tags/useTags';
 import translate from 'Utilities/String/translate';
 import EditDownloadClientModal from './EditDownloadClientModal';
-import styles from './DownloadClient.css';
+import { useDeleteDownloadClient } from './useDownloadClients';
 
 interface DownloadClientProps {
   id: number;
@@ -20,6 +24,8 @@ interface DownloadClientProps {
   enable: boolean;
   priority: number;
   tags: number[];
+  testStatus?: ProviderTestStatus;
+  onCloneDownloadClientPress: (id: number) => void;
 }
 
 function DownloadClient({
@@ -29,13 +35,14 @@ function DownloadClient({
   enable,
   priority,
   tags,
+  testStatus,
+  onCloneDownloadClientPress,
 }: DownloadClientProps) {
-  const dispatch = useDispatch();
   const tagList = useTagList();
+  const { deleteDownloadClient } = useDeleteDownloadClient(id);
 
   const [isEditDownloadClientModalOpen, setIsEditDownloadClientModalOpen] =
     useState(false);
-
   const [isDeleteDownloadClientModalOpen, setIsDeleteDownloadClientModalOpen] =
     useState(false);
 
@@ -57,36 +64,52 @@ function DownloadClient({
   }, []);
 
   const handleConfirmDeleteDownloadClient = useCallback(() => {
-    dispatch(deleteDownloadClient({ id }));
-  }, [id, dispatch]);
+    deleteDownloadClient();
+  }, [deleteDownloadClient]);
+
+  const handleCloneDownloadClientPress = useCallback(() => {
+    onCloneDownloadClientPress(id);
+  }, [id, onCloneDownloadClientPress]);
+
+  const testStatusLabel = testStatus
+    ? getProviderTestStatusLabel(testStatus)
+    : undefined;
 
   return (
-    <Card
-      className={styles.downloadClient}
-      overlayContent={true}
+    <SettingsCard
+      name={name}
+      aria-label={
+        testStatusLabel
+          ? translate('EditDownloadClientNameWithTestStatus', {
+              name,
+              testStatus: testStatusLabel,
+            })
+          : translate('EditDownloadClientName', { name })
+      }
+      actions={
+        <SettingsCardAction
+          title={translate('CloneDownloadClient')}
+          aria-label={translate('CloneDownloadClient')}
+          name={icons.CLONE}
+          onPress={handleCloneDownloadClientPress}
+        />
+      }
       onPress={handleEditDownloadClientPress}
     >
-      <div className={styles.name}>{name}</div>
+      <SettingsCardStatus
+        dot={enable ? 'active' : 'muted'}
+        segments={[
+          translate(enable ? 'Enabled' : 'Disabled'),
+          priority > 1 ? translate('PrioritySettings', { priority }) : null,
+          testStatusLabel,
+        ]}
+      />
 
-      <div className={styles.enabled}>
-        <ProtocolLabel protocol={protocol} />
-
-        {enable ? (
-          <Label kind={kinds.SUCCESS}>{translate('Enabled')}</Label>
-        ) : (
-          <Label kind={kinds.DISABLED} outline={true}>
-            {translate('Disabled')}
-          </Label>
-        )}
-
-        {priority > 1 ? (
-          <Label kind={kinds.DISABLED} outline={true}>
-            {translate('PrioritySettings', { priority })}
-          </Label>
-        ) : null}
+      <div className={settingsCardStyles.labels}>
+        <ProtocolLabel protocol={protocol} size={sizes.MEDIUM} />
       </div>
 
-      <TagList tags={tags} tagList={tagList} />
+      {tags.length > 0 ? <TagList tags={tags} tagList={tagList} /> : null}
 
       <EditDownloadClientModal
         id={id}
@@ -104,7 +127,7 @@ function DownloadClient({
         onConfirm={handleConfirmDeleteDownloadClient}
         onCancel={handleDeleteDownloadClientModalClose}
       />
-    </Card>
+    </SettingsCard>
   );
 }
 

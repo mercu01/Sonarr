@@ -1,0 +1,12 @@
+.actions {
+  composes: headerCell from 'Components/Table/TableHeaderCell.module.css';
+
+  width: 35px;
+  white-space: nowrap;
+}
+
+.addRow {
+  composes: addRow from 'Settings/Settings.module.css';
+
+  margin-top: 10px;
+}

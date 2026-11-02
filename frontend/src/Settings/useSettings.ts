@@ -1,13 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
-import useApiQuery from 'Helpers/Hooks/useApiQuery';
+import useApiQuery, { QueryOptions } from 'Helpers/Hooks/useApiQuery';
 import { usePendingChangesStore } from 'Helpers/Hooks/usePendingChangesStore';
-import selectSettings from 'Store/Selectors/selectSettings';
+import selectSettings from 'Utilities/selectSettings';
 
-export const useSettings = <T extends object>(path: string) => {
+export const useSettings = <T extends object>(
+  path: string,
+  queryOptions?: QueryOptions<T>['queryOptions']
+) => {
   const result = useApiQuery<T>({
     path,
+    queryOptions,
   });
 
   return {
@@ -42,40 +46,44 @@ export const useSaveSettings = <T extends object>(
 
 export const useManageSettings = <T extends object>(path: string) => {
   const { data, isFetching, isFetched, error } = useSettings<T>(path);
-  const {
-    pendingChanges,
-    setPendingChange,
-    unsetPendingChange,
-    clearPendingChanges,
-  } = usePendingChangesStore<T>({});
+  const { pendingChanges, setPendingChange, clearPendingChanges } =
+    usePendingChangesStore<T>({});
 
   const { save, isSaving, saveError } = useSaveSettings<T>(
     path,
     clearPendingChanges
   );
 
+  const changedValues = useMemo(() => {
+    const changed: Partial<T> = {};
+
+    (Object.keys(pendingChanges) as (keyof T)[]).forEach((key) => {
+      if (data[key] !== pendingChanges[key]) {
+        changed[key] = pendingChanges[key];
+      }
+    });
+
+    return changed;
+  }, [data, pendingChanges]);
+
   const settings = useMemo(() => {
-    return selectSettings<T>(data, pendingChanges, saveError);
-  }, [data, pendingChanges, saveError]);
+    return selectSettings<T>(data, changedValues, saveError);
+  }, [data, changedValues, saveError]);
 
   const saveSettings = useCallback(() => {
     const updatedSettings = {
       ...data,
-      ...pendingChanges,
+      ...changedValues,
     };
 
     save(updatedSettings);
-  }, [data, pendingChanges, save]);
+  }, [data, changedValues, save]);
 
   const updateSetting = useCallback(
     <K extends keyof T>(key: K, value: T[K]) => {
-      if (data[key] === value) {
-        unsetPendingChange(key);
-      } else {
-        setPendingChange(key, value);
-      }
+      setPendingChange(key, value);
     },
-    [data, setPendingChange, unsetPendingChange]
+    [setPendingChange]
   );
 
   return {

@@ -9,10 +9,10 @@ import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
 import { kinds } from 'Helpers/Props';
-import DownloadClient from 'typings/DownloadClient';
+import { DownloadClientModel } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import { SelectStateInputProps } from 'typings/props';
 import translate from 'Utilities/String/translate';
-import styles from './ManageDownloadClientsModalRow.css';
+import styles from './ManageDownloadClientsModalRow.module.css';
 
 interface ManageDownloadClientsModalRowProps {
   id: number;
@@ -42,7 +42,7 @@ function ManageDownloadClientsModalRow(
     tags,
   } = props;
 
-  const { toggleSelected, useIsSelected } = useSelect<DownloadClient>();
+  const { toggleSelected, useIsSelected } = useSelect<DownloadClientModel>();
   const isSelected = useIsSelected(id);
 
   const handleSelectedChange = useCallback(

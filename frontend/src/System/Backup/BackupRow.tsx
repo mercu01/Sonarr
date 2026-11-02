@@ -12,7 +12,7 @@ import formatBytes from 'Utilities/Number/formatBytes';
 import translate from 'Utilities/String/translate';
 import RestoreBackupModal from './RestoreBackupModal';
 import { useDeleteBackup } from './useBackups';
-import styles from './BackupRow.css';
+import styles from './BackupRow.module.css';
 
 interface BackupRowProps {
   id: number;
@@ -28,6 +28,9 @@ function BackupRow({ id, type, name, path, size, time }: BackupRowProps) {
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] =
     useState(false);
+
+  const restoreLabel = translate('RestoreBackupWithName', { name });
+  const deleteLabel = translate('DeleteBackupWithName', { name });
 
   const { iconClassName, iconTooltip } = useMemo(() => {
     if (type === 'manual') {
@@ -95,15 +98,15 @@ function BackupRow({ id, type, name, path, size, time }: BackupRowProps) {
 
       <TableRowCell className={styles.actions}>
         <IconButton
-          title={translate('RestoreBackup')}
-          aria-label={translate('RestoreBackup')}
+          title={restoreLabel}
+          aria-label={restoreLabel}
           name={icons.RESTORE}
           onPress={handleRestorePress}
         />
 
         <IconButton
-          title={translate('DeleteBackup')}
-          aria-label={translate('DeleteBackup')}
+          title={deleteLabel}
+          aria-label={deleteLabel}
           name={icons.DELETE}
           onPress={handleDeletePress}
         />
@@ -119,7 +122,7 @@ function BackupRow({ id, type, name, path, size, time }: BackupRowProps) {
       <ConfirmModal
         isOpen={isConfirmDeleteModalOpen}
         kind={kinds.DANGER}
-        title={translate('DeleteBackup')}
+        title={deleteLabel}
         message={translate('DeleteBackupMessageText', {
           name,
         })}

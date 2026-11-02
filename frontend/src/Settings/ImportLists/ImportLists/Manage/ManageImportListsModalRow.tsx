@@ -5,11 +5,15 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import { ImportListModel } from 'Settings/ImportLists/ImportLists/useImportLists';
+import tagExistingOptions from 'Settings/ImportLists/ImportLists/tagExistingOptions';
+import {
+  ImportListModel,
+  TagExisting,
+} from 'Settings/ImportLists/ImportLists/useImportLists';
 import { useQualityProfile } from 'Settings/Profiles/Quality/useQualityProfiles';
 import { SelectStateInputProps } from 'typings/props';
 import translate from 'Utilities/String/translate';
-import styles from './ManageImportListsModalRow.css';
+import styles from './ManageImportListsModalRow.module.css';
 
 interface ManageImportListsModalRowProps {
   id: number;
@@ -18,6 +22,7 @@ interface ManageImportListsModalRowProps {
   qualityProfileId: number;
   implementation: string;
   tags: number[];
+  tagExisting: TagExisting;
   enableAutomaticAdd: boolean;
   columns: Column[];
 }
@@ -31,6 +36,7 @@ function ManageImportListsModalRow(props: ManageImportListsModalRowProps) {
     implementation,
     enableAutomaticAdd,
     tags,
+    tagExisting,
   } = props;
 
   const { toggleSelected, useIsSelected } = useSelect<ImportListModel>();
@@ -77,6 +83,10 @@ function ManageImportListsModalRow(props: ManageImportListsModalRowProps) {
 
       <TableRowCell className={styles.tags}>
         <SeriesTagList tags={tags} />
+      </TableRowCell>
+
+      <TableRowCell className={styles.tagExisting}>
+        {tagExistingOptions.find((o) => o.key === tagExisting)?.value}
       </TableRowCell>
     </TableRow>
   );

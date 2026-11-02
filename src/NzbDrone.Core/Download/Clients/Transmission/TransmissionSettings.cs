@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using FluentValidation;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Validation;
 
@@ -17,10 +16,6 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             RuleFor(c => c.UrlBase).ValidUrlBase();
 
             RuleFor(c => c.TvCategory).Matches(@"^\.?[-a-z]*$", RegexOptions.IgnoreCase).WithMessage("Allowed characters a-z and -");
-
-            RuleFor(c => c.TvCategory).Empty()
-                .When(c => c.TvDirectory.IsNotNullOrWhiteSpace())
-                .WithMessage("Cannot use Category and Directory");
         }
     }
 
@@ -59,7 +54,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
         [FieldToken(TokenField.HelpText, "UseSsl", "clientName", "Transmission")]
         public bool UseSsl { get; set; }
 
-        [FieldDefinition(3, Label = "UrlBase", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientTransmissionSettingsUrlBaseHelpText")]
+        [FieldDefinition(3, Label = "UrlBase", Type = FieldType.Textbox, HelpText = "DownloadClientTransmissionSettingsUrlBaseHelpText")]
         [FieldToken(TokenField.HelpText, "UrlBase", "clientName", "Transmission")]
         [FieldToken(TokenField.HelpText, "UrlBase", "url", "http://[host]:[port]/[urlBase]/rpc")]
         [FieldToken(TokenField.HelpText, "UrlBase", "defaultUrl", "/transmission/")]
@@ -71,13 +66,13 @@ namespace NzbDrone.Core.Download.Clients.Transmission
         [FieldDefinition(5, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
-        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategorySubFolderHelpText")]
+        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientTransmissionSettingsCategoryHelpText")]
         public string TvCategory { get; set; }
 
-        [FieldDefinition(7, Label = "PostImportCategory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientSettingsPostImportCategoryHelpText")]
+        [FieldDefinition(7, Label = "PostImportCategory", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsPostImportCategoryHelpText")]
         public string TvImportedCategory { get; set; }
 
-        [FieldDefinition(8, Label = "Directory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientTransmissionSettingsDirectoryHelpText")]
+        [FieldDefinition(8, Label = "Directory", Type = FieldType.Textbox, HelpText = "DownloadClientTransmissionSettingsDirectoryHelpText")]
         public string TvDirectory { get; set; }
 
         [FieldDefinition(9, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(TransmissionPriority), HelpText = "DownloadClientSettingsRecentPriorityEpisodeHelpText")]

@@ -5,7 +5,6 @@ import {
 } from '@microsoft/signalr';
 import { QueryKey, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
 import { setAppValue, setVersion } from 'App/appStore';
 import ModelBase from 'App/ModelBase';
 import Command from 'Commands/Command';
@@ -14,10 +13,11 @@ import Episode from 'Episode/Episode';
 import { EpisodeFile } from 'EpisodeFile/EpisodeFile';
 import { PagedQueryResponse } from 'Helpers/Hooks/usePagedApiQuery';
 import Series from 'Series/Series';
+import { DownloadClientModel } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import { ImportListModel } from 'Settings/ImportLists/ImportLists/useImportLists';
 import { IndexerModel } from 'Settings/Indexers/useIndexers';
+import { MetadataModel } from 'Settings/Metadata/useMetadata';
 import { NotificationModel } from 'Settings/Notifications/useConnections';
-import { removeItem, updateItem } from 'Store/Actions/baseActions';
 import { repopulatePage } from 'Utilities/pagePopulator';
 import SignalRLogger from 'Utilities/SignalRLogger';
 
@@ -36,8 +36,6 @@ interface SignalRMessage {
 function SignalRListener() {
   const queryClient = useQueryClient();
   const updateCommand = useUpdateCommand();
-  const dispatch = useDispatch();
-
   const connection = useRef<HubConnection | null>(null);
 
   const handleStartFail = useRef((error: unknown) => {
@@ -78,7 +76,6 @@ function SignalRListener() {
     // Repopulate the page (if a repopulator is set) to ensure things
     // are in sync after reconnecting.
     queryClient.invalidateQueries({ queryKey: ['/series'] });
-
     queryClient.invalidateQueries({ queryKey: ['/command'] });
 
     repopulatePage();
@@ -98,15 +95,20 @@ function SignalRListener() {
 
     const { name, body, version = 0 } = message;
 
+    if (name === 'version') {
+      setVersion({ version: body.version });
+      return;
+    }
+
+    if (version < 5) {
+      return;
+    }
+
     if (name === 'calendar') {
       if (body.action === 'updated') {
-        dispatch(
-          updateItem({
-            section: 'calendar',
-            updateOnly: true,
-            ...body.resource,
-          })
-        );
+        const updatedItem = body.resource as Episode;
+        updateQueryClientItem(queryClient, ['/calendar'], updatedItem, true);
+
         return;
       }
     }
@@ -125,50 +127,41 @@ function SignalRListener() {
     }
 
     if (name === 'downloadclient') {
-      const section = 'settings.downloadClients';
+      const updatedItem = body.resource as DownloadClientModel;
 
       if (body.action === 'created' || body.action === 'updated') {
-        dispatch(updateItem({ section, ...body.resource }));
+        updateQueryClientItem(
+          queryClient,
+          ['/downloadclient'],
+          updatedItem,
+          true
+        );
       } else if (body.action === 'deleted') {
-        dispatch(removeItem({ section, id: body.resource.id }));
+        removeQueryClientItem(
+          queryClient,
+          ['/downloadclient'],
+          body.resource.id
+        );
       }
 
       return;
     }
 
     if (name === 'episode') {
-      if (version < 5) {
-        return;
-      }
-
       if (body.action === 'updated') {
         const updatedItem = body.resource as Episode;
 
-        updateQueryClientItem(
-          queryClient,
-          ['/episode'],
-          updatedItem,
-          false // Don't add the episode to the list if it doesn't exist. Episodes should already be in the list since they are included in the series details.
-        );
+        updateQueryClientItem(queryClient, ['/episode'], updatedItem, false);
       }
 
       return;
     }
 
     if (name === 'episodefile') {
-      if (version < 5) {
-        return;
-      }
-
       if (body.action === 'updated') {
         const updatedItem = body.resource as EpisodeFile;
 
-        updateQueryClientItem(
-          queryClient,
-          ['/episodeFile'],
-          updatedItem,
-          true // Add the episode file to the list if it doesn't exist. This can happen when an episode file is imported and wasn't previously in the list of episode files.
-        );
+        updateQueryClientItem(queryClient, ['/episodeFile'], updatedItem, true);
 
         // Repopulate the page to handle recently imported file
         repopulatePage('episodeFileUpdated');
@@ -183,10 +176,6 @@ function SignalRListener() {
     }
 
     if (name === 'health') {
-      if (version < 5) {
-        return;
-      }
-
       queryClient.invalidateQueries({ queryKey: ['/health'] });
       return;
     }
@@ -216,7 +205,7 @@ function SignalRListener() {
     }
 
     if (name === 'metadata') {
-      const updatedItem = body.resource as ModelBase;
+      const updatedItem = body.resource as MetadataModel;
 
       if (body.action === 'updated') {
         updateQueryClientItem(queryClient, ['/metadata'], updatedItem, false);
@@ -233,7 +222,7 @@ function SignalRListener() {
           queryClient,
           ['/connection'],
           updatedItem,
-          body.action === 'created' // Only add the connection to the list if it was created. If it was updated and it doesn't exist in the list, it likely means the connection is disabled and shouldn't be shown in the list.
+          body.action === 'created'
         );
       } else if (body.action === 'deleted') {
         removeQueryClientItem(queryClient, ['/connection'], body.resource.id);
@@ -243,37 +232,21 @@ function SignalRListener() {
     }
 
     if (name === 'qualitydefinition') {
-      if (version < 5) {
-        return;
-      }
-
       queryClient.invalidateQueries({ queryKey: ['/qualitydefinition'] });
       return;
     }
 
     if (name === 'queue') {
-      if (version < 5) {
-        return;
-      }
-
       queryClient.invalidateQueries({ queryKey: ['/queue'] });
       return;
     }
 
     if (name === 'queue/details') {
-      if (version < 5) {
-        return;
-      }
-
       queryClient.invalidateQueries({ queryKey: ['/queue/details'] });
       return;
     }
 
     if (name === 'queue/status') {
-      if (version < 5) {
-        return;
-      }
-
       const statusDetails = queryClient.getQueriesData({
         queryKey: ['/queue/status'],
       });
@@ -286,20 +259,12 @@ function SignalRListener() {
     }
 
     if (name === 'rootfolder') {
-      if (version < 5) {
-        return;
-      }
-
       queryClient.invalidateQueries({ queryKey: ['/rootFolder'] });
 
       return;
     }
 
     if (name === 'series') {
-      if (version < 5) {
-        return;
-      }
-
       if (body.action === 'updated') {
         const updatedItem = body.resource as Series;
 
@@ -314,16 +279,12 @@ function SignalRListener() {
     }
 
     if (name === 'system/task') {
-      if (version < 5) {
-        return;
-      }
-
       queryClient.invalidateQueries({ queryKey: ['/system/task'] });
       return;
     }
 
     if (name === 'tag') {
-      if (version < 5 || body.action !== 'sync') {
+      if (body.action !== 'sync') {
         return;
       }
 
@@ -333,13 +294,8 @@ function SignalRListener() {
       return;
     }
 
-    if (name === 'version') {
-      setVersion({ version: body.version });
-      return;
-    }
-
     if (name === 'wanted/cutoff') {
-      if (version < 5 || body.action !== 'updated') {
+      if (body.action !== 'updated') {
         return;
       }
 
@@ -353,7 +309,7 @@ function SignalRListener() {
     }
 
     if (name === 'wanted/missing') {
-      if (version < 5 || body.action !== 'updated') {
+      if (body.action !== 'updated') {
         return;
       }
 
@@ -384,6 +340,7 @@ function SignalRListener() {
           if (retryContext.elapsedMilliseconds > 180000) {
             setAppValue({ isDisconnected: true });
           }
+
           return Math.min(retryContext.previousRetryCount, 10) * 1000;
         },
       })
@@ -403,7 +360,7 @@ function SignalRListener() {
       connection.current?.stop();
       connection.current = null;
     };
-  }, [dispatch]);
+  }, []);
 
   return null;
 }

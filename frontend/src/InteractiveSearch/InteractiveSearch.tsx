@@ -1,57 +1,181 @@
-import React, { useCallback } from 'react';
+import { throttle } from 'lodash';
+import React, {
+  RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { ListChildComponentProps, VariableSizeList } from 'react-window';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import FilterMenu from 'Components/Menu/FilterMenu';
-import PageMenuButton from 'Components/Menu/PageMenuButton';
-import Table from 'Components/Table/Table';
-import TableBody from 'Components/Table/TableBody';
-import { useCustomFiltersList } from 'Filters/useCustomFilters';
-import { align, kinds } from 'Helpers/Props';
+import useMeasure from 'Helpers/Hooks/useMeasure';
+import { kinds } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
 import getErrorMessage from 'Utilities/Object/getErrorMessage';
 import translate from 'Utilities/String/translate';
-import InteractiveSearchFilterModal from './InteractiveSearchFilterModal';
+import { COLUMN_STYLE, ROW_LAYOUT_MIN_WIDTH } from './InteractiveSearchColumns';
+import InteractiveSearchColumnsHeader from './InteractiveSearchColumnsHeader';
 import InteractiveSearchPayload from './InteractiveSearchPayload';
-import InteractiveSearchRow from './InteractiveSearchRow';
-import InteractiveSearchType from './InteractiveSearchType';
-import { setReleaseOption, useReleaseOptions } from './releaseOptionsStore';
-import useReleases, { FILTERS, setReleaseSort } from './useReleases';
-import styles from './InteractiveSearch.css';
+import InteractiveSearchResult from './InteractiveSearchResult';
+import useReleases, {
+  FIXED_SORT_DIRECTIONS,
+  Release,
+  setReleaseSort,
+} from './useReleases';
+import styles from './InteractiveSearch.module.css';
 
-interface InteractiveSearchProps {
-  type: InteractiveSearchType;
+const ESTIMATED_CARD_HEIGHT = 110;
+const ESTIMATED_ROW_HEIGHT = 85;
+
+interface RowItemData {
+  items: Release[];
   searchPayload: InteractiveSearchPayload;
+  setRowHeight: (index: number, height: number) => void;
+  isRowLayout: boolean;
 }
 
-function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
-  const customFilters = useCustomFiltersList('releases');
-  const { columns } = useReleaseOptions();
+function Row({ index, style, data }: ListChildComponentProps<RowItemData>) {
+  const { items, searchPayload, setRowHeight, isRowLayout } = data;
 
+  if (index >= items.length) {
+    return null;
+  }
+
+  const item = items[index];
+
+  return (
+    <InteractiveSearchResult
+      key={`${item.release.indexerId}-${item.release.guid}`}
+      index={index}
+      style={style}
+      isRowLayout={isRowLayout}
+      setRowHeight={setRowHeight}
+      {...item}
+      searchPayload={searchPayload}
+    />
+  );
+}
+
+interface InteractiveSearchProps {
+  searchPayload: InteractiveSearchPayload;
+  scrollerRef: RefObject<HTMLDivElement>;
+  filter: string;
+}
+
+function InteractiveSearch({
+  searchPayload,
+  scrollerRef,
+  filter,
+}: InteractiveSearchProps) {
   const {
     isFetching,
     isFetched,
     error,
     data,
     totalItems,
-    selectedFilterKey,
     sortKey,
     sortDirection,
-  } = useReleases(searchPayload);
+  } = useReleases(searchPayload, { filter });
 
-  const handleFilterSelect = useCallback(
-    (selectedFilterKey: string | number) => {
-      if (type === 'episode') {
-        setReleaseOption('episodeSelectedFilterKey', selectedFilterKey);
-      } else {
-        setReleaseOption('seasonSelectedFilterKey', selectedFilterKey);
-      }
+  const listRef = useRef<VariableSizeList<RowItemData>>(null);
+  const listOuterRef = useRef<HTMLDivElement>(null);
+  const rowHeights = useRef<number[]>([]);
+  const [measureRef, bounds] = useMeasure();
+  const [viewportHeight, setViewportHeight] = useState(0);
+
+  const isRowLayout = bounds.width >= ROW_LAYOUT_MIN_WIDTH;
+  const measuredLayout = useRef(isRowLayout);
+
+  if (measuredLayout.current !== isRowLayout) {
+    measuredLayout.current = isRowLayout;
+    rowHeights.current = [];
+  }
+
+  const estimatedHeight = isRowLayout
+    ? ESTIMATED_ROW_HEIGHT
+    : ESTIMATED_CARD_HEIGHT;
+
+  const setRowHeight = useCallback((index: number, height: number) => {
+    if (rowHeights.current[index] === height) {
+      return;
+    }
+
+    rowHeights.current[index] = height;
+    listRef.current?.resetAfterIndex(index);
+  }, []);
+
+  const getRowHeight = useCallback(
+    (index: number) => {
+      return rowHeights.current[index] ?? estimatedHeight;
     },
-    [type]
+    [estimatedHeight]
+  );
+
+  useLayoutEffect(() => {
+    listRef.current?.resetAfterIndex(0);
+  }, [data]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+
+    if (!scroller) {
+      return;
+    }
+
+    const updateHeight = () => setViewportHeight(scroller.clientHeight);
+
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(scroller);
+
+    return () => observer.disconnect();
+  }, [scrollerRef]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+
+    if (!scroller) {
+      return;
+    }
+
+    const handleScroll = throttle(() => {
+      const outer = listOuterRef.current;
+
+      if (!outer) {
+        return;
+      }
+
+      const scrolled =
+        scroller.getBoundingClientRect().top -
+        outer.getBoundingClientRect().top;
+
+      listRef.current?.scrollTo(Math.max(0, scrolled));
+    }, 10);
+
+    scroller.addEventListener('scroll', handleScroll);
+
+    return () => {
+      handleScroll.cancel();
+      scroller.removeEventListener('scroll', handleScroll);
+    };
+  }, [scrollerRef]);
+
+  useLayoutEffect(() => {
+    listRef.current?.resetAfterIndex(0);
+  }, [isRowLayout]);
+
+  const itemData = useMemo<RowItemData>(
+    () => ({ items: data, searchPayload, setRowHeight, isRowLayout }),
+    [data, searchPayload, setRowHeight, isRowLayout]
   );
 
   const handleSortPress = useCallback(
     (sortKey: string, sortDirection?: SortDirection) => {
-      setReleaseSort(sortKey, sortDirection);
+      setReleaseSort(sortKey, sortDirection ?? FIXED_SORT_DIRECTIONS[sortKey]);
     },
     []
   );
@@ -59,20 +183,7 @@ function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
   const errorMessage = getErrorMessage(error);
 
   return (
-    <div>
-      <div className={styles.filterMenuContainer}>
-        <FilterMenu
-          alignMenu={align.RIGHT}
-          selectedFilterKey={selectedFilterKey}
-          filters={FILTERS}
-          customFilters={customFilters}
-          buttonComponent={PageMenuButton}
-          filterModalConnectorComponent={InteractiveSearchFilterModal}
-          filterModalConnectorComponentProps={{ type, searchPayload }}
-          onFilterSelect={handleFilterSelect}
-        />
-      </div>
-
+    <div ref={measureRef} style={COLUMN_STYLE}>
       {isFetching ? <LoadingIndicator /> : null}
 
       {!isFetching && error ? (
@@ -100,25 +211,31 @@ function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
         </Alert>
       ) : null}
 
-      {!isFetching && !!data.length ? (
-        <Table
-          columns={columns}
+      {isRowLayout && !isFetching && !!data.length ? (
+        <InteractiveSearchColumnsHeader
           sortKey={sortKey}
           sortDirection={sortDirection}
           onSortPress={handleSortPress}
-        >
-          <TableBody>
-            {data.map((item) => {
-              return (
-                <InteractiveSearchRow
-                  key={`${item.release.indexerId}-${item.release.guid}`}
-                  {...item}
-                  searchPayload={searchPayload}
-                />
-              );
-            })}
-          </TableBody>
-        </Table>
+        />
+      ) : null}
+
+      {!isFetching && !!data.length ? (
+        <div className={styles.results}>
+          <VariableSizeList<RowItemData>
+            ref={listRef}
+            outerRef={listOuterRef}
+            style={{ width: '100%', height: '100%', overflow: 'visible' }}
+            width={bounds.width}
+            height={viewportHeight}
+            itemCount={data.length}
+            itemSize={getRowHeight}
+            estimatedItemSize={estimatedHeight}
+            itemData={itemData}
+            overscanCount={20}
+          >
+            {Row}
+          </VariableSizeList>
+        </div>
       ) : null}
 
       {!isFetching && totalItems !== data.length && !!data.length ? (

@@ -2,42 +2,25 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
+import FormInput from 'Components/Form/FormInput';
 import FormInputButton from 'Components/Form/FormInputButton';
-import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
+import FormRow from 'Components/Form/FormRow';
 import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import useDebounce from 'Helpers/Hooks/useDebounce';
 import useModalOpenState from 'Helpers/Hooks/useModalOpenState';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
-import { useShowAdvancedSettings } from 'Settings/advancedSettingsStore';
 import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
-import NamingModal from './NamingModal';
+import NamingModal, { NamingModalOptions } from './NamingModal';
 import {
   NamingSettingsModel,
   useManageNamingSettings,
   useNamingExamples,
 } from './useNamingSettings';
-import styles from './Naming.css';
-
-interface NamingModalOptions {
-  name: keyof Pick<
-    NamingSettingsModel,
-    | 'standardEpisodeFormat'
-    | 'dailyEpisodeFormat'
-    | 'animeEpisodeFormat'
-    | 'seriesFolderFormat'
-    | 'seasonFolderFormat'
-    | 'specialsFolderFormat'
-  >;
-  season?: boolean;
-  episode?: boolean;
-  daily?: boolean;
-  anime?: boolean;
-  additional?: boolean;
-}
+import styles from './Naming.module.css';
 
 interface NamingProps {
   setChildSave: (saveCallback: () => void) => void;
@@ -48,7 +31,6 @@ interface NamingProps {
 }
 
 function Naming({ setChildSave, onChildStateChange }: NamingProps) {
-  const advancedSettings = useShowAdvancedSettings();
   const {
     settings,
     updateSetting,
@@ -127,6 +109,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     setNamingModalOptions({
       name: 'seasonFolderFormat',
       season: true,
+      seasonTitle: true,
     });
   }, [setNamingModalOpen, setNamingModalOptions]);
 
@@ -136,6 +119,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     setNamingModalOptions({
       name: 'specialsFolderFormat',
       season: true,
+      seasonTitle: true,
     });
   }, [setNamingModalOpen, setNamingModalOptions]);
 
@@ -268,77 +252,84 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   }, [setChildSave, saveSettings]);
 
   return (
-    <FieldSet legend={translate('EpisodeNaming')}>
+    <FieldSet
+      legend={translate('EpisodeNaming')}
+      caption={translate('EpisodeNamingCaption')}
+    >
       {isFetching ? <LoadingIndicator /> : null}
-
       {!isFetching && error ? (
         <Alert kind={kinds.DANGER}>
           {translate('NamingSettingsLoadError')}
         </Alert>
       ) : null}
-
       {hasSettings && !isFetching && !error ? (
         <Form>
-          <FormGroup size={sizes.MEDIUM}>
+          <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('RenameEpisodes')}</FormLabel>
-
-            <FormInputGroup
+            <FormInputHelpText text={translate('RenameEpisodesHelpText')} />
+            <FormInput
               type={inputTypes.CHECK}
               name="renameEpisodes"
-              helpText={translate('RenameEpisodesHelpText')}
               onChange={handleInputChange}
               {...settings.renameEpisodes}
             />
-          </FormGroup>
+          </FormRow>
 
-          <FormGroup size={sizes.MEDIUM}>
+          <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('ReplaceIllegalCharacters')}</FormLabel>
-
-            <FormInputGroup
+            <FormInputHelpText
+              text={translate('ReplaceIllegalCharactersHelpText')}
+            />
+            <FormInput
               type={inputTypes.CHECK}
               name="replaceIllegalCharacters"
-              helpText={translate('ReplaceIllegalCharactersHelpText')}
               onChange={handleInputChange}
               {...settings.replaceIllegalCharacters}
             />
-          </FormGroup>
+          </FormRow>
 
           {replaceIllegalCharacters ? (
-            <FormGroup size={sizes.MEDIUM}>
+            <FormRow size={sizes.MEDIUM}>
               <FormLabel>{translate('ColonReplacement')}</FormLabel>
-
-              <FormInputGroup
+              <FormInputHelpText
+                text={translate('ColonReplacementFormatHelpText')}
+              />
+              <FormInput
                 type={inputTypes.SELECT}
                 name="colonReplacementFormat"
                 values={colonReplacementOptions}
-                helpText={translate('ColonReplacementFormatHelpText')}
                 onChange={handleInputChange}
                 {...settings.colonReplacementFormat}
               />
-            </FormGroup>
+            </FormRow>
           ) : null}
 
           {replaceIllegalCharacters &&
           settings.colonReplacementFormat.value === 5 ? (
-            <FormGroup size={sizes.MEDIUM}>
+            <FormRow size={sizes.MEDIUM}>
               <FormLabel>{translate('CustomColonReplacement')}</FormLabel>
-
-              <FormInputGroup
+              <FormInputHelpText
+                text={translate('CustomColonReplacementFormatHelpText')}
+              />
+              <FormInput
                 type={inputTypes.TEXT}
                 name="customColonReplacementFormat"
-                helpText={translate('CustomColonReplacementFormatHelpText')}
                 onChange={handleInputChange}
                 {...settings.customColonReplacementFormat}
               />
-            </FormGroup>
+            </FormRow>
           ) : null}
 
           {renameEpisodes ? (
             <>
-              <FormGroup size={sizes.LARGE}>
+              <FormRow size={sizes.LARGE}>
                 <FormLabel>{translate('StandardEpisodeFormat')}</FormLabel>
 
-                <FormInputGroup
+                {standardEpisodeFormatHelpTexts.map((text, index) => (
+                  <FormInputHelpText key={index} text={text} />
+                ))}
+
+                <FormInput
                   inputClassName={styles.namingInput}
                   type={inputTypes.TEXT}
                   name="standardEpisodeFormat"
@@ -351,18 +342,21 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
                   }
                   onChange={handleInputChange}
                   {...settings.standardEpisodeFormat}
-                  helpTexts={standardEpisodeFormatHelpTexts}
                   errors={[
                     ...standardEpisodeFormatErrors,
                     ...settings.standardEpisodeFormat.errors,
                   ]}
                 />
-              </FormGroup>
+              </FormRow>
 
-              <FormGroup size={sizes.LARGE}>
+              <FormRow size={sizes.LARGE}>
                 <FormLabel>{translate('DailyEpisodeFormat')}</FormLabel>
 
-                <FormInputGroup
+                {dailyEpisodeFormatHelpTexts.map((text, index) => (
+                  <FormInputHelpText key={index} text={text} />
+                ))}
+
+                <FormInput
                   inputClassName={styles.namingInput}
                   type={inputTypes.TEXT}
                   name="dailyEpisodeFormat"
@@ -373,18 +367,21 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
                   }
                   onChange={handleInputChange}
                   {...settings.dailyEpisodeFormat}
-                  helpTexts={dailyEpisodeFormatHelpTexts}
                   errors={[
                     ...dailyEpisodeFormatErrors,
                     ...settings.dailyEpisodeFormat.errors,
                   ]}
                 />
-              </FormGroup>
+              </FormRow>
 
-              <FormGroup size={sizes.LARGE}>
+              <FormRow size={sizes.LARGE}>
                 <FormLabel>{translate('AnimeEpisodeFormat')}</FormLabel>
 
-                <FormInputGroup
+                {animeEpisodeFormatHelpTexts.map((text, index) => (
+                  <FormInputHelpText key={index} text={text} />
+                ))}
+
+                <FormInput
                   inputClassName={styles.namingInput}
                   type={inputTypes.TEXT}
                   name="animeEpisodeFormat"
@@ -395,24 +392,25 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
                   }
                   onChange={handleInputChange}
                   {...settings.animeEpisodeFormat}
-                  helpTexts={animeEpisodeFormatHelpTexts}
                   errors={[
                     ...animeEpisodeFormatErrors,
                     ...settings.animeEpisodeFormat.errors,
                   ]}
                 />
-              </FormGroup>
+              </FormRow>
             </>
           ) : null}
 
-          <FormGroup
-            advancedSettings={advancedSettings}
-            isAdvanced={true}
-            size={sizes.MEDIUM}
-          >
+          <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('SeriesFolderFormat')}</FormLabel>
 
-            <FormInputGroup
+            <FormInputHelpText text={translate('SeriesFolderFormatHelpText')} />
+
+            {seriesFolderFormatHelpTexts.map((text, index) => (
+              <FormInputHelpText key={index} text={text} />
+            ))}
+
+            <FormInput
               inputClassName={styles.namingInput}
               type={inputTypes.TEXT}
               name="seriesFolderFormat"
@@ -425,21 +423,21 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               }
               onChange={handleInputChange}
               {...settings.seriesFolderFormat}
-              helpTexts={[
-                translate('SeriesFolderFormatHelpText'),
-                ...seriesFolderFormatHelpTexts,
-              ]}
               errors={[
                 ...seriesFolderFormatErrors,
                 ...settings.seriesFolderFormat.errors,
               ]}
             />
-          </FormGroup>
+          </FormRow>
 
-          <FormGroup size={sizes.MEDIUM}>
+          <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('SeasonFolderFormat')}</FormLabel>
 
-            <FormInputGroup
+            {seasonFolderFormatHelpTexts.map((text, index) => (
+              <FormInputHelpText key={index} text={text} />
+            ))}
+
+            <FormInput
               inputClassName={styles.namingInput}
               type={inputTypes.TEXT}
               name="seasonFolderFormat"
@@ -452,22 +450,21 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               }
               onChange={handleInputChange}
               {...settings.seasonFolderFormat}
-              helpTexts={seasonFolderFormatHelpTexts}
               errors={[
                 ...seasonFolderFormatErrors,
                 ...settings.seasonFolderFormat.errors,
               ]}
             />
-          </FormGroup>
+          </FormRow>
 
-          <FormGroup
-            advancedSettings={advancedSettings}
-            isAdvanced={true}
-            size={sizes.MEDIUM}
-          >
+          <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('SpecialsFolderFormat')}</FormLabel>
 
-            <FormInputGroup
+            {specialsFolderFormatHelpTexts.map((text, index) => (
+              <FormInputHelpText key={index} text={text} />
+            ))}
+
+            <FormInput
               inputClassName={styles.namingInput}
               type={inputTypes.TEXT}
               name="specialsFolderFormat"
@@ -480,25 +477,24 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               }
               onChange={handleInputChange}
               {...settings.specialsFolderFormat}
-              helpTexts={specialsFolderFormatHelpTexts}
               errors={[
                 ...specialsFolderFormatErrors,
                 ...settings.specialsFolderFormat.errors,
               ]}
             />
-          </FormGroup>
+          </FormRow>
 
-          <FormGroup size={sizes.MEDIUM}>
+          <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('MultiEpisodeStyle')}</FormLabel>
 
-            <FormInputGroup
+            <FormInput
               type={inputTypes.SELECT}
               name="multiEpisodeStyle"
               values={multiEpisodeStyleOptions}
               onChange={handleInputChange}
               {...settings.multiEpisodeStyle}
             />
-          </FormGroup>
+          </FormRow>
 
           {namingModalOptions ? (
             <NamingModal

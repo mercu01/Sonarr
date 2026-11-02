@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import Icon, { IconName } from 'Components/Icon';
 import { icons } from 'Helpers/Props';
 import MenuItem, { MenuItemProps } from './MenuItem';
-import styles from './SelectedMenuItem.css';
+import styles from './SelectedMenuItem.module.css';
 
 export interface SelectedMenuItemProps extends Omit<MenuItemProps, 'onPress'> {
   name?: string;
@@ -25,7 +25,12 @@ function SelectedMenuItem({
   }, [name, onPress]);
 
   return (
-    <MenuItem {...otherProps} onPress={handlePress}>
+    <MenuItem
+      {...otherProps}
+      role="menuitemradio"
+      aria-checked={isSelected}
+      onPress={handlePress}
+    >
       <div className={styles.item}>
         {children}
 

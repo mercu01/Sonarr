@@ -21,6 +21,7 @@ namespace NzbDrone.Core.Tv
     {
         private readonly IProvideSeriesInfo _seriesInfo;
         private readonly ISeriesService _seriesService;
+        private readonly ISeriesTranslationService _seriesTranslationService;
         private readonly IRefreshEpisodeService _refreshEpisodeService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IDiskScanService _diskScanService;
@@ -31,6 +32,7 @@ namespace NzbDrone.Core.Tv
 
         public RefreshSeriesService(IProvideSeriesInfo seriesInfo,
                                     ISeriesService seriesService,
+                                    ISeriesTranslationService seriesTranslationService,
                                     IRefreshEpisodeService refreshEpisodeService,
                                     IEventAggregator eventAggregator,
                                     IDiskScanService diskScanService,
@@ -41,6 +43,7 @@ namespace NzbDrone.Core.Tv
         {
             _seriesInfo = seriesInfo;
             _seriesService = seriesService;
+            _seriesTranslationService = seriesTranslationService;
             _refreshEpisodeService = refreshEpisodeService;
             _eventAggregator = eventAggregator;
             _diskScanService = diskScanService;
@@ -63,7 +66,7 @@ namespace NzbDrone.Core.Tv
 
             try
             {
-                var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId);
+                var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId, series.Language, series.SeasonType);
                 seriesInfo = tuple.Item1;
                 episodes = tuple.Item2;
             }
@@ -112,6 +115,9 @@ namespace NzbDrone.Core.Tv
             series.Genres = seriesInfo.Genres;
             series.Certification = seriesInfo.Certification;
             series.OriginalCountry = seriesInfo.OriginalCountry;
+            series.OriginalTitle = seriesInfo.OriginalTitle;
+            series.CleanOriginalTitle = seriesInfo.CleanOriginalTitle;
+            series.SeasonTypes = seriesInfo.SeasonTypes;
 
             try
             {
@@ -126,6 +132,7 @@ namespace NzbDrone.Core.Tv
             series.Seasons = UpdateSeasons(series, seriesInfo);
 
             _seriesService.UpdateSeries(series, publishUpdatedEvent: false);
+            _seriesTranslationService.UpdateTranslations(series.Id, seriesInfo.Translations);
             _refreshEpisodeService.RefreshEpisodeInfo(series, episodes);
 
             _logger.Debug("Finished series refresh for {0}", series.Title);
@@ -200,7 +207,7 @@ namespace NzbDrone.Core.Tv
 
         private void UpdateTags(Series series)
         {
-            var tagsUpdated = _seriesService.UpdateTags(series);
+            var tagsUpdated = _seriesService.UpdateAutoTaggingTags(series);
 
             if (tagsUpdated)
             {
@@ -269,13 +276,13 @@ namespace NzbDrone.Core.Tv
                             _logger.Error(e, "Couldn't refresh info for {0}", seriesLocal);
                         }
 
-                        UpdateTags(series);
+                        UpdateTags(seriesLocal);
                         RescanSeries(seriesLocal, false, trigger);
                     }
                     else
                     {
                         _logger.Info("Skipping refresh of series: {0}", seriesLocal.Title);
-                        UpdateTags(series);
+                        UpdateTags(seriesLocal);
                         RescanSeries(seriesLocal, false, trigger);
                     }
                 }

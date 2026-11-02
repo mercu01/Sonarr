@@ -1,70 +1,22 @@
 import { useQueryClient } from '@tanstack/react-query';
-import React, { useCallback, useEffect } from 'react';
-import Icon from 'Components/Icon';
-import Label from 'Components/Label';
-import Column from 'Components/Table/Column';
-import Table from 'Components/Table/Table';
-import TableBody from 'Components/Table/TableBody';
+import moment from 'moment-timezone';
+import React, { useCallback, useContext, useEffect } from 'react';
 import Episode from 'Episode/Episode';
 import useEpisode, { EpisodeEntity } from 'Episode/useEpisode';
-import { useEpisodeFile } from 'EpisodeFile/EpisodeFileProvider';
+import {
+  EpisodeFileContext,
+  useEpisodeFile,
+} from 'EpisodeFile/EpisodeFileProvider';
 import { useDeleteEpisodeFile } from 'EpisodeFile/useEpisodeFiles';
-import { icons, kinds, sizes } from 'Helpers/Props';
 import Series from 'Series/Series';
 import { useSingleSeries } from 'Series/useSeries';
 import QualityProfileName from 'Settings/Profiles/Quality/QualityProfileName';
+import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
+import formatDateTime from 'Utilities/Date/formatDateTime';
+import isBefore from 'Utilities/Date/isBefore';
 import translate from 'Utilities/String/translate';
-import EpisodeAiring from './EpisodeAiring';
-import EpisodeFileRow from './EpisodeFileRow';
-import styles from './EpisodeSummary.css';
-
-const COLUMNS: Column[] = [
-  {
-    name: 'path',
-    label: () => translate('Path'),
-    isSortable: false,
-    isVisible: true,
-  },
-  {
-    name: 'size',
-    label: () => translate('Size'),
-    isSortable: false,
-    isVisible: true,
-  },
-  {
-    name: 'languages',
-    label: () => translate('Languages'),
-    isSortable: false,
-    isVisible: true,
-  },
-  {
-    name: 'quality',
-    label: () => translate('Quality'),
-    isSortable: false,
-    isVisible: true,
-  },
-  {
-    name: 'customFormats',
-    label: () => translate('Formats'),
-    isSortable: false,
-    isVisible: true,
-  },
-  {
-    name: 'customFormatScore',
-    label: React.createElement(Icon, {
-      name: icons.SCORE,
-      title: () => translate('CustomFormatScore'),
-    }),
-    isSortable: true,
-    isVisible: true,
-  },
-  {
-    name: 'actions',
-    label: '',
-    isSortable: false,
-    isVisible: true,
-  },
-];
+import EpisodeFileCard from './EpisodeFileCard';
+import styles from './EpisodeSummary.module.css';
 
 interface EpisodeSummaryProps {
   seriesId: number;
@@ -87,16 +39,11 @@ function EpisodeSummary({
     episodeEntity
   ) as Episode;
 
-  const {
-    path,
-    mediaInfo,
-    size,
-    languages,
-    quality,
-    qualityCutoffNotMet,
-    customFormats,
-    customFormatScore,
-  } = useEpisodeFile(episodeFileId) ?? {};
+  const { shortDateFormat, showRelativeDates, timeFormat } =
+    useUiSettingsValues();
+
+  const hasEpisodeFileContext = !!useContext(EpisodeFileContext);
+  const episodeFile = useEpisodeFile(episodeFileId);
 
   const { deleteEpisodeFile } = useDeleteEpisodeFile(
     episodeFileId!,
@@ -107,51 +54,69 @@ function EpisodeSummary({
     deleteEpisodeFile();
   }, [deleteEpisodeFile]);
 
+  const episodeFilePath = episodeFile?.path;
+
   useEffect(() => {
-    if (episodeFileId && !path) {
+    if (hasEpisodeFileContext && episodeFileId && !episodeFilePath) {
       queryClient.invalidateQueries({ queryKey: ['/episodeFile'] });
     }
-  }, [episodeFileId, path, queryClient]);
-
-  const hasOverview = !!overview;
+  }, [hasEpisodeFileContext, episodeFileId, episodeFilePath, queryClient]);
 
   return (
     <div>
-      <div>
-        <span className={styles.infoTitle}>{translate('Airs')}</span>
+      <div className={styles.meta}>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>
+            {isBefore(airDateUtc) ? translate('Aired') : translate('Airs')}
+          </span>
 
-        <EpisodeAiring airDateUtc={airDateUtc} network={network} />
-      </div>
+          <span className={styles.metaValue}>
+            {airDateUtc ? (
+              <>
+                {formatDateTime(airDateUtc, shortDateFormat, timeFormat, {
+                  includeRelativeDay: showRelativeDates,
+                })}
 
-      <div>
-        <span className={styles.infoTitle}>{translate('QualityProfile')}</span>
+                {showRelativeDates ? (
+                  <span className={styles.relative}>
+                    {' '}
+                    ({moment(airDateUtc).fromNow()})
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              translate('Tba')
+            )}
+          </span>
+        </div>
 
-        <Label kind={kinds.PRIMARY} size={sizes.MEDIUM}>
-          <QualityProfileName qualityProfileId={qualityProfileId} />
-        </Label>
+        {network ? (
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>{translate('Network')}</span>
+            <span className={styles.metaValue}>{network}</span>
+          </div>
+        ) : null}
+
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>
+            {translate('QualityProfile')}
+          </span>
+
+          <span className={styles.metaValue}>
+            <QualityProfileName qualityProfileId={qualityProfileId} />
+          </span>
+        </div>
       </div>
 
       <div className={styles.overview}>
-        {hasOverview ? overview : translate('NoEpisodeOverview')}
+        {overview || translate('NoEpisodeOverview')}
       </div>
 
-      {path ? (
-        <Table columns={COLUMNS}>
-          <TableBody>
-            <EpisodeFileRow
-              path={path}
-              size={size!}
-              languages={languages!}
-              quality={quality!}
-              qualityCutoffNotMet={qualityCutoffNotMet!}
-              customFormats={customFormats!}
-              customFormatScore={customFormatScore!}
-              mediaInfo={mediaInfo!}
-              columns={COLUMNS}
-              onDeleteEpisodeFile={handleDeleteEpisodeFile}
-            />
-          </TableBody>
-        </Table>
+      {episodeFile?.path ? (
+        <EpisodeFileCard
+          episodeFile={episodeFile}
+          onDeleteEpisodeFile={handleDeleteEpisodeFile}
+        />
       ) : null}
     </div>
   );

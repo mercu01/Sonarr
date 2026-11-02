@@ -25,6 +25,7 @@ import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomForm
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import { SelectStateInputProps } from 'typings/props';
 import Queue, {
+  QueueSeason,
   QueueTrackedDownloadState,
   QueueTrackedDownloadStatus,
   StatusMessage,
@@ -40,7 +41,7 @@ import QueueStatusCell from './QueueStatusCell';
 import RemoveQueueItemModal from './RemoveQueueItemModal';
 import TimeLeftCell from './TimeLeftCell';
 import { useGrabQueueItem, useRemoveQueueItem } from './useQueue';
-import styles from './QueueRow.css';
+import styles from './QueueRow.module.css';
 
 interface QueueRowProps {
   id: number;
@@ -60,7 +61,7 @@ interface QueueRowProps {
   protocol: DownloadProtocol;
   indexer?: string;
   isFullSeason: boolean;
-  seasonNumbers: number[];
+  seasons: QueueSeason[];
   outputPath?: string;
   downloadClient?: string;
   downloadClientHasPostImportCategory?: boolean;
@@ -97,7 +98,7 @@ function QueueRow(props: QueueRowProps) {
     downloadClientHasPostImportCategory,
     estimatedCompletionTime,
     isFullSeason,
-    seasonNumbers,
+    seasons,
     added,
     timeLeft,
     size,
@@ -171,6 +172,11 @@ function QueueRow(props: QueueRowProps) {
     status === 'completed' && trackedDownloadStatus === 'warning';
   const isPending =
     status === 'delay' || status === 'downloadClientUnavailable';
+  const interactiveImportLabel = translate('InteractiveImportWithTitle', {
+    title,
+  });
+  const grabLabel = translate('GrabWithTitle', { title });
+  const removeFromQueueLabel = translate('RemoveFromQueueWithTitle', { title });
 
   return (
     <TableRow>
@@ -203,14 +209,15 @@ function QueueRow(props: QueueRowProps) {
 
         if (name === 'series.sortTitle') {
           return (
-            <TableRowCell key={name}>
+            <TableRowCell key={name} className={styles.series}>
               {series ? (
                 <SeriesTitleLink
+                  seriesId={series.id}
                   titleSlug={series.titleSlug}
                   title={series.title}
                 />
               ) : (
-                title
+                <span className={styles.unmatchedTitle}>{title}</span>
               )}
             </TableRowCell>
           );
@@ -222,7 +229,7 @@ function QueueRow(props: QueueRowProps) {
               <EpisodeCellContent
                 episodes={episodes}
                 isFullSeason={isFullSeason}
-                seasonNumber={seasonNumbers[0]}
+                seasonNumbers={seasons.map((s) => s.seasonNumber)}
                 series={series}
               />
             </TableRowCell>
@@ -232,7 +239,11 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'episodes.title') {
           return (
             <TableRowCell key={name}>
-              <EpisodeTitleCellContent episodes={episodes} series={series} />
+              <EpisodeTitleCellContent
+                episodes={episodes}
+                isMultiSeason={seasons.length > 1}
+                series={series}
+              />
             </TableRowCell>
           );
         }
@@ -375,6 +386,7 @@ function QueueRow(props: QueueRowProps) {
             <TableRowCell key={name} className={styles.progress}>
               {!!progress && (
                 <ProgressBar
+                  ariaLabel={translate('DownloadProgressForTitle', { title })}
                   progress={progress}
                   title={`${progress.toFixed(1)}%`}
                 />
@@ -393,7 +405,8 @@ function QueueRow(props: QueueRowProps) {
               {showInteractiveImport ? (
                 <IconButton
                   name={icons.INTERACTIVE}
-                  aria-label={translate('InteractiveSearch')}
+                  title={interactiveImportLabel}
+                  aria-label={interactiveImportLabel}
                   onPress={handleInteractiveImportPress}
                 />
               ) : null}
@@ -402,15 +415,17 @@ function QueueRow(props: QueueRowProps) {
                 <SpinnerIconButton
                   name={icons.DOWNLOAD}
                   kind={grabError ? kinds.DANGER : kinds.DEFAULT}
-                  aria-label={translate('Grab')}
+                  title={grabLabel}
+                  aria-label={grabLabel}
                   isSpinning={isGrabbing}
                   onPress={handleGrabPress}
                 />
               ) : null}
 
               <SpinnerIconButton
-                title={translate('RemoveFromQueue')}
                 name={icons.REMOVE}
+                title={removeFromQueueLabel}
+                aria-label={removeFromQueueLabel}
                 isSpinning={isRemoving}
                 onPress={handleRemoveQueueItemPress}
               />

@@ -1,27 +1,37 @@
-import React, { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
-import Button from 'Components/Link/Button';
+import { EpisodeQueueDetailsProvider } from 'Activity/Queue/Details/QueueDetailsProvider';
+import Label from 'Components/Label';
+import Link from 'Components/Link/Link';
 import ModalBody from 'Components/Modal/ModalBody';
 import ModalContent from 'Components/Modal/ModalContent';
-import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
-import MonitorToggleButton from 'Components/MonitorToggleButton';
+import SpinnerIcon from 'Components/SpinnerIcon';
 import Episode from 'Episode/Episode';
 import EpisodeDetailsTab from 'Episode/EpisodeDetailsTab';
 import episodeEntities from 'Episode/episodeEntities';
+import EpisodeStatusLabel from 'Episode/EpisodeStatusLabel';
 import useEpisode, {
   EpisodeEntity,
   getQueryKey,
   useToggleEpisodesMonitored,
 } from 'Episode/useEpisode';
+import { icons, kinds, sizes } from 'Helpers/Props';
+import InteractiveSearchFilters from 'InteractiveSearch/InteractiveSearchFilters';
+import {
+  hasFetchedReleases,
+  useClearReleasesOnUnmount,
+} from 'InteractiveSearch/useReleases';
 import Series from 'Series/Series';
 import { useSingleSeries } from 'Series/useSeries';
+import getSeriesPath from 'Utilities/Series/getSeriesPath';
 import translate from 'Utilities/String/translate';
 import EpisodeHistory from './History/EpisodeHistory';
 import EpisodeSearch from './Search/EpisodeSearch';
 import SeasonEpisodeNumber from './SeasonEpisodeNumber';
 import EpisodeSummary from './Summary/EpisodeSummary';
-import styles from './EpisodeDetailsModalContent.css';
+import styles from './EpisodeDetailsModalContent.module.css';
 
 const TABS: EpisodeDetailsTab[] = ['details', 'history', 'search'];
 
@@ -30,7 +40,6 @@ export interface EpisodeDetailsModalContentProps {
   episodeEntity: EpisodeEntity;
   seriesId: number;
   episodeTitle: string;
-  showOpenSeriesButton?: boolean;
   selectedTab?: EpisodeDetailsTab;
   startInteractiveSearch?: boolean;
   onTabChange(isSearch: boolean): void;
@@ -42,20 +51,31 @@ function EpisodeDetailsModalContent({
   episodeEntity = episodeEntities.EPISODES,
   seriesId,
   episodeTitle,
-  showOpenSeriesButton = false,
   startInteractiveSearch = false,
   selectedTab = 'details',
   onTabChange,
   onModalClose,
 }: EpisodeDetailsModalContentProps) {
   const [currentlySelectedTab, setCurrentlySelectedTab] = useState(selectedTab);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
+  const [filter, setFilter] = useState('');
+
+  const queryClient = useQueryClient();
+
+  const [isInteractiveSearchOpen, setIsInteractiveSearchOpen] = useState(
+    () =>
+      startInteractiveSearch || hasFetchedReleases(queryClient, { episodeId })
+  );
 
   const {
     title: seriesTitle,
     titleSlug,
     monitored: seriesMonitored,
     seriesType,
+    runtime,
   } = useSingleSeries(seriesId) as Series;
+
+  const episode = useEpisode(episodeId, episodeEntity) as Episode;
 
   const {
     episodeFileId,
@@ -64,11 +84,13 @@ function EpisodeDetailsModalContent({
     absoluteEpisodeNumber,
     airDate,
     monitored,
-  } = useEpisode(episodeId, episodeEntity) as Episode;
+  } = episode;
 
   const { toggleEpisodesMonitored, isToggling } = useToggleEpisodesMonitored(
     getQueryKey(episodeEntity)!
   );
+
+  useClearReleasesOnUnmount({ episodeId });
 
   const handleTabSelect = useCallback(
     (selectedIndex: number) => {
@@ -79,65 +101,134 @@ function EpisodeDetailsModalContent({
     [onTabChange]
   );
 
-  const handleMonitorEpisodePress = useCallback(
-    (monitored: boolean) => {
-      toggleEpisodesMonitored({
-        episodeIds: [episodeId],
-        monitored,
-      });
-    },
-    [episodeId, toggleEpisodesMonitored]
-  );
+  const handleMonitorEpisodePress = useCallback(() => {
+    toggleEpisodesMonitored({
+      episodeIds: [episodeId],
+      monitored: !monitored,
+    });
+  }, [episodeId, monitored, toggleEpisodesMonitored]);
 
-  const seriesLink = `/series/${titleSlug}`;
+  const canToggleMonitored = seriesMonitored || monitored;
+
+  let monitorTitle = translate('ToggleMonitoredSeriesUnmonitored');
+
+  if (canToggleMonitored) {
+    monitorTitle = monitored
+      ? translate('ToggleMonitoredToUnmonitored')
+      : translate('ToggleUnmonitoredToMonitored');
+  }
+
+  const queueEpisodeIds = useMemo(() => [episodeId], [episodeId]);
+
+  const searchPayload = useMemo(() => ({ episodeId }), [episodeId]);
+
+  const handleInteractiveSearchPress = useCallback(() => {
+    setIsInteractiveSearchOpen(true);
+  }, []);
+
+  const seriesLink = getSeriesPath({ id: seriesId, titleSlug });
 
   return (
     <ModalContent onModalClose={onModalClose}>
-      <ModalHeader>
-        <MonitorToggleButton
-          monitored={monitored}
-          size={18}
-          isDisabled={!seriesMonitored}
-          isSaving={isToggling}
-          onPress={handleMonitorEpisodePress}
-        />
+      <ModalHeader className={styles.header}>
+        <div className={styles.scope}>
+          <Link
+            className={styles.scopeSeries}
+            to={seriesLink}
+            onPress={onModalClose}
+          >
+            {seriesTitle}
+          </Link>
 
-        <span className={styles.seriesTitle}>{seriesTitle}</span>
+          <span className={styles.scopeSeparator}>/</span>
 
-        <span className={styles.separator}>-</span>
+          <span className={styles.scopeEpisode}>
+            <SeasonEpisodeNumber
+              seasonNumber={seasonNumber}
+              episodeNumber={episodeNumber}
+              absoluteEpisodeNumber={absoluteEpisodeNumber}
+              airDate={airDate}
+              seriesType={seriesType}
+            />
+          </span>
+        </div>
 
-        <SeasonEpisodeNumber
-          seasonNumber={seasonNumber}
-          episodeNumber={episodeNumber}
-          absoluteEpisodeNumber={absoluteEpisodeNumber}
-          airDate={airDate}
-          seriesType={seriesType}
-        />
+        <div className={styles.episodeTitle}>{episodeTitle}</div>
 
-        <span className={styles.separator}>-</span>
+        <div className={styles.labels}>
+          <Link
+            className={styles.monitoredToggle}
+            title={monitorTitle}
+            aria-label={monitorTitle}
+            isDisabled={!canToggleMonitored || isToggling}
+            onPress={handleMonitorEpisodePress}
+          >
+            <Label
+              kind={monitored ? kinds.DEFAULT : kinds.DISABLED}
+              size={sizes.MEDIUM}
+              dot={false}
+              interactive={canToggleMonitored && !isToggling}
+            >
+              <SpinnerIcon
+                name={icons.MONITORED}
+                filled={monitored}
+                size={12}
+                isSpinning={isToggling}
+              />
+              {monitored ? translate('Monitored') : translate('Unmonitored')}
+            </Label>
+          </Link>
 
-        {episodeTitle}
+          <EpisodeQueueDetailsProvider episodeIds={queueEpisodeIds}>
+            <EpisodeStatusLabel
+              episode={episode}
+              hasFile={!!episodeFileId}
+              seriesMonitored={seriesMonitored}
+              seriesRuntime={runtime}
+            />
+          </EpisodeQueueDetailsProvider>
+        </div>
       </ModalHeader>
 
-      <ModalBody>
+      <ModalBody ref={modalBodyRef}>
         <Tabs
           className={styles.tabs}
           selectedIndex={TABS.indexOf(currentlySelectedTab)}
           onSelect={handleTabSelect}
         >
-          <TabList className={styles.tabList}>
-            <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
-              {translate('Details')}
-            </Tab>
+          <div className={styles.tabBar}>
+            <TabList className={styles.tabList}>
+              <Tab
+                className={styles.tab}
+                selectedClassName={styles.selectedTab}
+              >
+                {translate('Details')}
+              </Tab>
 
-            <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
-              {translate('History')}
-            </Tab>
+              <Tab
+                className={styles.tab}
+                selectedClassName={styles.selectedTab}
+              >
+                {translate('History')}
+              </Tab>
 
-            <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
-              {translate('Search')}
-            </Tab>
-          </TabList>
+              <Tab
+                className={styles.tab}
+                selectedClassName={styles.selectedTab}
+              >
+                {translate('Search')}
+              </Tab>
+            </TabList>
+
+            {currentlySelectedTab === 'search' && isInteractiveSearchOpen ? (
+              <InteractiveSearchFilters
+                className={styles.tabFilters}
+                searchPayload={searchPayload}
+                filter={filter}
+                onFilterChange={setFilter}
+              />
+            ) : null}
+          </div>
 
           <TabPanel>
             <div className={styles.tabContent}>
@@ -157,29 +248,23 @@ function EpisodeDetailsModalContent({
           </TabPanel>
 
           <TabPanel>
-            {/* Don't wrap in tabContent so we not have a top margin */}
-            <EpisodeSearch
-              episodeId={episodeId}
-              startInteractiveSearch={startInteractiveSearch}
-              onModalClose={onModalClose}
-            />
+            <div
+              className={
+                isInteractiveSearchOpen ? styles.tabContent : undefined
+              }
+            >
+              <EpisodeSearch
+                episodeId={episodeId}
+                isInteractiveSearchOpen={isInteractiveSearchOpen}
+                filter={filter}
+                scrollerRef={modalBodyRef}
+                onInteractiveSearchPress={handleInteractiveSearchPress}
+                onModalClose={onModalClose}
+              />
+            </div>
           </TabPanel>
         </Tabs>
       </ModalBody>
-
-      <ModalFooter>
-        {showOpenSeriesButton && (
-          <Button
-            className={styles.openSeriesButton}
-            to={seriesLink}
-            onPress={onModalClose}
-          >
-            {translate('OpenSeries')}
-          </Button>
-        )}
-
-        <Button onPress={onModalClose}>{translate('Close')}</Button>
-      </ModalFooter>
     </ModalContent>
   );
 }

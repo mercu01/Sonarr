@@ -130,7 +130,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
                     new Dictionary<string, object>
                     {
                         { "parStatus", item.ParStatus }, { "unpackStatus", item.UnpackStatus },
-                        { "moveStatus", item.MoveStatus }, { "scriptStaus", item.ScriptStatus },
+                        { "moveStatus", item.MoveStatus }, { "scriptStatus", item.ScriptStatus },
                         { "deleteStatus", item.DeleteStatus }, { "markStatus", item.MarkStatus }
                     });
                 historyItem.Status = DownloadItemStatus.Completed;
@@ -217,7 +217,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
             var status = new DownloadClientInfo
             {
-                IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost"
+                IsLocalhost = Settings.Host.IsLocalhostAddress()
             };
 
             if (category != null)

@@ -1,3 +1,4 @@
+import { hashKey, QueryClient, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { create } from 'zustand';
 import ModelBase from 'App/ModelBase';
@@ -24,8 +25,9 @@ import translate from 'Utilities/String/translate';
 import InteractiveSearchPayload from './InteractiveSearchPayload';
 import {
   getReleaseOption,
+  getSelectedFilterKeyOption,
   setReleaseOption,
-  useReleaseOptions,
+  useReleaseOption,
 } from './releaseOptionsStore';
 
 export interface ReleaseEpisode {
@@ -62,7 +64,7 @@ export interface ParsedInfo {
   releaseGroup: string;
   releaseHash: string;
   fullSeason: boolean;
-  seasonNumber: number;
+  seasonNumbers: number[];
   seriesTitle: string;
   episodeNumbers: number[];
   absoluteEpisodeNumbers?: number[];
@@ -231,6 +233,12 @@ export const FILTER_BUILDER: FilterBuilderProp<Release>[] = [
     valueType: filterBuilderValueTypes.BOOL,
   },
   {
+    name: 'multiSeason',
+    label: () => translate('MultiSeasonPack'),
+    type: filterBuilderTypes.EXACT,
+    valueType: filterBuilderValueTypes.BOOL,
+  },
+  {
     name: 'episodeRequested',
     label: () => translate('EpisodeRequested'),
     type: filterBuilderTypes.EXACT,
@@ -249,6 +257,14 @@ const FILTER_PREDICATES = {
 
   fullSeason: (item: Release, value: boolean, type: FilterType) => {
     return applyFilterPredicate(item.parsedInfo.fullSeason, value, type);
+  },
+
+  multiSeason: (item: Release, value: boolean, type: FilterType) => {
+    return applyFilterPredicate(
+      item.parsedInfo.fullSeason && item.parsedInfo.seasonNumbers.length > 1,
+      value,
+      type
+    );
   },
 
   indexerId: (item: Release, value: number, type: FilterType) => {
@@ -321,10 +337,16 @@ const SORT_PREDICATES = {
 
   languages: (item: Release, _direction: SortDirection) => {
     if (item.languages.length > 1) {
-      return 10000;
+      return translate('MultiLanguages');
     }
 
-    return item.languages[0]?.id ?? 0;
+    const language = item.languages[0];
+
+    if (!language || language.id === 0) {
+      return '\uffff';
+    }
+
+    return language.name;
   },
 
   peers: (item: Release, _direction: SortDirection) => {
@@ -375,15 +397,21 @@ const releaseStore = create<ReleaseStore>(() => ({
 const DEFAULT_RELEASES: Release[] = [];
 const THIRTY_MINUTES = 30 * 60 * 1000;
 
-const useReleases = (payload: InteractiveSearchPayload) => {
+interface UseReleasesOptions {
+  filter?: string;
+  enabled?: boolean;
+}
+
+const useReleases = (
+  payload: InteractiveSearchPayload,
+  { filter = '', enabled = true }: UseReleasesOptions = {}
+) => {
   const customFilters = useCustomFiltersList('releases');
-  const { episodeSelectedFilterKey, seasonSelectedFilterKey } =
-    useReleaseOptions();
+  const selectedFilterKey = useReleaseOption(
+    getSelectedFilterKeyOption(payload)
+  );
 
   const { sortKey, sortDirection } = releaseStore();
-
-  const selectedFilterKey =
-    'seriesId' in payload ? seasonSelectedFilterKey : episodeSelectedFilterKey;
 
   const { data, queryKey, ...result } = useApiQuery<Release[]>({
     path: '/release',
@@ -391,32 +419,40 @@ const useReleases = (payload: InteractiveSearchPayload) => {
       ...payload,
     },
     queryOptions: {
+      enabled,
       // Cache and stale times set to 30 minutes
       staleTime: THIRTY_MINUTES,
       gcTime: THIRTY_MINUTES,
-      refetchOnMount: 'always',
       // Disable refetch on window focus to prevent refetching when the user switch tabs
       refetchOnWindowFocus: false,
       retry: false,
     },
   });
 
-  const { data: filteredData, totalItems } = useMemo(
-    () =>
-      clientSideFilterAndSort<Release, typeof FILTER_PREDICATES>(
-        data ?? DEFAULT_RELEASES,
-        {
-          selectedFilterKey,
-          filters: FILTERS,
-          filterPredicates: FILTER_PREDICATES,
-          customFilters,
-          sortKey,
-          sortDirection,
-          sortPredicates: SORT_PREDICATES,
-        }
-      ),
-    [data, selectedFilterKey, customFilters, sortKey, sortDirection]
-  );
+  const { data: filteredData, totalItems } = useMemo(() => {
+    const { data: sortedData, totalItems } = clientSideFilterAndSort<
+      Release,
+      typeof FILTER_PREDICATES
+    >(data ?? DEFAULT_RELEASES, {
+      selectedFilterKey,
+      filters: FILTERS,
+      filterPredicates: FILTER_PREDICATES,
+      customFilters,
+      sortKey,
+      sortDirection,
+      sortPredicates: SORT_PREDICATES,
+    });
+
+    const trimmedFilter = filter.trim().toLowerCase();
+
+    const filteredData = trimmedFilter
+      ? sortedData.filter((item) =>
+          item.release.title.toLowerCase().includes(trimmedFilter)
+        )
+      : sortedData;
+
+    return { data: filteredData, totalItems };
+  }, [data, selectedFilterKey, customFilters, sortKey, sortDirection, filter]);
 
   useEffect(() => {
     if (!data) {
@@ -457,6 +493,31 @@ const useReleases = (payload: InteractiveSearchPayload) => {
 };
 
 export default useReleases;
+
+export const hasFetchedReleases = (
+  queryClient: QueryClient,
+  payload: InteractiveSearchPayload
+) => {
+  return queryClient.getQueryData(['/release', payload]) !== undefined;
+};
+
+export const useClearReleasesOnUnmount = (
+  payload: InteractiveSearchPayload
+) => {
+  const queryClient = useQueryClient();
+  const queryKeyHash = hashKey(['/release', payload]);
+
+  useEffect(() => {
+    return () => {
+      const queryCache = queryClient.getQueryCache();
+      const query = queryCache.get(queryKeyHash);
+
+      if (query) {
+        queryCache.remove(query);
+      }
+    };
+  }, [queryKeyHash, queryClient]);
+};
 
 interface OverrideRelease {
   seriesId: number;
@@ -511,6 +572,19 @@ export const setReleaseSort = (
   sortDirection: SortDirection | undefined
 ) => {
   releaseStore.setState((state) => applySort(state, sortKey, sortDirection));
+};
+
+export const FIXED_SORT_DIRECTIONS: Record<string, SortDirection> = {
+  history: 'ascending',
+  rejections: 'ascending',
+  releaseWeight: 'ascending',
+};
+
+export const useReleaseSort = () => {
+  const sortKey = releaseStore((state) => state.sortKey);
+  const sortDirection = releaseStore((state) => state.sortDirection);
+
+  return { sortKey, sortDirection };
 };
 
 const applyFilterPredicate = <T>(itemValue: T, value: T, type: FilterType) => {

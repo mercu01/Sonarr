@@ -10,6 +10,14 @@ namespace NzbDrone.Core.Test.ParserTests
     [TestFixture]
     public class DailyEpisodeParserFixture : CoreTest
     {
+        [Test]
+        public void should_parse_daily_episode_into_season_zero()
+        {
+            var result = Parser.Parser.ParseTitle("A.Late.Talk.Show.2010.10.11.Johnny.Knoxville.iTouch-MW");
+
+            result.SeasonNumbers.Should().Equal(0);
+        }
+
         [TestCase("Series Title 2011 04 18 Emma Roberts HDTV XviD BFF", "Series Title", 2011, 04, 18)]
         [TestCase("A Late Talk Show 2011 04 15 1080i HDTV DD5 1 MPEG2 TrollHD", "A Late Talk Show", 2011, 04, 15)]
         [TestCase("A.Late.Talk.Show.2010.10.11.Johnny.Knoxville.iTouch-MW", "A Late Talk Show", 2010, 10, 11)]
@@ -38,6 +46,10 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.13.02.2025.1080i.HDTV.MPA2.0.H.264", "Series Title", 2025, 2, 13)]
         [TestCase("Series.2025.09.01.The.170.Million.Pound.Diamond.Scam.1080p.HDTV.H264-DEADPOOL'", "Series", 2025, 9, 1)]
         [TestCase("Series.2025.09.01.The.Million.Pound.Diamond.Scam.1080p.HDTV.H264-DEADPOOL'", "Series", 2025, 9, 1)]
+        [TestCase("Series Title - 2026-07-03 - Episode Title 2026 [WEBDL-1080p]-RlsGrp", "Series Title", 2026, 7, 3)]
+        [TestCase("Series Title - 2026-07-03 - Friday July 3 2026 [AMZN][WEBDL-1080p][EAC3 2.0][h264]-RlsGrp", "Series Title", 2026, 7, 3)]
+        [TestCase("Series Title - 2026-07-03 - Recap 2025 Part 2 [WEBDL-1080p]-RlsGrp", "Series Title", 2026, 7, 3)]
+        [TestCase("Series Title - 2026-07-03 - Look Back At 2025 Part.1", "Series Title", 2026, 7, 3)]
         public void should_parse_daily_episode(string postTitle, string title, int year, int month, int day)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -87,19 +99,35 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("{year}.{month}.{day} - A Late Talk Show  - HD TV.mkv")]
         [TestCase("A Late Talk Show - {year}-{month}-{day} - Larry David, \"Bachelorette\" Ashley Hebert, Pitbull with Ne-Yo")]
         [TestCase("2020.NZ.{year}.{month}.{day}.PDTV.XviD-C4TV")]
-        public void should_not_accept_future_dates(string title)
+        public void should_accept_dates_within_future_limit(string title)
         {
             var twoDaysFromNow = DateTime.Now.AddDays(2);
 
             var validDate = title.Expand(new { year = twoDaysFromNow.Year, month = twoDaysFromNow.Month.ToString("00"), day = twoDaysFromNow.Day.ToString("00") });
 
-            Parser.Parser.ParseTitle(validDate).Should().BeNull();
+            var result = Parser.Parser.ParseTitle(validDate);
+
+            result.Should().NotBeNull();
+            result.AirDate.Should().NotBeNull();
+            result.AirDate.Should().Be(twoDaysFromNow.ToString(Episode.AIR_DATE_FORMAT));
         }
 
-        [Test]
-        public void should_fail_if_episode_is_far_in_future()
+        [TestCase(7)]
+        [TestCase(14)]
+        public void should_parse_episodes_released_before_their_air_date(int days)
         {
-            var title = string.Format("{0:yyyy.MM.dd} - A Talk Show - HD TV.mkv", DateTime.Now.AddDays(2));
+            var airDate = DateTime.Today.AddDays(days);
+            var title = string.Format("A.Talk.Show.{0:yyyy.MM.dd}.1080p.WEB-DL.H264-Sonarr", airDate);
+
+            Parser.Parser.ParseTitle(title).AirDate.Should().Be(airDate.ToString(Episode.AIR_DATE_FORMAT));
+        }
+
+        [TestCase(15)]
+        [TestCase(366)]
+        public void should_not_parse_dates_beyond_future_limit(int days)
+        {
+            var airDate = DateTime.Today.AddDays(days);
+            var title = string.Format("A.Talk.Show.{0:yyyy.MM.dd}.1080p.WEB-DL.H264-Sonarr", airDate);
 
             Parser.Parser.ParseTitle(title).Should().BeNull();
         }

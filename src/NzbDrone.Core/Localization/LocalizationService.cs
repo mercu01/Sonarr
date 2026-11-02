@@ -87,6 +87,12 @@ namespace NzbDrone.Core.Localization
         public string GetLanguageIdentifier()
         {
             var isoLanguage = IsoLanguages.Get((Language)_configService.UILanguage) ?? IsoLanguages.Get(Language.English);
+
+            if (isoLanguage.Language == Language.Norwegian)
+            {
+                return "nb-NO";
+            }
+
             var language = isoLanguage.TwoLetterCode;
 
             if (isoLanguage.CountryCode.IsNotNullOrWhiteSpace())
@@ -127,6 +133,11 @@ namespace NzbDrone.Core.Localization
 
             var prefix = Path.Combine(startupFolder, "Localization", "Core");
             var key = prefix + language;
+
+            if (BuildInfo.IsDebug)
+            {
+                return GetDictionary(prefix, language, DefaultCulture + ".json").GetAwaiter().GetResult();
+            }
 
             return _cache.Get("localization", () => GetDictionary(prefix, language, DefaultCulture + ".json").GetAwaiter().GetResult());
         }

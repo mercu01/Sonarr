@@ -13,7 +13,7 @@ import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
 import SeriesTitleLink from 'Series/SeriesTitleLink';
 import { useSingleSeries } from 'Series/useSeries';
 import { SelectStateInputProps } from 'typings/props';
-import styles from './MissingRow.css';
+import styles from './MissingRow.module.css';
 
 interface MissingRowProps {
   id: number;
@@ -86,6 +86,7 @@ function MissingRow({
           return (
             <TableRowCell key={name}>
               <SeriesTitleLink
+                seriesId={series.id}
                 titleSlug={series.titleSlug}
                 title={series.title}
               />
@@ -119,7 +120,6 @@ function MissingRow({
                 seriesId={series.id}
                 episodeEntity="wanted.missing"
                 episodeTitle={title}
-                showOpenSeriesButton={true}
               />
             </TableRowCell>
           );
@@ -157,9 +157,11 @@ function MissingRow({
               key={name}
               episodeId={id}
               seriesId={series.id}
+              seriesTitle={series.title}
+              seasonNumber={seasonNumber}
+              episodeNumber={episodeNumber}
               episodeTitle={title}
               episodeEntity="wanted.missing"
-              showOpenSeriesButton={true}
             />
           );
         }

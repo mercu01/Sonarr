@@ -1,7 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
+import { SortDirection } from 'Helpers/Props/sortDirections';
+import Language, { DEFAULT_LANGUAGE } from 'Language/Language';
+import { useLanguageById } from 'Language/useLanguages';
 import { MonitorNewItems, SeriesMonitor, SeriesType } from 'Series/Series';
+import { useMetadataSourceSettingsValues } from 'Settings/MetadataSource/useMetadataSourceSettings';
+import {
+  getProviderTestAllResults,
+  ProviderTestAllResult,
+} from 'Settings/ProviderTestAllResult';
 import {
   SelectedSchema,
   useProviderSchema,
@@ -13,9 +21,11 @@ import {
   useProviderSettings,
 } from 'Settings/useProviderSettings';
 import Provider from 'typings/Provider';
-import { sortByProp } from 'Utilities/Array/sortByProp';
 import { ApiError } from 'Utilities/Fetch/fetchJson';
+import clientSideFilterAndSort from 'Utilities/Filter/clientSideFilterAndSort';
 import translate from 'Utilities/String/translate';
+
+export type TagExisting = 'none' | 'add' | 'sync';
 
 export interface ImportListModel extends Provider {
   enableAutomaticAdd: boolean;
@@ -25,11 +35,13 @@ export interface ImportListModel extends Provider {
   rootFolderPath: string;
   qualityProfileId: number;
   seriesType: SeriesType;
+  language: Language;
   seasonFolder: boolean;
   listType: string;
   listOrder: number;
   minRefreshInterval: string;
   tags: number[];
+  tagExisting: TagExisting;
 }
 
 interface BulkEditImportListsPayload {
@@ -55,12 +67,29 @@ export const useImportListsData = () => {
   return data;
 };
 
-export const useSortedImportLists = () => {
+const SORT_PREDICATES = {
+  name: (item: ImportListModel) => item.name.toLowerCase(),
+};
+
+export const useSortedImportLists = (
+  sortKey: keyof ImportListModel = 'name',
+  sortDirection: SortDirection = 'ascending'
+) => {
   const result = useImportLists();
 
   const sortedData = useMemo(
-    () => [...result.data].sort(sortByProp('name')),
-    [result.data]
+    () =>
+      clientSideFilterAndSort<ImportListModel, never, typeof SORT_PREDICATES>(
+        result.data,
+        {
+          sortKey,
+          sortDirection,
+          secondarySortKey: 'name',
+          secondarySortDirection: 'ascending',
+          sortPredicates: SORT_PREDICATES,
+        }
+      ).data,
+    [result.data, sortKey, sortDirection]
   );
 
   return {
@@ -101,6 +130,10 @@ export const useManageImportList = (
   if (selectedSchema && !schema) {
     throw new Error('A selected schema is required to manage import list');
   }
+
+  const { preferredMetadataLanguage } = useMetadataSourceSettingsValues();
+  const preferredLanguage =
+    useLanguageById(preferredMetadataLanguage) ?? DEFAULT_LANGUAGE;
 
   const defaultProvider = useMemo(() => {
     if (cloneId && cloneImportList) {
@@ -143,13 +176,21 @@ export const useManageImportList = (
         enableAutomaticAdd: true,
         shouldMonitor: 'all' as SeriesMonitor,
         seriesType: 'standard' as SeriesType,
+        language: preferredLanguage,
         seasonFolder: true,
         rootFolderPath: '',
       };
     }
 
     return {} as ImportListModel;
-  }, [cloneId, cloneImportList, schema, selectedSchema, allSchemas]);
+  }, [
+    cloneId,
+    cloneImportList,
+    schema,
+    selectedSchema,
+    allSchemas,
+    preferredLanguage,
+  ]);
 
   const manage = useManageProviderSettings<ImportListModel>(
     id,
@@ -174,10 +215,13 @@ export const useImportListSchema = (enabled: boolean = true) => {
 };
 
 export const useTestAllImportLists = (
-  onSuccess?: () => void,
+  onSuccess?: (results: ProviderTestAllResult[]) => void,
   onError?: (error: ApiError) => void
 ) => {
-  const { mutate, isPending, error } = useApiMutation<void, void>({
+  const { mutate, isPending, data, error } = useApiMutation<
+    ProviderTestAllResult[],
+    void
+  >({
     path: `${PATH}/testall`,
     method: 'POST',
     mutationOptions: {
@@ -186,10 +230,13 @@ export const useTestAllImportLists = (
     },
   });
 
+  const errorResults = getProviderTestAllResults(error);
+
   return {
     testAllImportLists: mutate,
     isTestingAllImportLists: isPending,
-    testAllError: error,
+    testAllResults: data ?? errorResults,
+    testAllError: errorResults ? null : error,
   };
 };
 

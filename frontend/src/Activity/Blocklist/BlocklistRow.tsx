@@ -17,7 +17,7 @@ import { SelectStateInputProps } from 'typings/props';
 import translate from 'Utilities/String/translate';
 import BlocklistDetailsModal from './BlocklistDetailsModal';
 import { useRemoveBlocklistItem } from './useBlocklist';
-import styles from './BlocklistRow.css';
+import styles from './BlocklistRow.module.css';
 
 interface BlocklistRowProps extends Blocklist {
   columns: Column[];
@@ -66,6 +66,11 @@ function BlocklistRow({
     return null;
   }
 
+  const detailsLabel = translate('DetailsForTitle', { title: sourceTitle });
+  const removeLabel = translate('RemoveFromBlocklistWithTitle', {
+    title: sourceTitle,
+  });
+
   return (
     <TableRow>
       <TableSelectCell
@@ -85,6 +90,7 @@ function BlocklistRow({
           return (
             <TableRowCell key={name}>
               <SeriesTitleLink
+                seriesId={series.id}
                 titleSlug={series.titleSlug}
                 title={series.title}
               />
@@ -139,13 +145,15 @@ function BlocklistRow({
             <TableRowCell key={name} className={styles.actions}>
               <IconButton
                 name={icons.INFO}
-                aria-label={translate('Details')}
+                title={detailsLabel}
+                aria-label={detailsLabel}
+                size={16}
                 onPress={handleDetailsPress}
               />
 
               <IconButton
-                title={translate('RemoveFromBlocklist')}
-                aria-label={translate('RemoveFromBlocklist')}
+                title={removeLabel}
+                aria-label={removeLabel}
                 name={icons.REMOVE}
                 kind={kinds.DANGER}
                 isSpinning={isRemoving}

@@ -7,6 +7,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.ImportLists.ImportListItems;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -32,8 +33,8 @@ namespace NzbDrone.Core.Test.ImportListTests
                 .Build().ToList();
 
             Mocker.GetMock<ISearchForNewSeries>()
-                .Setup(v => v.SearchForNewSeriesByImdbId(It.IsAny<string>()))
-                .Returns((string value) => new List<Tv.Series>() { new Tv.Series() { ImdbId = value } });
+                .Setup(v => v.SearchForNewSeriesByImdbId(It.IsAny<string>(), It.IsAny<Language>()))
+                .Returns((string value, Language _) => new List<Tv.Series>() { new Tv.Series() { ImdbId = value } });
         }
 
         private Mock<IImportList> WithList(int id, bool enabled, bool enabledAuto, ImportListFetchResult fetchResult, TimeSpan? minRefresh = null, int? lastSyncOffset = null, int? syncDeletedCount = null)
@@ -118,6 +119,35 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             var listResult = Subject.Fetch();
             listResult.AnyFailure.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_not_deduplicate_items_with_same_title_but_different_tmdb_id()
+        {
+            var series = new List<ImportListItemInfo>
+            {
+                new() { Title = "Doctor Who", TvdbId = 0, TmdbId = 1 },
+                new() { Title = "Doctor Who", TvdbId = 0, TmdbId = 2 },
+                new() { Title = "Doctor Who", TvdbId = 0, TmdbId = 3 }
+            };
+
+            WithList(1, true, true, new ImportListFetchResult { Series = series });
+
+            Subject.Fetch().Series.Should().HaveCount(3);
+        }
+
+        [Test]
+        public void should_deduplicate_items_with_same_tmdb_id_and_title()
+        {
+            var series = new List<ImportListItemInfo>
+            {
+                new() { Title = "Doctor Who", TvdbId = 0, TmdbId = 1 },
+                new() { Title = "Doctor Who", TvdbId = 0, TmdbId = 1 }
+            };
+
+            WithList(1, true, true, new ImportListFetchResult { Series = series });
+
+            Subject.Fetch().Series.Should().HaveCount(1);
         }
 
         [Test]

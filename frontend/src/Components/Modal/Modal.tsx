@@ -10,14 +10,13 @@ import React, {
 import ReactDOM from 'react-dom';
 import FocusLock from 'react-focus-lock';
 import ErrorBoundary from 'Components/Error/ErrorBoundary';
-import usePrevious from 'Helpers/Hooks/usePrevious';
 import { Size } from 'Helpers/Props/sizes';
 import { isIOS } from 'Utilities/browser';
 import * as keyCodes from 'Utilities/Constants/keyCodes';
 import { setScrollLock } from 'Utilities/scrollLock';
 import { ModalContext } from './ModalContext';
 import ModalError from './ModalError';
-import styles from './Modal.css';
+import styles from './Modal.module.css';
 
 const openModals: string[] = [];
 const node = document.getElementById('portal-root');
@@ -71,8 +70,16 @@ function Modal({
 }: ModalProps) {
   const backgroundRef = useRef<HTMLDivElement>(null);
   const isBackdropPressed = useRef(false);
-  const wasOpen = usePrevious(isOpen);
+  const closeGuardRef = useRef<(() => void) | null>(null);
   const modalId = useId();
+
+  const setCloseGuard = useCallback((closeGuard: (() => void) | null) => {
+    closeGuardRef.current = closeGuard;
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    (closeGuardRef.current ?? onModalClose)();
+  }, [onModalClose]);
 
   const isTargetBackdrop = useCallback((event: TouchEvent | MouseEvent) => {
     const targetElement = findEventTarget(event);
@@ -98,12 +105,12 @@ function Modal({
         isTargetBackdrop(event) &&
         closeOnBackgroundClick
       ) {
-        onModalClose();
+        handleModalClose();
       }
 
       isBackdropPressed.current = false;
     },
-    [closeOnBackgroundClick, isTargetBackdrop, onModalClose]
+    [closeOnBackgroundClick, isTargetBackdrop, handleModalClose]
   );
 
   const handleKeyDown = useCallback(
@@ -113,25 +120,29 @@ function Modal({
           event.preventDefault();
           event.stopPropagation();
 
-          onModalClose();
+          handleModalClose();
         }
       }
     },
-    [modalId, onModalClose]
+    [modalId, handleModalClose]
   );
 
   useEffect(() => {
-    if (isOpen && !wasOpen) {
-      openModals.push(modalId);
+    if (!isOpen) {
+      return;
+    }
 
-      if (openModals.length === 1) {
-        if (isIOS()) {
-          setScrollLock(true);
-        } else {
-          elementClass(document.body).add(styles.modalOpen);
-        }
+    openModals.push(modalId);
+
+    if (openModals.length === 1) {
+      if (isIOS()) {
+        setScrollLock(true);
+      } else {
+        elementClass(document.body).add(styles.modalOpen);
       }
-    } else if (!isOpen && wasOpen) {
+    }
+
+    return () => {
       removeFromOpenModals(modalId);
 
       if (openModals.length === 0) {
@@ -141,8 +152,8 @@ function Modal({
           elementClass(document.body).remove(styles.modalOpen);
         }
       }
-    }
-  }, [isOpen, wasOpen, modalId, handleKeyDown]);
+    };
+  }, [isOpen, modalId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -161,7 +172,7 @@ function Modal({
   const headerId = `${modalId}-header`;
 
   return ReactDOM.createPortal(
-    <ModalContext.Provider value={{ headerId }}>
+    <ModalContext.Provider value={{ headerId, setCloseGuard }}>
       <FocusLock disabled={false}>
         <div className={styles.modalContainer}>
           <div

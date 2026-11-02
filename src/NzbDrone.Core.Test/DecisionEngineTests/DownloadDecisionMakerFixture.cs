@@ -150,7 +150,10 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_not_attempt_to_map_episode_if_not_parsable()
         {
             GivenSpecifications(_pass1, _pass2, _pass3);
-            _reports[0].Title = "Not parsable";
+
+            // Stripping the metadata leaves brackets rather than a title, so neither parser
+            // recovers anything to map.
+            _reports[0].Title = "[Not][parsable][1080p][x265(10bit)]";
 
             Subject.GetRssDecision(_reports).ToList();
 
@@ -159,6 +162,17 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _pass1.Verify(c => c.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>()), Times.Never());
             _pass2.Verify(c => c.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>()), Times.Never());
             _pass3.Verify(c => c.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>()), Times.Never());
+        }
+
+        [Test]
+        public void should_map_a_title_the_regexes_cannot_parse()
+        {
+            GivenSpecifications(_pass1, _pass2, _pass3);
+            _reports[0].Title = "Not parsable";
+
+            Subject.GetRssDecision(_reports).ToList();
+
+            Mocker.GetMock<IParsingService>().Verify(c => c.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()), Times.Once());
         }
 
         [Test]
@@ -327,6 +341,27 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 };
 
             Subject.GetRssDecision(_reports).Should().HaveCount(1);
+
+            ExceptionVerification.ExpectedErrors(1);
+        }
+
+        [Test]
+        public void should_include_parsed_episode_info_when_exception_is_caught()
+        {
+            GivenSpecifications(_pass1);
+
+            Mocker.GetMock<IParsingService>().Setup(c => c.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()))
+                     .Throws<TestException>();
+
+            _reports = new List<ReleaseInfo>
+                {
+                    new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" },
+                };
+
+            var result = Subject.GetRssDecision(_reports);
+
+            result.Should().HaveCount(1);
+            result.First().RemoteEpisode.ParsedEpisodeInfo.Should().NotBeNull();
 
             ExceptionVerification.ExpectedErrors(1);
         }

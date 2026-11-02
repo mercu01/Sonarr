@@ -1,0 +1,15 @@
+.modalFooter {
+  composes: modalFooter from 'Components/Modal/ModalFooter.module.css';
+
+  justify-content: space-between;
+}
+
+.filterRow {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borderColor);
+  background-color: var(--modalBackgroundColor);
+}

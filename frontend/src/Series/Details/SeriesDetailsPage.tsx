@@ -3,35 +3,55 @@ import { useNavigate, useParams } from 'react-router';
 import NotFound from 'Components/NotFound';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import useSeries from 'Series/useSeries';
+import getSeriesPath from 'Utilities/Series/getSeriesPath';
 import translate from 'Utilities/String/translate';
 import SeriesDetails from './SeriesDetails';
 
 function SeriesDetailsPage() {
   const { data: allSeries } = useSeries();
-  const { titleSlug } = useParams<{ titleSlug: string }>();
+  const { seriesId: seriesIdParam, titleSlug } = useParams<{
+    seriesId?: string;
+    titleSlug: string;
+  }>();
   const navigate = useNavigate();
 
-  const seriesIndex = allSeries.findIndex(
-    (series) => series.titleSlug === titleSlug
-  );
+  const series = seriesIdParam
+    ? allSeries.find((series) => series.id === Number(seriesIdParam))
+    : allSeries.find((series) => series.titleSlug === titleSlug);
 
-  const previousIndex = usePrevious(seriesIndex);
+  const seriesId = series?.id;
+  const previousSeriesId = usePrevious(seriesId);
+  const previousSeriesIdParam = usePrevious(seriesIdParam);
 
   useEffect(() => {
+    if (series) {
+      if (!seriesIdParam || series.titleSlug !== titleSlug) {
+        navigate(getSeriesPath(series), { replace: true });
+      }
+
+      return;
+    }
+
     if (
-      seriesIndex === -1 &&
-      previousIndex !== -1 &&
-      previousIndex !== undefined
+      previousSeriesId !== undefined &&
+      seriesIdParam === previousSeriesIdParam
     ) {
       navigate('/');
     }
-  }, [seriesIndex, previousIndex, navigate]);
+  }, [
+    series,
+    seriesIdParam,
+    titleSlug,
+    previousSeriesId,
+    previousSeriesIdParam,
+    navigate,
+  ]);
 
-  if (seriesIndex === -1) {
+  if (!series) {
     return <NotFound message={translate('SeriesCannotBeFound')} />;
   }
 
-  return <SeriesDetails seriesId={allSeries[seriesIndex].id} />;
+  return <SeriesDetails seriesId={series.id} />;
 }
 
 export default SeriesDetailsPage;

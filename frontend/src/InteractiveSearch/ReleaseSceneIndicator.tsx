@@ -6,21 +6,23 @@ import DescriptionListItem from 'Components/DescriptionList/DescriptionListItem'
 import Icon from 'Components/Icon';
 import Popover from 'Components/Tooltip/Popover';
 import { icons, tooltipPositions } from 'Helpers/Props';
+import formatSeasonNumbers from 'Season/formatSeasonNumbers';
 import translate from 'Utilities/String/translate';
-import styles from './ReleaseSceneIndicator.css';
+import styles from './ReleaseSceneIndicator.module.css';
 
 function formatReleaseNumber(
-  seasonNumber: number | undefined,
+  seasonNumbers: number[],
   episodeNumbers: number[] | undefined,
   absoluteEpisodeNumbers: number[] | undefined
 ) {
   if (episodeNumbers && episodeNumbers.length) {
     if (episodeNumbers.length > 1) {
-      return `${seasonNumber}x${episodeNumbers[0]}-${
+      return `${seasonNumbers[0]}x${episodeNumbers[0]}-${
         episodeNumbers[episodeNumbers.length - 1]
       }`;
     }
-    return `${seasonNumber}x${episodeNumbers[0]}`;
+
+    return `${seasonNumbers[0]}x${episodeNumbers[0]}`;
   }
 
   if (absoluteEpisodeNumbers && absoluteEpisodeNumbers.length) {
@@ -29,11 +31,16 @@ function formatReleaseNumber(
         absoluteEpisodeNumbers[absoluteEpisodeNumbers.length - 1]
       }`;
     }
+
     return absoluteEpisodeNumbers[0];
   }
 
-  if (seasonNumber !== undefined) {
-    return translate('SeasonNumberToken', { seasonNumber });
+  if (seasonNumbers.length > 1) {
+    return formatSeasonNumbers(seasonNumbers);
+  }
+
+  if (seasonNumbers.length === 1) {
+    return translate('SeasonNumberToken', { seasonNumber: seasonNumbers[0] });
   }
 
   return null;
@@ -41,10 +48,10 @@ function formatReleaseNumber(
 
 interface ReleaseSceneIndicatorProps {
   className: string;
-  seasonNumber?: number;
+  seasonNumbers: number[];
   episodeNumbers?: number[];
   absoluteEpisodeNumbers?: number[];
-  sceneSeasonNumber?: number;
+  sceneSeasonNumbers: number[];
   sceneEpisodeNumbers?: number[];
   sceneAbsoluteEpisodeNumbers?: number[];
   sceneMapping?: {
@@ -59,10 +66,10 @@ interface ReleaseSceneIndicatorProps {
 function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
   const {
     className,
-    seasonNumber,
+    seasonNumbers,
     episodeNumbers,
     absoluteEpisodeNumbers,
-    sceneSeasonNumber,
+    sceneSeasonNumbers,
     sceneEpisodeNumbers,
     sceneAbsoluteEpisodeNumbers,
     sceneMapping = {},
@@ -76,8 +83,7 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
     return null;
   }
 
-  let mappingDifferent =
-    sceneSeasonNumber !== undefined && seasonNumber !== sceneSeasonNumber;
+  let mappingDifferent = !_.isEqual(sceneSeasonNumbers, seasonNumbers);
 
   if (sceneEpisodeNumbers !== undefined) {
     mappingDifferent =
@@ -93,12 +99,12 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
   }
 
   const releaseNumber = formatReleaseNumber(
-    sceneSeasonNumber,
+    sceneSeasonNumbers,
     sceneEpisodeNumbers,
     sceneAbsoluteEpisodeNumbers
   );
   const mappedNumber = formatReleaseNumber(
-    seasonNumber,
+    seasonNumbers,
     episodeNumbers,
     absoluteEpisodeNumbers
   );
@@ -125,6 +131,7 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
         {translate('ReleaseSceneIndicatorUnknownMessage')}
       </div>
     );
+
     if (sceneOrigin === 'unknown') {
       messages.push(
         <div key="origin">
@@ -146,6 +153,7 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
     if (!isMixed && !isUnknown) {
       level = styles.levelNotRequested;
     }
+
     if (mappedNumber) {
       messages.push(
         <div key="not-requested">

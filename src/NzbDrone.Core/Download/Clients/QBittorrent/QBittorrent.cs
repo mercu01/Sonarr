@@ -10,6 +10,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
@@ -85,7 +86,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var moveToTop = (isRecentEpisode && Settings.RecentTvPriority == (int)QBittorrentPriority.First) || (!isRecentEpisode && Settings.OlderTvPriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
 
-            Proxy.AddTorrentFromUrl(magnetLink, addHasSetShareLimits && setShareLimits ? remoteEpisode.SeedConfiguration : null, Settings);
+            try
+            {
+                Proxy.AddTorrentFromUrl(magnetLink, addHasSetShareLimits && setShareLimits ? remoteEpisode.SeedConfiguration : null, Settings);
+            }
+            catch (DownloadClientException ex) when (ex.InnerException is HttpException httpException && httpException.Response.StatusCode is HttpStatusCode.Conflict)
+            {
+                throw new DownloadClientRejectedReleaseException(remoteEpisode.Release, "QBittorrent rejected the magnet link due to a conflict", ex);
+            }
 
             if ((!addHasSetShareLimits && setShareLimits) || moveToTop || forceStart || (Settings.AddSeriesTags && remoteEpisode.Series.Tags.Count > 0))
             {
@@ -154,7 +162,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var moveToTop = (isRecentEpisode && Settings.RecentTvPriority == (int)QBittorrentPriority.First) || (!isRecentEpisode && Settings.OlderTvPriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
 
-            Proxy.AddTorrentFromFile(filename, fileContent, addHasSetShareLimits ? remoteEpisode.SeedConfiguration : null, Settings);
+            try
+            {
+                Proxy.AddTorrentFromFile(filename, fileContent, addHasSetShareLimits ? remoteEpisode.SeedConfiguration : null, Settings);
+            }
+            catch (DownloadClientException ex) when (ex.InnerException is HttpException httpException && httpException.Response.StatusCode is HttpStatusCode.Conflict)
+            {
+                throw new DownloadClientRejectedReleaseException(remoteEpisode.Release, "QBittorrent rejected the torrent file due to a conflict", ex);
+            }
 
             if ((!addHasSetShareLimits && setShareLimits) || moveToTop || forceStart || (Settings.AddSeriesTags && remoteEpisode.Series.Tags.Count > 0))
             {
@@ -341,7 +356,20 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
                 if (version >= new Version("2.6.1") && item.Status == DownloadItemStatus.Completed)
                 {
-                    if (torrent.ContentPath != torrent.SavePath)
+                    // root_path arrived in qBittorrent 5.0 (API 2.11.2). It is the torrent's top folder,
+                    // or empty when the torrent has no root folder. "Don't create subfolder" strips that
+                    // folder, so root_path stays empty. Prefer it when set: a single-file torrent that
+                    // qBittorrent wrapped in a subfolder has content_path pointing at the file (often a
+                    // .rar) and root_path pointing at the folder an external unpacker extracts into.
+                    var useRootPath = version >= new Version(2, 11, 2) &&
+                                      torrent.RootPath.IsNotNullOrWhiteSpace() &&
+                                      torrent.RootPath != torrent.SavePath;
+
+                    if (useRootPath)
+                    {
+                        item.OutputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.RootPath));
+                    }
+                    else if (torrent.ContentPath != torrent.SavePath)
                     {
                         item.OutputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.ContentPath));
                     }
@@ -361,6 +389,16 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         public override void RemoveItem(DownloadClientItem item, bool deleteData)
         {
             Proxy.RemoveTorrent(item.DownloadId.ToLower(), deleteData, Settings);
+        }
+
+        public override IEnumerable<DownloadClientFile> GetFiles(DownloadClientItem item)
+        {
+            return Proxy.GetTorrentFiles(item.DownloadId.ToLower(), Settings)
+                        .Select(f => new DownloadClientFile
+                        {
+                            RelativePath = f.Name
+                        })
+                        .ToList();
         }
 
         public override DownloadClientItem GetImportItem(DownloadClientItem item, DownloadClientItem previousImportAttempt)
@@ -431,7 +469,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
             return new DownloadClientInfo
             {
-                IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost",
+                IsLocalhost = Settings.Host.IsLocalhostAddress(),
                 OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, destDir) },
                 RemovesCompletedDownloads = RemovesCompletedDownloads(config)
             };
@@ -453,6 +491,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
             failures.AddIfNotNull(TestCategory());
             failures.AddIfNotNull(TestPrioritySupport());
+            failures.AddIfNotNull(TestSeedTimeTypeSupport());
             failures.AddIfNotNull(TestGetTorrents());
         }
 
@@ -619,6 +658,21 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             {
                 _logger.Error(ex, "Failed to test qBittorrent");
                 return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationUnknownException", new Dictionary<string, object> { { "exception", ex.Message } }));
+            }
+
+            return null;
+        }
+
+        private ValidationFailure TestSeedTimeTypeSupport()
+        {
+            // inactiveSeedingTimeLimit was added in api v2.9.2 (qBittorrent 4.6.0)
+            if ((QBittorrentSeedTimeType)Settings.SeedTimeType == QBittorrentSeedTimeType.Inactive && Proxy.GetApiVersion(Settings) < new Version(2, 9, 2))
+            {
+                return new NzbDroneValidationFailure(nameof(Settings.SeedTimeType), _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationInactiveSeedTimeUnsupported"))
+                {
+                    IsWarning = true,
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationInactiveSeedTimeUnsupportedDetail")
+                };
             }
 
             return null;

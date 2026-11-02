@@ -1,13 +1,14 @@
 import classNames from 'classnames';
-import React from 'react';
+import React, { useEffect, useId } from 'react';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
 import { icons } from 'Helpers/Props';
-import styles from './FormInputHelpText.css';
+import { useFormRow } from './FormRowContext';
+import styles from './FormInputHelpText.module.css';
 
 interface FormInputHelpTextProps {
   className?: string;
-  text: string;
+  text?: string;
   link?: string;
   tooltip?: string;
   isError?: boolean;
@@ -24,15 +25,46 @@ function FormInputHelpText({
   isWarning = false,
   isCheckInput = false,
 }: FormInputHelpTextProps) {
-  return (
-    <div
-      className={classNames(
-        className,
-        isError && styles.isError,
-        isWarning && styles.isWarning,
-        isCheckInput && styles.isCheckInput
-      )}
-    >
+  const formRow = useFormRow();
+  const generatedId = useId();
+  const inputId = formRow?.id;
+  const formRowType = formRow?.type;
+  const addDescriptionId = formRow?.addDescriptionId;
+  const removeDescriptionId = formRow?.removeDescriptionId;
+  const isCheckboxHelpText =
+    inputId && formRowType === 'check' && !isError && !isWarning;
+
+  useEffect(() => {
+    if (
+      !inputId ||
+      isCheckboxHelpText ||
+      !text ||
+      !addDescriptionId ||
+      !removeDescriptionId
+    ) {
+      return;
+    }
+
+    addDescriptionId(generatedId);
+
+    return () => {
+      removeDescriptionId(generatedId);
+    };
+  }, [
+    addDescriptionId,
+    generatedId,
+    inputId,
+    isCheckboxHelpText,
+    removeDescriptionId,
+    text,
+  ]);
+
+  if (!text) {
+    return null;
+  }
+
+  const content = (
+    <>
       {text}
 
       {link ? (
@@ -43,11 +75,32 @@ function FormInputHelpText({
 
       {!link && tooltip ? (
         <Icon
-          containerClassName={styles.details}
+          titleWrapperClassName={styles.details}
           name={icons.INFO}
           title={tooltip}
         />
       ) : null}
+    </>
+  );
+
+  const helpTextClassName = classNames(
+    className,
+    isError && styles.isError,
+    isWarning && styles.isWarning,
+    isCheckInput && styles.isCheckInput
+  );
+
+  return isCheckboxHelpText ? (
+    <label className={helpTextClassName} htmlFor={inputId}>
+      {content}
+    </label>
+  ) : (
+    <div
+      id={inputId ? generatedId : undefined}
+      className={helpTextClassName}
+      role={isError ? 'alert' : undefined}
+    >
+      {content}
     </div>
   );
 }

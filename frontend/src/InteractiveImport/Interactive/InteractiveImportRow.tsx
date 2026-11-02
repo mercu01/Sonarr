@@ -37,7 +37,7 @@ import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import translate from 'Utilities/String/translate';
 import InteractiveImportRowCellPlaceholder from './InteractiveImportRowCellPlaceholder';
-import styles from './InteractiveImportRow.css';
+import styles from './InteractiveImportRow.module.css';
 
 type SelectType =
   | 'series'
@@ -532,6 +532,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
               {indexerFlags ? (
                 <Popover
                   anchor={<Icon name={icons.FLAG} />}
+                  isAnchorFocusable={false}
                   title={translate('IndexerFlags')}
                   body={<IndexerFlags indexerFlags={indexerFlags} />}
                   position={tooltipPositions.LEFT}
@@ -580,7 +581,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         selectedIds={[id]}
         seriesId={series?.id}
         isAnime={isAnime}
-        seasonNumber={seasonNumber}
+        seasonNumbers={seasonNumber == null ? undefined : [seasonNumber]}
         selectedDetails={relativePath}
         modalTitle={modalTitle}
         onEpisodesSelect={onEpisodesSelect}

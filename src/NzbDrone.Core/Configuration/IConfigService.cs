@@ -31,6 +31,7 @@ namespace NzbDrone.Core.Configuration
         bool CreateEmptySeriesFolders { get; set; }
         bool DeleteEmptyFolders { get; set; }
         FileDateType FileDate { get; set; }
+        bool SkipFreeSpaceCheckWhenGrabbing { get; set; }
         bool SkipFreeSpaceCheckWhenImporting { get; set; }
         int MinimumFreeSpaceWhenImporting { get; set; }
         bool CopyUsingHardlinks { get; set; }
@@ -71,7 +72,9 @@ namespace NzbDrone.Core.Configuration
         string TimeZone { get; set; }
         bool ShowRelativeDates { get; set; }
         bool EnableColorImpairedMode { get; set; }
+        string HeaderColor { get; set; }
         int UILanguage { get; set; }
+        int PreferredMetadataLanguage { get; set; }
 
         // Internal
         bool CleanupMetadataImages { get; set; }

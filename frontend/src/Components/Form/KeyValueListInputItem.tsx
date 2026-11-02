@@ -3,9 +3,10 @@ import IconButton from 'Components/Link/IconButton';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import TextInput from './TextInput';
-import styles from './KeyValueListInputItem.css';
+import styles from './KeyValueListInputItem.module.css';
 
 interface KeyValueListInputItemProps {
+  id?: string;
   index: number;
   keyValue: string;
   value: string;
@@ -19,6 +20,7 @@ interface KeyValueListInputItemProps {
 }
 
 function KeyValueListInputItem({
+  id,
   index,
   keyValue,
   value,
@@ -52,6 +54,7 @@ function KeyValueListInputItem({
     <div className={styles.itemContainer}>
       <div className={styles.keyInputWrapper}>
         <TextInput
+          id={id}
           className={styles.keyInput}
           name="key"
           value={keyValue}

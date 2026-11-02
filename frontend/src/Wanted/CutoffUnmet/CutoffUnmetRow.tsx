@@ -11,10 +11,11 @@ import EpisodeStatus from 'Episode/EpisodeStatus';
 import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
 import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
 import EpisodeFileLanguages from 'EpisodeFile/EpisodeFileLanguages';
+import EpisodeFileQuality from 'EpisodeFile/EpisodeFileQuality';
 import SeriesTitleLink from 'Series/SeriesTitleLink';
 import { useSingleSeries } from 'Series/useSeries';
 import { SelectStateInputProps } from 'typings/props';
-import styles from './CutoffUnmetRow.css';
+import styles from './CutoffUnmetRow.module.css';
 
 interface CutoffUnmetRowProps {
   id: number;
@@ -87,6 +88,7 @@ function CutoffUnmetRow({
           return (
             <TableRowCell key={name}>
               <SeriesTitleLink
+                seriesId={series.id}
                 titleSlug={series.titleSlug}
                 title={series.title}
               />
@@ -120,7 +122,6 @@ function CutoffUnmetRow({
                 seriesId={series.id}
                 episodeEntity="wanted.cutoffUnmet"
                 episodeTitle={title}
-                showOpenSeriesButton={true}
               />
             </TableRowCell>
           );
@@ -148,6 +149,14 @@ function CutoffUnmetRow({
           );
         }
 
+        if (name === 'quality') {
+          return (
+            <TableRowCell key={name}>
+              <EpisodeFileQuality episodeFileId={episodeFileId} />
+            </TableRowCell>
+          );
+        }
+
         if (name === 'status') {
           return (
             <TableRowCell key={name} className={styles.status}>
@@ -166,9 +175,11 @@ function CutoffUnmetRow({
               key={name}
               episodeId={id}
               seriesId={series.id}
+              seriesTitle={series.title}
+              seasonNumber={seasonNumber}
+              episodeNumber={episodeNumber}
               episodeTitle={title}
               episodeEntity="wanted.cutoffUnmet"
-              showOpenSeriesButton={true}
             />
           );
         }

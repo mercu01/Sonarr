@@ -1,6 +1,4 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import AppState from 'App/State/AppState';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import Icon, { IconKind } from 'Components/Icon';
@@ -14,13 +12,13 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableRow from 'Components/Table/TableRow';
 import { icons, kinds } from 'Helpers/Props';
+import { useTestAllDownloadClients } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import { useTestAllIndexers } from 'Settings/Indexers/useIndexers';
-import { testAllDownloadClients } from 'Store/Actions/settingsActions';
 import titleCase from 'Utilities/String/titleCase';
 import translate from 'Utilities/String/translate';
 import HealthItemLink from './HealthItemLink';
 import useHealth from './useHealth';
-import styles from './Health.css';
+import styles from './Health.module.css';
 
 const columns: Column[] = [
   {
@@ -42,19 +40,17 @@ const columns: Column[] = [
 ];
 
 function Health() {
-  const dispatch = useDispatch();
   const { data, isFetched, isFetching, isLoading } = useHealth();
-  const isTestingAllDownloadClients = useSelector(
-    (state: AppState) => state.settings.downloadClients.isTestingAll
-  );
 
   const { testAllIndexers, isTestingAllIndexers } = useTestAllIndexers();
+  const { testAllDownloadClients, isTestingAllDownloadClients } =
+    useTestAllDownloadClients();
 
   const healthIssues = !!data.length;
 
   const handleTestAllDownloadClientsPress = useCallback(() => {
-    dispatch(testAllDownloadClients());
-  }, [dispatch]);
+    testAllDownloadClients();
+  }, [testAllDownloadClients]);
 
   const handleTestAllIndexersPress = useCallback(() => {
     testAllIndexers();
@@ -88,6 +84,7 @@ function Health() {
                 const source = item.source;
 
                 let kind: IconKind = kinds.WARNING;
+
                 switch (item.type.toLowerCase()) {
                   case 'error':
                     kind = kinds.DANGER;
@@ -117,8 +114,12 @@ function Health() {
                       <IconButton
                         name={icons.WIKI}
                         to={item.wikiUrl}
-                        title={translate('ReadTheWikiForMoreInformation')}
-                        aria-label={translate('ReadTheWikiForMoreInformation')}
+                        title={translate('ReadTheWikiForHealthIssue', {
+                          message: item.message,
+                        })}
+                        aria-label={translate('ReadTheWikiForHealthIssue', {
+                          message: item.message,
+                        })}
                       />
 
                       <HealthItemLink source={source} />
@@ -127,7 +128,8 @@ function Health() {
                       source === 'IndexerLongTermStatusCheck' ? (
                         <SpinnerIconButton
                           name={icons.TEST}
-                          title={translate('TestAll')}
+                          title={translate('TestAllIndexers')}
+                          aria-label={translate('TestAllIndexers')}
                           isSpinning={isTestingAllIndexers}
                           onPress={handleTestAllIndexersPress}
                         />
@@ -137,7 +139,8 @@ function Health() {
                       source === 'DownloadClientStatusCheck' ? (
                         <SpinnerIconButton
                           name={icons.TEST}
-                          title={translate('TestAll')}
+                          title={translate('TestAllClients')}
+                          aria-label={translate('TestAllClients')}
                           isSpinning={isTestingAllDownloadClients}
                           onPress={handleTestAllDownloadClientsPress}
                         />

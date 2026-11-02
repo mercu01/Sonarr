@@ -1,5 +1,5 @@
 import { keepPreviousData } from '@tanstack/react-query';
-import moment from 'moment';
+import moment, { Moment, MomentInput } from 'moment-timezone';
 import { useEffect, useMemo } from 'react';
 import { create } from 'zustand';
 import { setEpisodeQueryKey } from 'Episode/useEpisode';
@@ -55,10 +55,10 @@ export const FILTER_BUILDER: FilterBuilderProp<CalendarItem>[] = [
 ];
 
 interface CalendarStore {
-  time: moment.Moment;
+  time: Moment;
   dates: string[];
   dayCount: number;
-  searchMissingCommandId?: number;
+  searchMissingEpisodeIds?: number[];
 }
 
 const calendarStore = create<CalendarStore>(() => ({
@@ -155,7 +155,13 @@ export const useCalendarPage = () => {
   const dayCount = useCalendarDayCount();
   const time = useCalendarTime();
   const view = useCalendarOption('view');
-  const { firstDayOfWeek } = useUiSettingsValues();
+  const { firstDayOfWeek, timeZone } = useUiSettingsValues();
+
+  useEffect(() => {
+    calendarStore.setState({
+      time: timeZone ? moment.tz(timeZone) : moment(),
+    });
+  }, [timeZone]);
 
   useEffect(() => {
     const { dates } = getDates(time, view, firstDayOfWeek, dayCount);
@@ -185,8 +191,12 @@ export const useCalendarRange = () => {
   };
 };
 
-export const useCalendarSearchMissingCommandId = () => {
-  return calendarStore((state) => state.searchMissingCommandId);
+export const useCalendarSearchMissingEpisodeIds = () => {
+  return calendarStore((state) => state.searchMissingEpisodeIds);
+};
+
+export const setCalendarSearchMissingEpisodeIds = (episodeIds: number[]) => {
+  calendarStore.setState({ searchMissingEpisodeIds: episodeIds });
 };
 
 export const setCalendarDayCount = (dayCount: number) => {
@@ -195,6 +205,22 @@ export const setCalendarDayCount = (dayCount: number) => {
 
 export const goToToday = () => {
   setCalendarTime(moment());
+};
+
+export const goToDate = (date: MomentInput) => {
+  const view = getCalendarOption('view');
+  const selected = moment(date).startOf('day');
+
+  if (view === 'forecast') {
+    const { time } = calendarStore.getState();
+    const currentStartWeekday = moment(time).subtract(1, 'day').day();
+    const diff = (selected.day() - currentStartWeekday + 7) % 7;
+
+    setCalendarTime(selected.subtract(diff, 'days').add(1, 'day'));
+    return;
+  }
+
+  setCalendarTime(selected);
 };
 
 export const goToPreviousRange = () => {
@@ -217,11 +243,11 @@ export const goToNextRange = () => {
   setCalendarTime(newTime);
 };
 
-const setCalendarTime = (time: moment.Moment) => {
+const setCalendarTime = (time: Moment) => {
   calendarStore.setState({ time });
 };
 
-const getDays = (start: moment.Moment, end: moment.Moment) => {
+const getDays = (start: Moment, end: Moment) => {
   const startTime = moment(start);
   const endTime = moment(end);
   const difference = endTime.diff(startTime, 'days');
@@ -232,19 +258,21 @@ const getDays = (start: moment.Moment, end: moment.Moment) => {
 };
 
 const getDates = (
-  time: moment.Moment,
+  time: Moment,
   view: CalendarView,
   firstDayOfWeek: number,
   dayCount: number
 ) => {
   const weekName = firstDayOfWeek === 0 ? 'week' : 'isoWeek';
 
+  const weekTime = time.clone().locale('en');
+
   let start = time.clone().startOf('day');
   let end = time.clone().endOf('day');
 
   if (view === 'week') {
-    start = time.clone().startOf(weekName);
-    end = time.clone().endOf(weekName);
+    start = weekTime.clone().startOf(weekName);
+    end = weekTime.clone().endOf(weekName);
   }
 
   if (view === 'forecast') {
@@ -256,8 +284,8 @@ const getDates = (
   }
 
   if (view === 'month') {
-    start = time.clone().startOf('month').startOf(weekName);
-    end = time.clone().endOf('month').endOf(weekName);
+    start = weekTime.clone().startOf('month').startOf(weekName);
+    end = weekTime.clone().endOf('month').endOf(weekName);
   }
 
   if (view === 'agenda') {

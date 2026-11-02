@@ -1,0 +1,7 @@
+.cell {
+  composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
+
+  width: 35px;
+  vertical-align: middle;
+  text-align: center;
+}

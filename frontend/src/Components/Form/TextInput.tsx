@@ -10,9 +10,11 @@ import React, {
 } from 'react';
 import useCombinedRefs from 'Helpers/Hooks/useCombinedRefs';
 import { FileInputChanged, InputChanged } from 'typings/inputs';
-import styles from './TextInput.css';
+import { useFormInputGroup } from './FormInputGroupContext';
+import styles from './TextInput.module.css';
 
 export interface CommonTextInputProps {
+  id?: string;
   className?: string;
   readOnly?: boolean;
   autoFocus?: boolean;
@@ -45,6 +47,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps | FileInputProps>(
   (
     {
       className = styles.input,
+      id,
       type = 'text',
       readOnly = false,
       autoFocus = false,
@@ -65,6 +68,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps | FileInputProps>(
     }: TextInputProps | FileInputProps,
     ref
   ) => {
+    const formInputGroup = useFormInputGroup();
     const inputRef = useRef<HTMLInputElement>(null);
     const combinedRef = useCombinedRefs(ref, inputRef);
     const selectionTimeout = useRef<ReturnType<typeof setTimeout>>();
@@ -160,6 +164,9 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps | FileInputProps>(
     return (
       <input
         ref={combinedRef}
+        id={id}
+        aria-describedby={formInputGroup?.describedBy}
+        aria-invalid={formInputGroup?.hasError || undefined}
         type={type}
         readOnly={readOnly}
         autoFocus={autoFocus}

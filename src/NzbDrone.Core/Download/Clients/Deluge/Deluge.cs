@@ -195,7 +195,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 items.Add(item);
             }
 
-            if (ignoredCount > 0 && _hasAttemptedReconnecting)
+            if (ignoredCount > 0)
             {
                 if (_hasAttemptedReconnecting)
                 {
@@ -204,6 +204,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 else
                 {
                     _proxy.ReconnectToDaemon(Settings);
+                    _hasAttemptedReconnecting = true;
                 }
             }
             else
@@ -250,7 +251,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             var status = new DownloadClientInfo
             {
-                IsLocalhost = Settings.Host is "127.0.0.1" or "localhost"
+                IsLocalhost = Settings.Host.IsLocalhostAddress()
             };
 
             if (!destDir.IsEmpty)

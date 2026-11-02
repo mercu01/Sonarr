@@ -76,7 +76,7 @@ namespace NzbDrone.Core.Tv
                     var series = AddSkyhookData(s);
                     series = SetPropertiesAndValidate(series);
                     series.Added = added;
-                    if (existingSeriesTvdbIds.Any(f => f == series.TvdbId))
+                    if (existingSeriesTvdbIds.ContainsValue(series.TvdbId))
                     {
                         _logger.Debug("TVDB ID {0} was not added due to validation failure: Series {1} already exists in database", s.TvdbId, s);
                         continue;
@@ -85,13 +85,6 @@ namespace NzbDrone.Core.Tv
                     if (seriesToAdd.Any(f => f.TvdbId == series.TvdbId))
                     {
                         _logger.Trace("TVDB ID {0} was already added from another import list, not adding series {1} again", s.TvdbId, s);
-                        continue;
-                    }
-
-                    var duplicateSlug = seriesToAdd.FirstOrDefault(f => f.TitleSlug == series.TitleSlug);
-                    if (duplicateSlug != null)
-                    {
-                        _logger.Debug("TVDB ID {0} was not added due to validation failure: Duplicate Slug {1} used by series {2}", s.TvdbId, s.TitleSlug, duplicateSlug.TvdbId);
                         continue;
                     }
 
@@ -117,7 +110,7 @@ namespace NzbDrone.Core.Tv
 
             try
             {
-                tuple = _seriesInfo.GetSeriesInfo(newSeries.TvdbId);
+                tuple = _seriesInfo.GetSeriesInfo(newSeries.TvdbId, newSeries.Language, newSeries.SeasonType);
             }
             catch (SeriesNotFoundException)
             {

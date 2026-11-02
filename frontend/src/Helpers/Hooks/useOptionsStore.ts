@@ -1,8 +1,18 @@
+import createDeepMerge from '@fastify/deepmerge';
 import { StateCreator } from 'zustand';
 import { PersistOptions } from 'zustand/middleware';
 import Column from 'Components/Table/Column';
 import { createPersist } from 'Helpers/createPersist';
 import { SortDirection } from 'Helpers/Props/sortDirections';
+
+const deepMerge = createDeepMerge({
+  all: true,
+  mergeArray: ({ clone }) => {
+    return (_target, source) => {
+      return clone(source);
+    };
+  },
+});
 
 type TSettingsWithoutColumns = object;
 
@@ -107,15 +117,12 @@ const merge = <T extends TSettings>(
 ) => {
   if ('columns' in currentState) {
     return {
-      ...currentState,
-      ...mergeColumns(persistedState, currentState),
+      ...(deepMerge(currentState, persistedState) as T),
+      columns: mergeColumns(persistedState, currentState),
     };
   }
 
-  return {
-    ...currentState,
-    ...((persistedState as T) ?? {}),
-  };
+  return deepMerge(currentState, persistedState) as T;
 };
 
 const mergeColumns = <T extends { columns: Column[] }>(
@@ -165,10 +172,7 @@ const mergeColumns = <T extends { columns: Column[] }>(
     }
   });
 
-  return {
-    ...(persistedState as T),
-    columns,
-  };
+  return columns;
 };
 
 export const applySort = <T extends TSettings>(

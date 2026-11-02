@@ -1,6 +1,6 @@
+import { useSortable } from '@dnd-kit/react/sortable';
 import classNames from 'classnames';
 import React, { useCallback } from 'react';
-import { ConnectDragSource } from 'react-dnd';
 import CheckInput from 'Components/Form/CheckInput';
 import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
@@ -9,12 +9,17 @@ import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
 import { ItemFailures } from './qualityProfileItemFailures';
 import QualityProfileItemSize, { SizeChanged } from './QualityProfileItemSize';
-import styles from './QualityProfileItem.css';
+import {
+  qualityKey,
+  ROOT_CONTAINER,
+  rootCollisionDetector,
+} from './useQualityProfileDnd';
+import styles from './QualityProfileItem.module.css';
 
 interface QualityProfileItemProps {
-  dragRef: ConnectDragSource;
   mode: string;
-  isPreview?: boolean;
+  containerId: string;
+  index: number;
   groupId?: number;
   qualityId: number;
   name: string;
@@ -23,29 +28,38 @@ interface QualityProfileItemProps {
   maxSize: number | null;
   preferredSize: number | null;
   failures?: ItemFailures;
-  isDragging: boolean;
   onCreateGroupPress?: (qualityId: number) => void;
   onItemAllowedChange: (qualityId: number, allowed: boolean) => void;
   onSizeChange: (change: SizeChanged) => void;
 }
 
 function QualityProfileItem({
-  dragRef,
   mode = 'default',
-  isPreview = false,
+  containerId,
+  index,
   qualityId,
   groupId,
   name,
   allowed,
   minSize,
   maxSize,
-  isDragging,
   preferredSize,
   failures,
   onCreateGroupPress,
   onItemAllowedChange,
   onSizeChange,
 }: QualityProfileItemProps) {
+  const { ref, handleRef, isDragging } = useSortable({
+    id: qualityKey(qualityId),
+    index,
+    group: containerId,
+    type: 'quality',
+    accept: containerId === ROOT_CONTAINER ? undefined : ['quality'],
+    collisionDetector:
+      containerId === ROOT_CONTAINER ? rootCollisionDetector : undefined,
+    disabled: mode === 'editSizes',
+  });
+
   const handleAllowedChange = useCallback(
     ({ value }: InputChanged<boolean>) => {
       onItemAllowedChange?.(qualityId, value);
@@ -59,12 +73,11 @@ function QualityProfileItem({
 
   return (
     <div
+      ref={ref}
       className={classNames(
         styles.qualityProfileItem,
         mode === 'editSizes' && styles.editSizes,
-        isDragging && styles.isDragging,
-        isPreview && styles.isPreview,
-        groupId && styles.isInGroup
+        isDragging && styles.isDragging
       )}
     >
       <label
@@ -73,7 +86,7 @@ function QualityProfileItem({
           mode === 'editSizes' && styles.editSizes
         )}
       >
-        {mode === 'editGroups' && !groupId && !isPreview && (
+        {mode === 'editGroups' && !groupId ? (
           <IconButton
             className={styles.createGroupButton}
             name={icons.GROUP}
@@ -81,9 +94,9 @@ function QualityProfileItem({
             aria-label={translate('Group')}
             onPress={handleCreateGroupPress}
           />
-        )}
+        ) : null}
 
-        {mode === 'default' && (
+        {mode === 'default' ? (
           <CheckInput
             className={styles.checkInput}
             containerClassName={styles.checkInputContainer}
@@ -92,12 +105,11 @@ function QualityProfileItem({
             isDisabled={!!groupId}
             onChange={handleAllowedChange}
           />
-        )}
+        ) : null}
 
         <div
           className={classNames(
             styles.qualityName,
-            groupId && mode !== 'editSizes' && styles.isInGroup,
             !allowed && styles.notAllowed
           )}
         >
@@ -119,7 +131,7 @@ function QualityProfileItem({
       ) : null}
 
       {mode === 'editSizes' ? null : (
-        <div ref={dragRef} className={styles.dragHandle}>
+        <div ref={handleRef} className={styles.dragHandle}>
           <Icon
             className={styles.dragIcon}
             title={translate('CreateGroup')}

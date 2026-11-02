@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
-import Label from 'Components/Label';
 import ClipboardButton from 'Components/Link/ClipboardButton';
 import Link from 'Components/Link/Link';
 import { kinds, sizes } from 'Helpers/Props';
 import Series from 'Series/Series';
 import translate from 'Utilities/String/translate';
-import styles from './SeriesDetailsLinks.css';
+import styles from './SeriesDetailsLinks.module.css';
 
 type SeriesDetailsLinksProps = Pick<
   Series,
@@ -27,7 +26,7 @@ function SeriesDetailsLinks(props: SeriesDetailsLinksProps) {
     if (tvdbId) {
       validLinks.push({
         externalId: tvdbId,
-        name: 'The TVDB',
+        name: 'TheTVDB',
         url: `https://www.thetvdb.com/?tab=series&id=${tvdbId}`,
       });
     }
@@ -35,7 +34,7 @@ function SeriesDetailsLinks(props: SeriesDetailsLinksProps) {
     if (tvMazeId) {
       validLinks.push({
         externalId: tvMazeId,
-        name: 'TV Maze',
+        name: 'TVmaze',
         url: `https://www.tvmaze.com/shows/${tvMazeId}/_`,
       });
     }
@@ -44,7 +43,7 @@ function SeriesDetailsLinks(props: SeriesDetailsLinksProps) {
       validLinks.push(
         {
           externalId: imdbId,
-          name: 'IMDB',
+          name: 'IMDb',
           url: `https://imdb.com/title/${imdbId}/`,
         },
         {
@@ -76,17 +75,12 @@ function SeriesDetailsLinks(props: SeriesDetailsLinksProps) {
       {links.map((link) => (
         <div key={link.name} className={styles.linkBlock}>
           <Link className={styles.link} to={link.url}>
-            <Label
-              className={styles.linkLabel}
-              kind={kinds.INFO}
-              size={sizes.LARGE}
-            >
-              {link.name}
-            </Label>
+            {link.name}
           </Link>
 
           {link.externalId ? (
             <ClipboardButton
+              className={styles.copyButton}
               value={`${link.externalId}`}
               title={translate('CopyToClipboard')}
               kind={kinds.DEFAULT}

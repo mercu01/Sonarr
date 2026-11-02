@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCommand, useExecuteCommand } from 'Commands/useCommands';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
@@ -11,7 +11,7 @@ import formatDate from 'Utilities/Date/formatDate';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import formatTimeSpan from 'Utilities/Date/formatTimeSpan';
 import translate from 'Utilities/String/translate';
-import styles from './ScheduledTaskRow.css';
+import styles from './ScheduledTaskRow.module.css';
 
 interface ScheduledTaskRowProps {
   id: number;
@@ -37,9 +37,9 @@ function ScheduledTaskRow({
   const { showRelativeDates, longDateFormat, shortDateFormat, timeFormat } =
     useUiSettingsValues();
   const command = useCommand(taskName);
-
   const [time, setTime] = useState(Date.now());
 
+  const runLabel = translate('RunTaskWithName', { name });
   const isQueued = !!(command && command.status === 'queued');
   const isExecuting = isCommandExecuting(command);
   const isDisabled = interval === 0;
@@ -51,7 +51,7 @@ function ScheduledTaskRow({
     return moment
       .duration(interval, 'minutes')
       .humanize()
-      .replace(/an?(?=\s)/, '1');
+      .replace(/^an?(?=\s)/, '1');
   }, [interval]);
 
   const { lastExecutionTime, nextExecutionTime } = useMemo(() => {
@@ -85,6 +85,7 @@ function ScheduledTaskRow({
 
   useEffect(() => {
     const interval = setInterval(() => setTime(Date.now()), 1000);
+
     return () => {
       clearInterval(interval);
     };
@@ -139,7 +140,8 @@ function ScheduledTaskRow({
         <SpinnerIconButton
           name={icons.REFRESH}
           spinningName={icons.REFRESH}
-          aria-label={translate('Run')}
+          title={runLabel}
+          aria-label={runLabel}
           isSpinning={isExecuting}
           onPress={handleExecutePress}
         />

@@ -1,21 +1,25 @@
 import {
   autoUpdate,
   flip,
+  FloatingFocusManager,
   FloatingPortal,
   shift,
-  useClick,
   useDismiss,
   useFloating,
   useInteractions,
+  useRole,
 } from '@floating-ui/react';
 import React, {
   ReactElement,
   useCallback,
   useEffect,
   useId,
+  useMemo,
+  useRef,
   useState,
 } from 'react';
-import styles from './Menu.css';
+import MenuContext from './MenuContext';
+import styles from './Menu.module.css';
 
 interface MenuProps {
   className?: string;
@@ -31,8 +35,10 @@ function Menu({
   enforceMaxHeight = true,
 }: MenuProps) {
   const menuButtonId = useId();
+  const menuContentId = useId();
   const [maxHeight, setMaxHeight] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const shouldRestoreFocus = useRef(false);
 
   const updateMaxHeight = useCallback(() => {
     const menuButton = document.getElementById(menuButtonId);
@@ -49,6 +55,28 @@ function Menu({
     setMaxHeight(height);
   }, [menuButtonId]);
 
+  const focusMenuButton = useCallback(() => {
+    if (document.activeElement !== document.body) {
+      return;
+    }
+
+    document
+      .getElementById(menuButtonId)
+      ?.querySelector<HTMLElement>('button, a[href]')
+      ?.focus();
+  }, [menuButtonId]);
+
+  useEffect(() => {
+    if (!isMenuOpen && shouldRestoreFocus.current) {
+      shouldRestoreFocus.current = false;
+      const focusTimeout = window.setTimeout(focusMenuButton, 100);
+
+      return () => window.clearTimeout(focusTimeout);
+    }
+
+    return undefined;
+  }, [focusMenuButton, isMenuOpen]);
+
   const handleMenuButtonPress = useCallback(() => {
     setIsMenuOpen((isOpen) => !isOpen);
   }, []);
@@ -56,6 +84,9 @@ function Menu({
   const childrenArray = React.Children.toArray(children);
   const button = React.cloneElement(childrenArray[0] as ReactElement, {
     onPress: handleMenuButtonPress,
+    'aria-haspopup': 'menu',
+    'aria-expanded': isMenuOpen,
+    'aria-controls': isMenuOpen ? menuContentId : undefined,
   });
 
   const handleWindowResize = useCallback(() => {
@@ -93,6 +124,17 @@ function Menu({
     };
   }, [isMenuOpen, handleWindowResize, handleWindowScroll]);
 
+  const handleOpenChange = useCallback(
+    (isOpen: boolean, _event?: Event, reason?: string) => {
+      setIsMenuOpen(isOpen);
+
+      if (!isOpen && reason === 'escape-key') {
+        shouldRestoreFocus.current = true;
+      }
+    },
+    []
+  );
+
   const { refs, context, floatingStyles } = useFloating({
     middleware: [
       flip({
@@ -105,64 +147,85 @@ function Menu({
     open: isMenuOpen,
     placement: alignMenu === 'left' ? 'bottom-start' : 'bottom-end',
     whileElementsMounted: autoUpdate,
-    onOpenChange: setIsMenuOpen,
+    onOpenChange: handleOpenChange,
   });
 
-  const handleFloaterPress = useCallback(
-    (event: MouseEvent) => {
-      if (
-        refs.reference &&
-        (refs.reference.current as HTMLElement).contains(
-          event.target as HTMLElement
-        )
-      ) {
-        return false;
-      }
-
-      // TODO: Menu items should handle closing when they are clicked.
-      // This is handled before the menu item click event is handled, so wait 100ms before closing.
-      setTimeout(() => {
-        setIsMenuOpen(false);
-      }, 100);
-
-      return true;
-    },
-    [refs.reference]
-  );
-
-  const click = useClick(context);
   const dismiss = useDismiss(context, {
     outsidePressEvent: 'click',
-    outsidePress: handleFloaterPress,
   });
+  const role = useRole(context, { role: 'menu' });
 
-  const { getReferenceProps, getFloatingProps } = useInteractions([
-    click,
-    dismiss,
-  ]);
+  const { getFloatingProps } = useInteractions([dismiss, role]);
+
+  const handleMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        return;
+      }
+
+      const items = Array.from(
+        event.currentTarget.querySelectorAll<HTMLElement>(
+          '[role^="menuitem"]:not(:disabled):not([aria-disabled="true"])'
+        )
+      );
+
+      if (!items.length) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+      let nextIndex = currentIndex;
+
+      if (event.key === 'Home') {
+        nextIndex = 0;
+      } else if (event.key === 'End') {
+        nextIndex = items.length - 1;
+      } else if (event.key === 'ArrowDown') {
+        nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+      } else {
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+      }
+
+      items[nextIndex].focus();
+    },
+    []
+  );
+
+  const closeMenu = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    setIsMenuOpen(false);
+  }, []);
+
+  const menuContext = useMemo(() => ({ closeMenu }), [closeMenu]);
 
   return (
     <>
-      <div
-        ref={refs.setReference}
-        {...getReferenceProps()}
-        id={menuButtonId}
-        className={className}
-      >
+      <div ref={refs.setReference} id={menuButtonId} className={className}>
         {button}
       </div>
 
       {isMenuOpen ? (
         <FloatingPortal id="portal-root">
-          {React.cloneElement(childrenArray[1] as ReactElement, {
-            forwardedRef: refs.setFloating,
-            style: {
-              maxHeight: enforceMaxHeight ? maxHeight : undefined,
-              ...floatingStyles,
-            },
-            isOpen: isMenuOpen,
-            ...getFloatingProps(),
-          })}
+          <FloatingFocusManager
+            context={context}
+            modal={false}
+            returnFocus={false}
+          >
+            <MenuContext.Provider value={menuContext}>
+              {React.cloneElement(childrenArray[1] as ReactElement, {
+                forwardedRef: refs.setFloating,
+                style: {
+                  maxHeight: enforceMaxHeight ? maxHeight : undefined,
+                  ...floatingStyles,
+                },
+                isOpen: isMenuOpen,
+                ...getFloatingProps({ onKeyDown: handleMenuKeyDown }),
+                id: menuContentId,
+              })}
+            </MenuContext.Provider>
+          </FloatingFocusManager>
         </FloatingPortal>
       ) : null}
     </>

@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 import Alert from 'Components/Alert';
 import { kinds } from 'Helpers/Props';
 import { ValidationError, ValidationWarning } from 'typings/pending';
-import styles from './Form.css';
+import styles from './Form.module.css';
 
 export interface FormProps {
   id?: string;
@@ -20,7 +20,7 @@ function Form({
   return (
     <div id={id}>
       {validationErrors.length || validationWarnings.length ? (
-        <div className={styles.validationFailures}>
+        <div className={styles.validationFailures} role="alert">
           {validationErrors.map((error, index) => {
             return (
               <Alert key={index} kind={kinds.DANGER}>

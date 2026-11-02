@@ -181,7 +181,7 @@ public class ReleaseController : RestController<ReleaseResource>
         catch (ReleaseDownloadException ex)
         {
             _logger.Error(ex, ex.Message);
-            throw new NzbDroneClientException(HttpStatusCode.Conflict, "Getting release from indexer failed");
+            throw new NzbDroneClientException(HttpStatusCode.Conflict, $"Getting release from indexer failed: {ex.Message}");
         }
 
         return TypedResults.Ok(release);
@@ -199,6 +199,11 @@ public class ReleaseController : RestController<ReleaseResource>
         if (seriesId.HasValue && seasonNumber.HasValue)
         {
             return TypedResults.Ok(await GetSeasonReleases(seriesId.Value, seasonNumber.Value));
+        }
+
+        if (seriesId.HasValue || seasonNumber.HasValue)
+        {
+            throw new NzbDroneClientException(HttpStatusCode.BadRequest, "seriesId and seasonNumber must be provided together");
         }
 
         return TypedResults.Ok(await GetRss());
@@ -285,8 +290,8 @@ public class ReleaseController : RestController<ReleaseResource>
     private ReleaseHistoryResource? AddHistory(ReleaseInfo release, List<EpisodeHistory> history)
     {
         var grabbed = history.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed &&
-                                                  h.Data.TryGetValue("guid", out var guid) &&
-                                                  guid == release.Guid);
+                                                  ((h.Data.TryGetValue("guid", out var guid) && guid == release.Guid) ||
+                                                   (h.Data.TryGetValue("nzbInfoUrl", out var infoUrl) && infoUrl.IsNotNullOrWhiteSpace() && infoUrl.Equals(release.InfoUrl, StringComparison.Ordinal))));
 
         if (grabbed == null && release.DownloadProtocol == DownloadProtocol.Torrent)
         {

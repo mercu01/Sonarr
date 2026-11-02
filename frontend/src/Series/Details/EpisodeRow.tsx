@@ -23,7 +23,7 @@ import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import formatRuntime from 'Utilities/Number/formatRuntime';
 import translate from 'Utilities/String/translate';
-import styles from './EpisodeRow.css';
+import styles from './EpisodeRow.module.css';
 
 interface EpisodeRowProps {
   id: number;
@@ -86,6 +86,7 @@ function EpisodeRow({
   onMonitorEpisodePress,
 }: EpisodeRowProps) {
   const {
+    title: seriesTitle,
     useSceneNumbering,
     monitored: seriesMonitored,
     seriesType,
@@ -117,7 +118,7 @@ function EpisodeRow({
             <TableRowCell key={name} className={styles.monitored}>
               <MonitorToggleButton
                 monitored={monitored}
-                isDisabled={!seriesMonitored}
+                isDisabled={!seriesMonitored && !monitored}
                 isSaving={isSaving}
                 onPress={handleMonitorEpisodePress}
               />
@@ -160,7 +161,6 @@ function EpisodeRow({
                 episodeTitle={title}
                 episodeEntity="episodes"
                 finaleType={finaleType}
-                showOpenSeriesButton={false}
               />
             </TableRowCell>
           );
@@ -310,8 +310,10 @@ function EpisodeRow({
               episodeId={id}
               episodeEntity="episodes"
               seriesId={seriesId}
+              seriesTitle={seriesTitle}
+              seasonNumber={seasonNumber}
+              episodeNumber={episodeNumber}
               episodeTitle={title}
-              showOpenSeriesButton={false}
             />
           );
         }

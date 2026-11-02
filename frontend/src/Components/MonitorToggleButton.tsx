@@ -3,12 +3,13 @@ import React, { SyntheticEvent, useCallback, useMemo } from 'react';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
-import styles from './MonitorToggleButton.css';
+import styles from './MonitorToggleButton.module.css';
 
 interface MonitorToggleButtonProps {
   className?: string;
   monitored: boolean;
   size?: number;
+  title?: string;
   isDisabled?: boolean;
   isSaving?: boolean;
   onPress: (value: boolean, options: { shiftKey: boolean }) => unknown;
@@ -21,13 +22,16 @@ function MonitorToggleButton(props: MonitorToggleButtonProps) {
     isDisabled = false,
     isSaving = false,
     size,
+    title: titleOverride,
     onPress,
     ...otherProps
   } = props;
 
-  const iconName = monitored ? icons.MONITORED : icons.UNMONITORED;
-
   const title = useMemo(() => {
+    if (titleOverride) {
+      return titleOverride;
+    }
+
     if (isDisabled) {
       return translate('ToggleMonitoredSeriesUnmonitored');
     }
@@ -37,7 +41,7 @@ function MonitorToggleButton(props: MonitorToggleButtonProps) {
     }
 
     return translate('ToggleUnmonitoredToMonitored');
-  }, [monitored, isDisabled]);
+  }, [monitored, isDisabled, titleOverride]);
 
   const handlePress = useCallback(
     (event: SyntheticEvent<HTMLLinkElement, MouseEvent>) => {
@@ -51,7 +55,8 @@ function MonitorToggleButton(props: MonitorToggleButtonProps) {
   return (
     <SpinnerIconButton
       className={classNames(className, isDisabled && styles.isDisabled)}
-      name={iconName}
+      name={icons.MONITORED}
+      filled={monitored}
       size={size}
       title={title}
       aria-label={title}

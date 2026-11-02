@@ -36,6 +36,7 @@ namespace NzbDrone.Core.Configuration
         bool LaunchBrowser { get; }
         AuthenticationType AuthenticationMethod { get; }
         AuthenticationRequiredType AuthenticationRequired { get; }
+        string AllowedHosts { get; }
         bool AnalyticsEnabled { get; }
         string LogLevel { get; }
         string ConsoleLogLevel { get; }
@@ -50,7 +51,7 @@ namespace NzbDrone.Core.Configuration
         string SslKeyPath { get; }
         string SslCertPassword { get; }
         string UrlBase { get; }
-        string UiFolder { get; }
+        string TrustedNetworks { get; }
         string InstanceName { get; }
         bool UpdateAutomatically { get; }
         UpdateMechanism UpdateMechanism { get; }
@@ -71,6 +72,11 @@ namespace NzbDrone.Core.Configuration
         bool TrustCgnatIpAddresses { get; }
         bool ProfilerEnabled { get; }
         string ProfilerPosition { get; }
+        string OidcAuthority { get; }
+        string OidcClientId { get; }
+        string OidcClientSecret { get; }
+        string OidcUserIdentifier { get; }
+        string OidcScopes { get; }
     }
 
     public class ConfigFileProvider : IConfigFileProvider
@@ -216,15 +222,21 @@ namespace NzbDrone.Core.Configuration
                 if (enabled)
                 {
                     SetValue("AuthenticationMethod", AuthenticationType.Forms);
+
                     return AuthenticationType.Forms;
                 }
 
-                var value = Enum.TryParse<AuthenticationType>(_authOptions.Method, out var enumValue)
-                    ? enumValue
-                    : GetValueEnum("AuthenticationMethod", AuthenticationType.None);
+                if (Enum.TryParse<AuthenticationType>(_authOptions.Method, out var enumValue))
+                {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    return enumValue == AuthenticationType.Basic ? AuthenticationType.Forms : enumValue;
+#pragma warning restore CS0618 // Type or member is obsolete
+                }
+
+                var value = GetValueEnum("AuthenticationMethod", AuthenticationType.Forms);
 
 #pragma warning disable CS0618 // Type or member is obsolete
-                if (value == AuthenticationType.Basic)
+                if (value is AuthenticationType.Basic or AuthenticationType.None)
 #pragma warning restore CS0618 // Type or member is obsolete
                 {
                     SetValue("AuthenticationMethod", AuthenticationType.Forms);
@@ -242,6 +254,14 @@ namespace NzbDrone.Core.Configuration
                 : GetValueEnum("AuthenticationRequired", AuthenticationRequiredType.Enabled);
 
         public bool TrustCgnatIpAddresses => _authOptions.TrustCgnatIpAddresses ?? GetValueBoolean("TrustCgnatIpAddresses", false, persist: false);
+
+        public string AllowedHosts => _serverOptions.AllowedHosts ?? GetValue("AllowedHosts", string.Empty);
+
+        public string OidcAuthority => _authOptions.OidcAuthority ?? GetValue("OidcAuthority", string.Empty, persist: false);
+        public string OidcClientId => _authOptions.OidcClientId ?? GetValue("OidcClientId", string.Empty, persist: false);
+        public string OidcClientSecret => _authOptions.OidcClientSecret ?? GetValue("OidcClientSecret", string.Empty, persist: false);
+        public string OidcUserIdentifier => _authOptions.OidcUserIdentifier ?? GetValue("OidcUserIdentifier", string.Empty, persist: false);
+        public string OidcScopes => _authOptions.OidcScopes ?? GetValue("OidcScopes", "openid profile email", persist: false);
 
         public bool AnalyticsEnabled => _logOptions.AnalyticsEnabled ?? GetValueBoolean("AnalyticsEnabled", true, persist: false);
 
@@ -289,7 +309,7 @@ namespace NzbDrone.Core.Configuration
             }
         }
 
-        public string UiFolder => BuildInfo.IsDebug ? Path.Combine("..", "UI") : "UI";
+        public string TrustedNetworks => _serverOptions.TrustedNetworks ?? GetValue("TrustedNetworks", string.Empty);
 
         public string InstanceName
         {

@@ -7,9 +7,11 @@ import React, {
   useRef,
 } from 'react';
 import { InputChanged } from 'typings/inputs';
-import styles from './TextArea.css';
+import { useFormInputGroup } from './FormInputGroupContext';
+import styles from './TextArea.module.css';
 
 export interface TextAreaProps {
+  id?: string;
   className?: string;
   readOnly?: boolean;
   autoFocus?: boolean;
@@ -25,6 +27,7 @@ export interface TextAreaProps {
 }
 
 function TextArea({
+  id,
   className = styles.input,
   readOnly = false,
   autoFocus = false,
@@ -38,6 +41,7 @@ function TextArea({
   onChange,
   onSelectionChange,
 }: TextAreaProps) {
+  const formInputGroup = useFormInputGroup();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const selectionTimeout = useRef<ReturnType<typeof setTimeout>>();
   const selectionStart = useRef<number | null>();
@@ -119,6 +123,9 @@ function TextArea({
   return (
     <textarea
       ref={inputRef}
+      id={id}
+      aria-describedby={formInputGroup?.describedBy}
+      aria-invalid={formInputGroup?.hasError || undefined}
       readOnly={readOnly}
       autoFocus={autoFocus}
       placeholder={placeholder}

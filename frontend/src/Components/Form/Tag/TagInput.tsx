@@ -20,7 +20,7 @@ import { InputChanged } from 'typings/inputs';
 import AutoSuggestInput from '../AutoSuggestInput';
 import TagInputInput from './TagInputInput';
 import TagInputTag, { EditedTag, TagInputTagProps } from './TagInputTag';
-import styles from './TagInput.css';
+import styles from './TagInput.module.css';
 
 export interface TagBase {
   id: boolean | number | string | null;
@@ -61,6 +61,7 @@ export interface ReplacementTag<T extends TagBase> {
 }
 
 export interface TagInputProps<T extends TagBase> {
+  id?: string;
   className?: string;
   inputContainerClassName?: string;
   name: string;
@@ -91,7 +92,7 @@ function TagInput<T extends TagBase>({
   tags,
   tagList,
   allowNew = true,
-  kind = 'info',
+  kind = 'default',
   placeholder = '',
   delimiters = ['Tab', 'Enter', ' ', ','],
   minQueryLength = 1,

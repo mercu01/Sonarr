@@ -29,11 +29,11 @@ runs:
   using: 'composite'
   steps:
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
 
     - name: Setup Postgres
       if: ${{ inputs.use_postgres }}
-      uses: ikalnytskyi/action-setup-postgres@v8
+      uses: ikalnytskyi/action-setup-postgres@v9
       with:
         postgres-version: ${{ inputs.postgres-version }}
 

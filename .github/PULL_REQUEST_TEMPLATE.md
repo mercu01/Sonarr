@@ -16,10 +16,12 @@ YES - ###
 
 <!-- You must put an X in appropriate checkboxes before submitting -->
 
-- [ ] I have read [CONTRIBUTING.md](../CONTRIBUTING.md) and this PR follows the guidelines
+- [ ] I have read [CONTRIBUTING.md](/Sonarr/Sonarr/blob/develop/CONTRIBUTING.md) and this PR follows the guidelines
 - [ ] I have fully reviewed all code in this PR and confirm it works as intended
 - [ ] This PR was authored and submitted by an AI agent without human review
 
 #### Issues Fixed or Closed by this PR
+
+<!-- Remove if there is no issue -->
 
 - Closes #

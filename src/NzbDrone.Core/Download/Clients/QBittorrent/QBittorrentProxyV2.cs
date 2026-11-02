@@ -153,7 +153,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
             if (seedConfiguration != null)
             {
-                AddTorrentSeedingFormParameters(request, seedConfiguration);
+                AddTorrentSeedingFormParameters(request, seedConfiguration, settings);
             }
 
             var result = ProcessRequest(request, settings);
@@ -175,7 +175,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
             if (seedConfiguration != null)
             {
-                AddTorrentSeedingFormParameters(request, seedConfiguration);
+                AddTorrentSeedingFormParameters(request, seedConfiguration, settings);
             }
 
             var result = ProcessRequest(request, settings);
@@ -224,7 +224,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return Json.Deserialize<Dictionary<string, QBittorrentLabel>>(ProcessRequest(request, settings));
         }
 
-        private void AddTorrentSeedingFormParameters(HttpRequestBuilder request, TorrentSeedConfiguration seedConfiguration, bool always = false)
+        private void AddTorrentSeedingFormParameters(HttpRequestBuilder request, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings, bool always = false)
         {
             var ratioLimit = seedConfiguration.Ratio.HasValue ? seedConfiguration.Ratio : -2;
             var seedingTimeLimit = seedConfiguration.SeedTime.HasValue ? (long)seedConfiguration.SeedTime.Value.TotalMinutes : -2;
@@ -236,8 +236,26 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
             if (seedingTimeLimit != -2 || always)
             {
-                request.AddFormParameter("seedingTimeLimit", seedingTimeLimit);
+                request.AddFormParameter(GetSeedingTimeLimitParameterName(settings), seedingTimeLimit);
             }
+        }
+
+        private string GetSeedingTimeLimitParameterName(QBittorrentSettings settings)
+        {
+            if ((QBittorrentSeedTimeType)settings.SeedTimeType == QBittorrentSeedTimeType.Total)
+            {
+                return "seedingTimeLimit";
+            }
+
+            // inactiveSeedingTimeLimit was added in api v2.9.2 (qBittorrent 4.6.0)
+            if (GetApiVersion(settings) >= new Version(2, 9, 2))
+            {
+                return "inactiveSeedingTimeLimit";
+            }
+
+            _logger.Warn("Inactive seed time requires qBittorrent 4.6.0 or later, sending seed time as total seeding time instead");
+
+            return "seedingTimeLimit";
         }
 
         private void AddTorrentDownloadFormParameters(HttpRequestBuilder request, QBittorrentSettings settings)
@@ -289,7 +307,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                                                 .Post()
                                                 .AddFormParameter("hashes", hash);
 
-            AddTorrentSeedingFormParameters(request, seedConfiguration, true);
+            AddTorrentSeedingFormParameters(request, seedConfiguration, settings, true);
 
             try
             {
@@ -359,6 +377,10 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             {
                 requestBuilder.Headers["Authorization"] = $"Bearer {settings.ApiKey}";
             }
+            else if (settings.Username.IsNotNullOrWhiteSpace() || settings.Password.IsNotNullOrWhiteSpace())
+            {
+                requestBuilder.NetworkCredential = new BasicNetworkCredential(settings.Username, settings.Password);
+            }
 
             return requestBuilder;
         }
@@ -373,14 +395,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         private string ProcessRequest(HttpRequestBuilder requestBuilder, QBittorrentSettings settings)
         {
-            var request = requestBuilder.Build();
-            request.LogResponseContent = true;
-
             if (settings.ApiKey.IsNotNullOrWhiteSpace())
             {
+                var requestWithApiKey = requestBuilder.Build();
+                requestWithApiKey.LogResponseContent = true;
+
                 try
                 {
-                    return _httpClient.Execute(request).Content;
+                    return _httpClient.Execute(requestWithApiKey).Content;
                 }
                 catch (HttpException ex)
                 {
@@ -401,6 +423,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
             AuthenticateClient(requestBuilder, settings);
 
+            var request = requestBuilder.Build();
+            request.LogResponseContent = true;
             request.SuppressHttpErrorStatusCodes = [HttpStatusCode.Forbidden];
 
             try

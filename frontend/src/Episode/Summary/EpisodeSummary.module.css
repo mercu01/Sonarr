@@ -1,0 +1,37 @@
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 48px;
+
+  margin-bottom: 20px;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaLabel {
+  color: var(--inkMuted);
+  font-size: 13px;
+}
+
+.metaValue {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.relative {
+  color: var(--inkMuted);
+}
+
+.overview {
+  margin-bottom: 20px;
+  max-width: 100ch;
+  color: var(--inkSoft);
+  text-wrap: pretty;
+  font-size: 14px;
+  font-family: var(--defaultFontFamily);
+  line-height: 1.6;
+}

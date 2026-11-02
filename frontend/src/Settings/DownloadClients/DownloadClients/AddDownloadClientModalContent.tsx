@@ -1,8 +1,5 @@
-import React, { useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import AppState from 'App/State/AppState';
+import React, { useMemo } from 'react';
 import Alert from 'Components/Alert';
-import FieldSet from 'Components/FieldSet';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import ModalBody from 'Components/Modal/ModalBody';
@@ -10,14 +7,17 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
-import { fetchDownloadClientSchema } from 'Store/Actions/settingsActions';
-import DownloadClient from 'typings/DownloadClient';
+import { SelectedSchema } from 'Settings/useProviderSchema';
 import translate from 'Utilities/String/translate';
 import AddDownloadClientItem from './AddDownloadClientItem';
-import styles from './AddDownloadClientModalContent.css';
+import {
+  DownloadClientModel,
+  useDownloadClientSchema,
+} from './useDownloadClients';
+import styles from './AddDownloadClientModalContent.module.css';
 
 export interface AddDownloadClientModalContentProps {
-  onDownloadClientSelect: () => void;
+  onDownloadClientSelect: (selectedSchema: SelectedSchema) => void;
   onModalClose: () => void;
 }
 
@@ -25,15 +25,13 @@ function AddDownloadClientModalContent({
   onDownloadClientSelect,
   onModalClose,
 }: AddDownloadClientModalContentProps) {
-  const dispatch = useDispatch();
-
-  const { isSchemaFetching, isSchemaPopulated, schemaError, schema } =
-    useSelector((state: AppState) => state.settings.downloadClients);
+  const { isSchemaLoading, isSchemaFetched, schemaError, schema } =
+    useDownloadClientSchema();
 
   const { usenetDownloadClients, torrentDownloadClients } = useMemo(() => {
     return schema.reduce<{
-      usenetDownloadClients: DownloadClient[];
-      torrentDownloadClients: DownloadClient[];
+      usenetDownloadClients: DownloadClientModel[];
+      torrentDownloadClients: DownloadClientModel[];
     }>(
       (acc, item) => {
         if (item.protocol === 'usenet') {
@@ -51,62 +49,50 @@ function AddDownloadClientModalContent({
     );
   }, [schema]);
 
-  useEffect(() => {
-    dispatch(fetchDownloadClientSchema());
-  }, [dispatch]);
-
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>{translate('AddDownloadClient')}</ModalHeader>
 
       <ModalBody>
-        {isSchemaFetching ? <LoadingIndicator /> : null}
+        {isSchemaLoading ? <LoadingIndicator /> : null}
 
-        {!isSchemaFetching && !!schemaError ? (
+        {!isSchemaLoading && !!schemaError ? (
           <Alert kind={kinds.DANGER}>
             {translate('AddDownloadClientError')}
           </Alert>
         ) : null}
 
-        {isSchemaPopulated && !schemaError ? (
-          <div>
-            <Alert kind={kinds.INFO}>
-              <div>{translate('SupportedDownloadClients')}</div>
-              <div>{translate('SupportedDownloadClientsMoreInfo')}</div>
-            </Alert>
+        {isSchemaFetched && !schemaError ? (
+          <div className={styles.downloadClients}>
+            <div className={styles.groupLegend}>{translate('Usenet')}</div>
 
-            <FieldSet legend={translate('Usenet')}>
-              <div className={styles.downloadClients}>
-                {usenetDownloadClients.map((downloadClient) => {
-                  return (
-                    <AddDownloadClientItem
-                      key={downloadClient.implementation}
-                      {...downloadClient}
-                      implementation={downloadClient.implementation}
-                      onDownloadClientSelect={onDownloadClientSelect}
-                    />
-                  );
-                })}
-              </div>
-            </FieldSet>
+            <div>
+              {usenetDownloadClients.map((downloadClient) => (
+                <AddDownloadClientItem
+                  key={downloadClient.implementation}
+                  {...downloadClient}
+                  implementation={downloadClient.implementation}
+                  onDownloadClientSelect={onDownloadClientSelect}
+                />
+              ))}
+            </div>
 
-            <FieldSet legend={translate('Torrents')}>
-              <div className={styles.downloadClients}>
-                {torrentDownloadClients.map((downloadClient) => {
-                  return (
-                    <AddDownloadClientItem
-                      key={downloadClient.implementation}
-                      {...downloadClient}
-                      implementation={downloadClient.implementation}
-                      onDownloadClientSelect={onDownloadClientSelect}
-                    />
-                  );
-                })}
-              </div>
-            </FieldSet>
+            <div className={styles.groupLegend}>{translate('Torrents')}</div>
+
+            <div>
+              {torrentDownloadClients.map((downloadClient) => (
+                <AddDownloadClientItem
+                  key={downloadClient.implementation}
+                  {...downloadClient}
+                  implementation={downloadClient.implementation}
+                  onDownloadClientSelect={onDownloadClientSelect}
+                />
+              ))}
+            </div>
           </div>
         ) : null}
       </ModalBody>
+
       <ModalFooter>
         <Button onPress={onModalClose}>{translate('Close')}</Button>
       </ModalFooter>

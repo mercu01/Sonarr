@@ -1,0 +1,150 @@
+.header {
+  padding-bottom: 6px !important;
+  border-bottom: none !important;
+  white-space: normal !important;
+}
+
+.scope {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+
+  min-width: 0;
+  font-weight: 400;
+  font-size: 15px;
+}
+
+.scopeSeries {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--accentDeep);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+
+  &:hover {
+    color: var(--accentDeep);
+    text-decoration: underline;
+  }
+}
+
+.scopeSeparator {
+  color: var(--inkFaint);
+}
+
+.scopeEpisode {
+  flex-shrink: 0;
+  color: var(--inkSoft);
+  font-family: var(--monoSpaceFontFamily);
+}
+
+.episodeTitle {
+  margin-top: 6px;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.labels {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-top: 12px;
+}
+
+.monitoredToggle {
+  display: inline-flex;
+  border-radius: 999px;
+
+  &:global(.isDisabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--inputFocusBoxShadowColor);
+  }
+}
+
+.tabs {
+  margin-top: -32px;
+}
+
+.tabBar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  border-bottom: 1px solid var(--borderColor);
+  background-color: var(--modalBackgroundColor);
+}
+
+.tabList {
+  display: flex;
+  gap: 24px;
+
+  margin: 0;
+  padding: 0;
+}
+
+.tabFilters {
+  flex: 1 1 auto;
+  min-width: 0;
+
+  input {
+    height: 32px;
+  }
+}
+
+.tab {
+  position: relative;
+  bottom: -1px;
+  padding: 10px 2px;
+  border-bottom: 2px solid transparent;
+  color: var(--inkMuted);
+  list-style: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.selectedTab {
+  border-bottom-color: var(--accent);
+  color: var(--ink);
+}
+
+.tabContent {
+  margin-top: 20px;
+}
+
+@media (--breakpointSmall) {
+  .tabs {
+    margin-top: -17px;
+  }
+
+  .tabBar {
+    display: contents;
+  }
+
+  .tabList {
+    border-bottom: 1px solid var(--borderColor);
+  }
+
+  .tabFilters {
+    position: sticky;
+    top: -1px;
+    z-index: 2;
+
+    padding: 11px 0 10px;
+    border-bottom: 1px solid var(--borderColor);
+    background-color: var(--modalBackgroundColor);
+  }
+}

@@ -1,0 +1,21 @@
+.days {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+  border-right: 1px solid var(--calendarBorderColor);
+  table-layout: fixed;
+}
+
+.days tbody {
+  height: 100%;
+}
+
+.days tbody tr {
+  height: 110px;
+}
+
+.month tbody tr {
+  height: 140px;
+}

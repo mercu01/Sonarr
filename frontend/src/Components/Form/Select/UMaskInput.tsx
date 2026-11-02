@@ -5,7 +5,7 @@ import translate from 'Utilities/String/translate';
 import EnhancedSelectInput, {
   EnhancedSelectInputValue,
 } from './EnhancedSelectInput';
-import styles from './UMaskInput.css';
+import styles from './UMaskInput.module.css';
 
 const umaskOptions: EnhancedSelectInputValue<string>[] = [
   {
@@ -55,6 +55,7 @@ function formatPermissions(permissions: number) {
   for (let i = 0; i < 9; i++) {
     const bit = (permissions & (1 << i)) !== 0;
     let digit = bit ? 'xwr'[i % 3] : '-';
+
     if (i === 6 && hasSetUID) {
       digit = bit ? 's' : 'S';
     } else if (i === 3 && hasSetGID) {
@@ -62,6 +63,7 @@ function formatPermissions(permissions: number) {
     } else if (i === 0 && hasSticky) {
       digit = bit ? 't' : 'T';
     }
+
     result = digit + result;
   }
 
@@ -69,6 +71,7 @@ function formatPermissions(permissions: number) {
 }
 
 export interface UMaskInputProps {
+  id?: string;
   name: string;
   value: string;
   hasError?: boolean;
@@ -78,7 +81,7 @@ export interface UMaskInputProps {
   onBlur?: (event: SyntheticEvent) => void;
 }
 
-function UMaskInput({ name, value, onChange }: UMaskInputProps) {
+function UMaskInput({ id, name, value, onChange }: UMaskInputProps) {
   const valueNum = parseInt(value, 8);
   const umaskNum = 0o777 & ~valueNum;
   const umask = umaskNum.toString(8).padStart(4, '0');
@@ -97,6 +100,7 @@ function UMaskInput({ name, value, onChange }: UMaskInputProps) {
       <div className={styles.inputWrapper}>
         <div className={styles.inputUnitWrapper}>
           <EnhancedSelectInput
+            id={id}
             name={name}
             value={value}
             values={values}

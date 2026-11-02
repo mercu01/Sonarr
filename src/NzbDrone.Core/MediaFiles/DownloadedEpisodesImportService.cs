@@ -33,6 +33,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IDetectSample _detectSample;
         private readonly IRuntimeInfo _runtimeInfo;
         private readonly IConfigService _configService;
+        private readonly IRejectedFileExtensionService _rejectedFileExtensionService;
         private readonly Logger _logger;
 
         public DownloadedEpisodesImportService(IDiskProvider diskProvider,
@@ -44,6 +45,7 @@ namespace NzbDrone.Core.MediaFiles
                                                IDetectSample detectSample,
                                                IRuntimeInfo runtimeInfo,
                                                IConfigService configService,
+                                               IRejectedFileExtensionService rejectedFileExtensionService,
                                                Logger logger)
         {
             _diskProvider = diskProvider;
@@ -55,6 +57,7 @@ namespace NzbDrone.Core.MediaFiles
             _detectSample = detectSample;
             _runtimeInfo = runtimeInfo;
             _configService = configService;
+            _rejectedFileExtensionService = rejectedFileExtensionService;
             _logger = logger;
         }
 
@@ -295,25 +298,17 @@ namespace NzbDrone.Core.MediaFiles
                 };
             }
 
-            if (_configService.UserRejectedExtensions is not null)
+            if (FileExtensions.ParseUserRejectedExtensions(_configService.UserRejectedExtensions).Contains(extension))
             {
-                var userRejectedExtensions = _configService.UserRejectedExtensions.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(e => e.Trim(' ', '.')
-                        .Insert(0, "."))
-                    .ToList();
-
-                if (userRejectedExtensions.Contains(extension))
+                return new List<ImportResult>
                 {
-                    return new List<ImportResult>
-                    {
-                        new ImportResult(new ImportDecision(new LocalEpisode
-                                {
-                                    Path = fileInfo.FullName
-                                },
-                                new ImportRejection(ImportRejectionReason.UserRejectedExtension, $"Caution: Found file with user defined rejected extension: '{extension}'")),
-                            $"Caution: Found executable file with user defined rejected extension: '{extension}'")
-                    };
-                }
+                    new ImportResult(new ImportDecision(new LocalEpisode
+                            {
+                                Path = fileInfo.FullName
+                            },
+                            new ImportRejection(ImportRejectionReason.UserRejectedExtension, $"Caution: Found file with user defined rejected extension: '{extension}'")),
+                        $"Caution: Found executable file with user defined rejected extension: '{extension}'")
+                };
             }
 
             if (extension.IsNullOrWhiteSpace() || !MediaFileExtensions.Extensions.Contains(extension))
@@ -374,15 +369,11 @@ namespace NzbDrone.Core.MediaFiles
         private ImportResult CheckEmptyResultForIssue(string folder)
         {
             var files = _diskProvider.GetFiles(folder, true);
+            var rejection = _rejectedFileExtensionService.GetRejection(files);
 
-            if (files.Any(file => FileExtensions.DangerousExtensions.Contains(Path.GetExtension(file))))
+            if (rejection != null)
             {
-                return RejectionResult(ImportRejectionReason.DangerousFile, "Caution: Found potentially dangerous file");
-            }
-
-            if (files.Any(file => FileExtensions.ExecutableExtensions.Contains(Path.GetExtension(file))))
-            {
-                return RejectionResult(ImportRejectionReason.ExecutableFile, "Caution: Found executable file");
+                return RejectionResult(rejection.Reason, rejection.Message);
             }
 
             if (files.Any(file => FileExtensions.ArchiveExtensions.Contains(Path.GetExtension(file))))

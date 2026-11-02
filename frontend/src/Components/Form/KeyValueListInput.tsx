@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import React, { useCallback, useState } from 'react';
 import { InputOnChange } from 'typings/inputs';
 import KeyValueListInputItem from './KeyValueListInputItem';
-import styles from './KeyValueListInput.css';
+import styles from './KeyValueListInput.module.css';
 
 interface KeyValue {
   key: string;
@@ -10,6 +10,7 @@ interface KeyValue {
 }
 
 export interface KeyValueListInputProps {
+  id?: string;
   className?: string;
   name: string;
   value: KeyValue[];
@@ -21,6 +22,7 @@ export interface KeyValueListInputProps {
 }
 
 function KeyValueListInput({
+  id,
   className = styles.inputContainer,
   name,
   value = [],
@@ -65,6 +67,7 @@ function KeyValueListInput({
       if (v.key || v.value) {
         acc.push(v);
       }
+
       return acc;
     }, []);
 
@@ -85,6 +88,7 @@ function KeyValueListInput({
       {[...value, { key: '', value: '' }].map((v, index) => (
         <KeyValueListInputItem
           key={index}
+          id={index === 0 ? id : undefined}
           index={index}
           keyValue={v.key}
           value={v.value}

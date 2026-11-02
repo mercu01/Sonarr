@@ -162,7 +162,7 @@ namespace Sonarr.Api.V3.Indexers
             catch (ReleaseDownloadException ex)
             {
                 _logger.Error(ex, ex.Message);
-                throw new NzbDroneClientException(HttpStatusCode.Conflict, "Getting release from indexer failed");
+                throw new NzbDroneClientException(HttpStatusCode.Conflict, $"Getting release from indexer failed: {ex.Message}");
             }
 
             return release;
@@ -180,6 +180,11 @@ namespace Sonarr.Api.V3.Indexers
             if (seriesId.HasValue && seasonNumber.HasValue)
             {
                 return await GetSeasonReleases(seriesId.Value, seasonNumber.Value);
+            }
+
+            if (seriesId.HasValue || seasonNumber.HasValue)
+            {
+                throw new NzbDroneClientException(HttpStatusCode.BadRequest, "seriesId and seasonNumber must be provided together");
             }
 
             return await GetRss();

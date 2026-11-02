@@ -1,19 +1,24 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
+import dimensions from 'Styles/Variables/dimensions';
 import getQueryPath from 'Utilities/Fetch/getQueryPath';
 import fetchJson from 'Utilities/requestAction';
 
 function getDimensions(width: number, height: number) {
-  const dimensions = {
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
+  return {
     width,
     height,
-    isExtraSmallScreen: width <= 480,
-    isSmallScreen: width <= 768,
-    isMediumScreen: width <= 992,
-    isLargeScreen: width <= 1200,
+    isExtraSmallScreen: width <= dimensions.breakpointExtraSmall,
+    isSmallScreen: width <= dimensions.breakpointSmall,
+    isMediumScreen: width <= dimensions.breakpointMedium,
+    isLargeScreen: width <= dimensions.breakpointLarge,
+    isSidebarCollapsible: width <= dimensions.breakpointSmall || isTouch,
+    isSidebarOverlay:
+      width <= dimensions.breakpointSmall ||
+      (isTouch && height <= dimensions.sidebarOverlayMaxHeight),
   };
-
-  return dimensions;
 }
 
 interface Dimensions {
@@ -23,6 +28,8 @@ interface Dimensions {
   isSmallScreen: boolean;
   isMediumScreen: boolean;
   isLargeScreen: boolean;
+  isSidebarCollapsible: boolean;
+  isSidebarOverlay: boolean;
 }
 
 interface AppState {
@@ -52,7 +59,7 @@ const useAppStore = create<AppState>()(() => {
     isReconnecting: false,
     isDisconnected: false,
     isRestarting: false,
-    isSidebarVisible: !dimensions.isSmallScreen,
+    isSidebarVisible: !dimensions.isSidebarOverlay,
   };
 });
 
@@ -159,7 +166,14 @@ export const saveDimensions = ({
   height: number;
 }) => {
   const dimensions = getDimensions(width, height);
-  useAppStore.setState({ dimensions });
+
+  useAppStore.setState((state) => {
+    if (state.dimensions.isSidebarOverlay === dimensions.isSidebarOverlay) {
+      return { dimensions };
+    }
+
+    return { dimensions, isSidebarVisible: !dimensions.isSidebarOverlay };
+  });
 };
 
 export const setVersion = ({ version }: { version: string }) => {
@@ -172,6 +186,7 @@ export const setVersion = ({ version }: { version: string }) => {
       if (!state.prevVersion) {
         newState.prevVersion = state.version;
       }
+
       newState.isUpdated = true;
     }
 
