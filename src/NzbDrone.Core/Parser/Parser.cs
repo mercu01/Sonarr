@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
@@ -564,6 +565,8 @@ namespace NzbDrone.Core.Parser
 
         private static readonly Regex MultiRegex = new(@"[-_. \[](?<multi>multi|multilang|multilanguage)[-_. \]]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        private static readonly Regex SpanishEpisodeTagRegex = new(@"\bCap[-_. ]?\d{3,4}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private static readonly Dictionary<string, int> ShortMonths = new()
         {
             { "jan", 1 },
@@ -767,6 +770,13 @@ namespace NzbDrone.Core.Parser
                                 }
 
                                 result.Languages = LanguageParser.ParseLanguages(result.ReleaseTokens);
+
+                                // Spanish trackers only mark the language through their "Cap.NNN" episode tag, which is excluded from the release tokens
+                                if (result.Languages.All(l => l == Language.Unknown) && SpanishEpisodeTagRegex.IsMatch(title))
+                                {
+                                    result.Languages = new List<Language> { Language.Spanish };
+                                }
+
                                 Logger.Debug("Languages parsed: {0}", string.Join(", ", result.Languages));
 
                                 result.Quality = QualityParser.ParseQuality(title);
@@ -972,7 +982,7 @@ namespace NzbDrone.Core.Parser
                         var count = last - first + 1;
                         result.EpisodeNumbers = Enumerable.Range(first, count).ToArray();
 
-                        // lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, episodeCaptures.Last().EndIndex());
+                        lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, episodeCaptures.Last().EndIndex());
 
                         if (matchGroup.Groups["special"].Success)
                         {

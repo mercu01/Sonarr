@@ -376,6 +376,34 @@ namespace NzbDrone.Core.Test.DataAugmentation.Scene
             Subject.FindTvdbId("Amareto", "Amareto.S01E01.720p.WEB-DL-Viva", 4).Should().Be(101);
         }
 
+        [Test]
+        public void should_insert_mapping_and_refresh_cache_when_adding_a_custom_mapping()
+        {
+            GivenProviders(new[] { _provider1 });
+
+            var mapping = new SceneMapping
+            {
+                TvdbId = 500,
+                Title = "Serie Personalizada",
+                SearchTerm = "Serie Personalizada",
+                ParseTerm = "seriepersonalizada",
+                SeasonNumber = -1,
+                Type = "CustomScene"
+            };
+
+            Mocker.GetMock<ISceneMappingRepository>()
+                  .Setup(c => c.All())
+                  .Returns(_fakeMappings.Concat(new[] { mapping }).ToList());
+
+            Subject.Add(mapping);
+
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.Insert(mapping), Times.Once());
+            VerifyEventPublished<SceneMappingsUpdatedEvent>();
+
+            Subject.FindByTvdbId(500).Should().ContainSingle(m => m.SearchTerm == "Serie Personalizada");
+            Subject.FindTvdbId("Serie Personalizada", null, -1).Should().Be(500);
+        }
+
         private void AssertNoUpdate()
         {
             _provider1.Verify(c => c.GetSceneMappings(), Times.Once());

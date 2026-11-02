@@ -59,6 +59,15 @@ namespace NzbDrone.Core.Test.ParserTests
             result.FullSeason.Should().BeTrue();
         }
 
+        [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.201][AC3 5.1 Castellano]")]
+        [TestCase("Black Mirror T6 [HDTV][Cap.601]")]
+        public void should_not_parse_spanish_episode_release_as_full_season(string postTitle)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.FullSeason.Should().BeFalse();
+            result.EpisodeNumbers.Should().NotBeEmpty();
+        }
+
         [TestCase("Acropolis Series S05 EXTRAS DVDRip XviD RUNNER", "Acropolis Series", 5)]
         [TestCase("Punky Series S01 EXTRAS DVDRip XviD RUNNER", "Punky Series", 1)]
         [TestCase("Instant Series S03 EXTRAS DVDRip XviD OSiTV", "Instant Series", 3)]

@@ -110,10 +110,31 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series Title - Temporada 5 - Pilot.english.sub")]// spanish
         [TestCase("Series Title 6x14")]// spanish
         [TestCase("Series Title 08x07")]// spanish
+        [TestCase("Black Mirror T6 [WEB-DL 1080p]")]// spanish
+        [TestCase("Black Mirror T 06 [WEB-DL 1080p]")]// spanish
         public void should_parse_language_spanish(string postTitle)
         {
             var result = LanguageParser.ParseLanguages(postTitle);
             result.Should().Contain(Language.Spanish);
+        }
+
+        [TestCase("Rapa [HDTV][Cap.201]")]
+        [TestCase("Series Title - Temporada 4 [HDTV 720p][Cap.408]")]
+        [TestCase("Watson [HDTV 720p][Cap.1217] [1.19GB]")]
+        public void should_parse_spanish_language_from_spanish_episode_numbering_in_release_title(string postTitle)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+
+            result.Languages.Should().Contain(Language.Spanish);
+        }
+
+        [TestCase("Cape.Fear.S01E01.720p.HDTV.x264-GROUP")]
+        [TestCase("Captain.Series.S01E01.720p.HDTV.x264-GROUP")]
+        public void should_not_parse_spanish_language_from_series_title_starting_with_cap(string postTitle)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+
+            result.Languages.Should().NotContain(Language.Spanish);
         }
 
         [TestCase("Title.the.Series.2009.S01E14.German.HDTV.XviD-LOL")]

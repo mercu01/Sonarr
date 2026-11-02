@@ -266,6 +266,23 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         }
 
         [Test]
+        public async Task episode_search_for_standard_series_should_also_search_with_spanish_anime_criteria()
+        {
+            WithEpisodes();
+
+            var allCriteria = WatchForSearchCriteria();
+
+            await Subject.EpisodeSearch(_xemEpisodes.First(), true, false);
+
+            var criteria = allCriteria.OfType<AnimeEpisodeSearchCriteria>().ToList();
+
+            criteria.Count.Should().Be(1);
+            criteria[0].SeasonNumber.Should().Be(2);
+            criteria[0].EpisodeNumber.Should().Be(3);
+            criteria[0].ToString().Should().Contain("Cap.203");
+        }
+
+        [Test]
         public async Task scene_seasonsearch()
         {
             WithEpisodes();
@@ -613,15 +630,17 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             Mocker.GetMock<ISceneMappingService>()
                 .Verify(v => v.FindByTvdbId(_xemSeries.Id), Times.Once());
 
-            allCriteria.Should().HaveCount(2);
+            allCriteria.Should().HaveCount(3);
 
             allCriteria.First().Should().BeOfType<SingleEpisodeSearchCriteria>();
             allCriteria.First().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(1);
             allCriteria.First().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(12);
 
-            allCriteria.Last().Should().BeOfType<SingleEpisodeSearchCriteria>();
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(2);
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(3);
+            allCriteria[1].Should().BeOfType<SingleEpisodeSearchCriteria>();
+            allCriteria[1].As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(2);
+            allCriteria[1].As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(3);
+
+            allCriteria.Last().Should().BeOfType<AnimeEpisodeSearchCriteria>();
         }
 
         [Test]
@@ -655,15 +674,17 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             Mocker.GetMock<ISceneMappingService>()
                 .Verify(v => v.FindByTvdbId(_xemSeries.Id), Times.Once());
 
-            allCriteria.Should().HaveCount(2);
+            allCriteria.Should().HaveCount(3);
 
             allCriteria.First().Should().BeOfType<SingleEpisodeSearchCriteria>();
             allCriteria.First().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(1);
             allCriteria.First().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(12);
 
-            allCriteria.Last().Should().BeOfType<SingleEpisodeSearchCriteria>();
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(2);
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(3);
+            allCriteria[1].Should().BeOfType<SingleEpisodeSearchCriteria>();
+            allCriteria[1].As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(2);
+            allCriteria[1].As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(3);
+
+            allCriteria.Last().Should().BeOfType<AnimeEpisodeSearchCriteria>();
         }
     }
 }

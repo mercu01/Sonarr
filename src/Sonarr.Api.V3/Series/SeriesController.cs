@@ -207,7 +207,7 @@ namespace Sonarr.Api.V3.Series
 
             _seriesService.UpdateSeries(model);
             var current = _sceneMappingService.FindByTvdbId(series.TvdbId);
-            if (seriesResource.Title != model.Title && current.Any(_ => _.SearchTerm == seriesResource.Title) == false)
+            if (seriesResource.Title.IsNotNullOrWhiteSpace() && seriesResource.Title != model.Title && current.Any(_ => _.SearchTerm == seriesResource.Title) == false)
             {
                 var scene = new SceneMapping()
                 {

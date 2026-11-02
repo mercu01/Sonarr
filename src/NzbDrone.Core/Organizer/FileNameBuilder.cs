@@ -164,12 +164,14 @@ namespace NzbDrone.Core.Organizer
 
             episodes = episodes.OrderBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber).ToList();
 
-            if (series.SeriesType == SeriesTypes.Daily)
+            if (series.SeriesType == SeriesTypes.Daily && episodes.First().SeasonNumber > 0)
             {
                 pattern = namingConfig.DailyEpisodeFormat;
             }
 
-            if (series.SeriesType == SeriesTypes.Anime)
+            if (series.SeriesType == SeriesTypes.Anime &&
+                (episodes.All(e => e.AbsoluteEpisodeNumber.HasValue) ||
+                !RequiresAbsoluteEpisodeNumber()))
             {
                 pattern = namingConfig.AnimeEpisodeFormat;
             }
@@ -575,7 +577,7 @@ namespace NzbDrone.Core.Organizer
                         absoluteEpisodePattern = FormatAbsoluteNumberTokens(absoluteEpisodePattern, formatPattern, eps);
                         break;
 
-                    // MultiEpisodeStyle.Extend
+                        // MultiEpisodeStyle.Extend
                     default:
                         formatPattern = "-" + absoluteEpisodeFormat.AbsoluteEpisodePattern;
                         absoluteEpisodePattern = FormatAbsoluteNumberTokens(absoluteEpisodePattern, formatPattern, episodes);

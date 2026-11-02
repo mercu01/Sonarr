@@ -103,12 +103,11 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
-            results.GetAllTiers().Should().HaveCount(2);
+            results.GetAllTiers().Should().HaveCount(4);
 
             var pages = results.GetTier(0).Select(t => t.First()).ToList();
 
-            pages[0].Url.FullUri.Should().Contain("&cat=3,4&");
-            pages[1].Url.FullUri.Should().Contain("&cat=3,4&");
+            pages.Should().OnlyContain(p => p.Url.FullUri.Contains("&cat=3,4&"));
         }
 
         [Test]
@@ -116,7 +115,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
-            results.GetAllTiers().Should().HaveCount(2);
+            results.GetAllTiers().Should().HaveCount(4);
 
             results.GetAllTiers().First().First().Url.FullUri.Should().Contain("?t=tvsearch&");
             results.GetAllTiers().Last().First().Url.FullUri.Should().Contain("?t=search&");
@@ -127,7 +126,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
-            results.GetAllTiers().Should().HaveCount(2);
+            results.GetAllTiers().Should().HaveCount(4);
 
             var pages = results.GetAllTiers().First().Take(3).ToList();
 
@@ -141,7 +140,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
-            results.GetAllTiers().Should().HaveCount(2);
+            results.GetAllTiers().Should().HaveCount(4);
 
             var pages = results.GetAllTiers().First().Take(500).ToList();
 
@@ -149,16 +148,18 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         }
 
         [Test]
-        public void should_use_only_absolute_numbering_for_anime_search()
+        public void should_use_absolute_numbering_for_id_search_and_spanish_numbering_for_title_search_for_anime()
         {
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
-            results.GetAllTiers().Should().HaveCount(2);
+            results.GetAllTiers().Should().HaveCount(4);
 
             var pages = results.GetTier(0).Select(t => t.First()).ToList();
 
             pages[0].Url.FullUri.Should().Contain("rid=10&q=100");
-            pages[1].Url.FullUri.Should().Contain("q=Monkey%20Island+100");
+            pages[1].Url.FullUri.Should().Contain("?t=search&").And.Contain("q=Monkey%20Island+Cap.504");
+            pages[2].Url.FullUri.Should().Contain("?t=search&").And.Contain("q=Monkey%20Island+5x4");
+            pages[3].Url.FullUri.Should().Contain("?t=search&").And.Contain("q=Monkey%20Island+5x04");
         }
 
         [Test]
@@ -167,13 +168,19 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             Subject.Settings.AnimeStandardFormatSearch = true;
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
-            results.GetTier(0).Should().HaveCount(4);
+            results.GetTier(0).Should().HaveCount(8);
             var pages = results.GetTier(0).Select(t => t.First()).ToList();
 
             pages[0].Url.FullUri.Should().Contain("rid=10&q=100");
             pages[1].Url.FullUri.Should().Contain("rid=10&season=5&ep=4");
-            pages[2].Url.FullUri.Should().Contain("q=Monkey%20Island+100");
-            pages[3].Url.FullUri.Should().Contain("q=Monkey%20Island&season=5&ep=4");
+
+            // The standard numbering title search is repeated once per Spanish search mode
+            pages[2].Url.FullUri.Should().Contain("?t=search&").And.Contain("q=Monkey%20Island+Cap.504");
+            pages[3].Url.FullUri.Should().Contain("?t=tvsearch&").And.Contain("q=Monkey%20Island&season=5&ep=4");
+            pages[4].Url.FullUri.Should().Contain("?t=search&").And.Contain("q=Monkey%20Island+5x4");
+            pages[5].Url.FullUri.Should().Contain("?t=tvsearch&").And.Contain("q=Monkey%20Island&season=5&ep=4");
+            pages[6].Url.FullUri.Should().Contain("?t=search&").And.Contain("q=Monkey%20Island+5x04");
+            pages[7].Url.FullUri.Should().Contain("?t=tvsearch&").And.Contain("q=Monkey%20Island&season=5&ep=4");
         }
 
         [Test]
@@ -447,6 +454,24 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
 
             var results = Subject.GetSearchRequests(_seasonSearchCriteria);
             results.GetTier(0).Should().HaveCount(0);
+        }
+
+        [Test]
+        public void should_search_season_by_title_using_spanish_season_formats()
+        {
+            var results = Subject.GetSearchRequests(_seasonSearchCriteria);
+            results.Tiers.Should().Be(2);
+
+            var pages = results.GetTier(1).Select(t => t.First()).ToList();
+
+            pages.Should().HaveCount(6);
+            pages[0].Url.FullUri.Should().Contain("&q=Monkey%20Island%20Temporada%201");
+            pages[1].Url.FullUri.Should().Contain("&q=Monkey%20Island%20S01");
+            pages[2].Url.FullUri.Should().Contain("&q=Monkey%20Island%20T1");
+            pages[3].Url.FullUri.Should().Contain("&q=Monkey%20Island%20T%201");
+            pages[4].Url.FullUri.Should().Contain("&q=Monkey%20Island%20T01");
+            pages[5].Url.FullUri.Should().Contain("&q=Monkey%20Island%20T%2001");
+            pages.Should().OnlyContain(p => !p.Url.Query.Contains("season="));
         }
     }
 }

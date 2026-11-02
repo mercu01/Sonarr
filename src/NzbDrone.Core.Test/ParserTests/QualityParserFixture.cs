@@ -327,6 +327,13 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.Bluray720p, proper);
         }
 
+        [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.201][AC3 5.1 Castellano]")]
+        [TestCase("Watson [HDTV 720p][Cap.217] [1.19GB]")]
+        public void should_parse_spanish_tracker_hdtv_720p_tag_as_bluray720p(string title)
+        {
+            ParseAndVerifyQuality(title, Quality.Bluray720p, false);
+        }
+
         [TestCase("Series - S01E03 - Come Fly With Me - 1080p BluRay.mkv", false)]
         [TestCase("Sonarr.Of.Series.S02E13.1080p.BluRay.x264-AVCDVD", false)]
         [TestCase("Series.S01E02.Chained.Heat.[Bluray1080p].mkv", false)]
