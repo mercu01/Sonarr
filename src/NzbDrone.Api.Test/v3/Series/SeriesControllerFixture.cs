@@ -40,6 +40,10 @@ namespace NzbDrone.Api.Test.v3.Series
             Mocker.GetMock<ISeriesStatisticsService>()
                   .Setup(s => s.SeriesStatistics(It.IsAny<int>(), It.IsAny<int>()))
                   .Returns(new SeriesStatistics());
+
+            Mocker.GetMock<ISeriesTranslationService>()
+                  .Setup(s => s.GetTranslations(It.IsAny<int>()))
+                  .Returns(new List<SeriesTranslation>());
         }
 
         private SeriesResource GivenResourceWithTitle(string title)
@@ -76,10 +80,12 @@ namespace NzbDrone.Api.Test.v3.Series
         [Test]
         public void should_update_series_when_title_is_changed()
         {
+            var path = _series.Path;
+
             Subject.UpdateSeries(GivenResourceWithTitle("El Titulo Original"));
 
             Mocker.GetMock<ISeriesService>()
-                  .Verify(v => v.UpdateSeries(_series, true, true), Times.Once());
+                  .Verify(v => v.UpdateSeries(_series, path, path, false), Times.Once());
         }
 
         [Test]
