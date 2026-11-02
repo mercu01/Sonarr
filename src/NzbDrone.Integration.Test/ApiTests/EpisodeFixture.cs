@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using System.Threading;
 using FluentAssertions;
@@ -23,7 +24,7 @@ namespace NzbDrone.Integration.Test.ApiTests
             var newSeries = Series.Lookup("archer").Single(c => c.TvdbId == 110381);
 
             newSeries.QualityProfileId = 1;
-            newSeries.Path = @"C:\Test\Archer".AsOsAgnostic();
+            newSeries.Path = Path.Combine(SeriesRootFolder, "Archer");
 
             newSeries = Series.Post(newSeries);
 
@@ -59,8 +60,11 @@ namespace NzbDrone.Integration.Test.ApiTests
         [TearDown]
         public void TearDown()
         {
-            Series.Delete(_series.Id);
-            Thread.Sleep(2000);
+            if (_series != null)
+            {
+                Series.Delete(_series.Id);
+                Thread.Sleep(2000);
+            }
         }
     }
 }

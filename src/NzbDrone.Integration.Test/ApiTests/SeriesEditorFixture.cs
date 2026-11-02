@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -18,7 +19,7 @@ namespace NzbDrone.Integration.Test.ApiTests
                 var newSeries = Series.Lookup(title).First();
 
                 newSeries.QualityProfileId = 1;
-                newSeries.Path = string.Format(@"C:\Test\{0}", title).AsOsAgnostic();
+                newSeries.Path = Path.Combine(SeriesRootFolder, title);
 
                 Series.Post(newSeries);
             }
