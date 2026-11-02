@@ -3,12 +3,12 @@ name: Build
 on:
   push:
     branches:
-      - develop
+      - main-atomoHD
     paths-ignore:
       - "src/Sonarr.Api.*/openapi.json"
   pull_request:
     branches:
-      - develop
+      - main-atomoHD
     paths-ignore:
       - "src/NzbDrone.Core/Localization/Core/**"
       - "src/Sonarr.Api.*/openapi.json"
